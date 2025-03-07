@@ -53,7 +53,7 @@ export function LoginForm({
 
       updateUser(result.data.user);
 
-      router.push("/");
+      router.push("/dashboard");
     } catch (error) {
       console.error("Error en el login:", error);
     }

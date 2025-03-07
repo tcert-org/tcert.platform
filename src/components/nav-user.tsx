@@ -12,9 +12,7 @@ interface NavUserProps {
 }
 
 export function NavUser({ user, className }: NavUserProps) {
-  // Generate initials from name
   const getInitials = (name: string) => {
-    console.log(name);
     const nameParts = name.split(" ");
     if (nameParts.length > 1) {
       return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
@@ -22,7 +20,6 @@ export function NavUser({ user, className }: NavUserProps) {
     return name.substring(0, 2).toUpperCase();
   };
 
-  // Translate role to Spanish
   const getRoleInSpanish = (role: string) => {
     switch (role) {
       case "student":
@@ -37,15 +34,11 @@ export function NavUser({ user, className }: NavUserProps) {
   };
 
   const handleLogout = () => {
-    // Clear user data from sessionStorage
-    sessionStorage.removeItem("userProfile");
-    // Reload the page to trigger the root page logic
-    window.location.href = "/";
+    console.log(" TODO Cerrar sesión");
   };
 
   return (
     <div className={className}>
-      {/* User profile */}
       <div className="mb-1 px-2 py-2">
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8 rounded-lg">
@@ -64,7 +57,6 @@ export function NavUser({ user, className }: NavUserProps) {
         </div>
       </div>
 
-      {/* Profile options */}
       <div className="ml-3 border-l border-sidebar-border pl-2 mb-4">
         <div className="flex flex-col gap-1">
           <Link
