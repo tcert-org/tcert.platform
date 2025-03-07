@@ -18,6 +18,7 @@ import { GraduationCap, Users, Eye, EyeOff } from "lucide-react";
 import { studentLoginSchema, partnerLoginSchema } from "@/lib/schemas";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
+import { useUserStore } from "@/stores/user-store";
 
 type StudentLoginForm = z.infer<typeof studentLoginSchema>;
 type PartnerLoginForm = z.infer<typeof partnerLoginSchema>;
@@ -28,6 +29,7 @@ export function LoginForm({
 }: React.ComponentPropsWithoutRef<"div">) {
   const [loginType, setLoginType] = useState<"student" | "partner">("student");
   const router = useRouter();
+  const updateUser = useUserStore((state) => state.updateUser);
 
   const handleStudentLogin = async (data: StudentLoginForm) => {
     console.log(data);
@@ -48,7 +50,8 @@ export function LoginForm({
       }
 
       const result = await response.json();
-      console.log("Login exitoso:", result);
+
+      updateUser(result.data.user);
 
       router.push("/");
     } catch (error) {

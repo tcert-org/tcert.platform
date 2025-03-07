@@ -34,7 +34,7 @@ export default class AuthController {
   }
   static async loginUser(
     data: LoginUserType
-  ): Promise<NextResponse<ApiResponse<{ user: UserRowType }>>> {
+  ): Promise<NextResponse<ApiResponse<{ user: string }>>> {
     try {
       const { user, session } = await AuthService.loginUser(data);
 

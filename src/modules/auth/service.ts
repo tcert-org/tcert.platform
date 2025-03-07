@@ -3,6 +3,7 @@ import { LoginUserType, RegisterUserType } from "./middleware";
 import UserTable, { UserRowType } from "./table";
 import { createClient, Session } from "@supabase/supabase-js";
 import { ApiResponse } from "@/lib/types";
+import CryptoJS from "crypto-js";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -56,7 +57,7 @@ export default class AuthService {
   }
   static async loginUser(
     data: LoginUserType
-  ): Promise<{ user: UserRowType; session: Session }> {
+  ): Promise<{ user: string; session: Session }> {
     const { email, password } = data;
 
     try {
@@ -79,9 +80,13 @@ export default class AuthService {
           statusCode: 404,
         };
       }
+      const encryptedUser: string = CryptoJS.AES.encrypt(
+        JSON.stringify(user),
+        process.env.SUPABASE_JWT_SECRET!
+      ).toString();
 
       return {
-        user,
+        user: encryptedUser,
         session: authData.session,
       };
     } catch (error: any) {

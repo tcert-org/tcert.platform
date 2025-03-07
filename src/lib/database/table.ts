@@ -34,6 +34,7 @@ export default class Table<T extends keyof Tables> {
         .eq("id", id)
         .single();
       if (error) throw new Error(error.message);
+      console.log("data consulta db resultado: ", data);
       return data;
     } catch (error) {
       console.error(`Error in getById(${id}) from ${this.tableName}:`, error);
