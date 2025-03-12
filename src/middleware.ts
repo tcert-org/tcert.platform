@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/database/conection";
+import UserTable from "@/modules/auth/table";
 
 const SIGN_IN_URL = "/sign-in";
 const REFRESH_API_URL = "/api/auth/refresh";
@@ -21,12 +22,16 @@ async function refreshTokens(req: NextRequest) {
   const { access_token: newAccessToken, refresh_token: newRefreshToken } =
     await refreshResponse.json();
 
-  await supabase.auth.setSession({
+  const { data, error } = await supabase.auth.setSession({
     access_token: newAccessToken,
     refresh_token: newRefreshToken,
   });
 
-  return { newAccessToken, newRefreshToken };
+  if (error) {
+    return null;
+  }
+
+  return { newAccessToken, newRefreshToken, user: data.user };
 }
 
 export async function middleware(req: NextRequest) {
@@ -34,19 +39,53 @@ export async function middleware(req: NextRequest) {
     const accessToken = req.cookies.get("access_token")?.value;
     const refreshToken = req.cookies.get("refresh_token")?.value;
 
+    let user = null;
+
     if (accessToken && refreshToken) {
-      await supabase.auth.setSession({
+      const { data, error } = await supabase.auth.setSession({
         access_token: accessToken,
         refresh_token: refreshToken,
       });
+
+      if (error) {
+        return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
+      }
+
+      user = data.user;
     } else if (!accessToken && refreshToken) {
       const tokens = await refreshTokens(req);
       if (!tokens) {
         return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
       }
-      return NextResponse.next();
+      user = tokens.user;
     } else {
       return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
+    }
+
+    if (user) {
+      const userTable = new UserTable();
+      const userData = await userTable.getByUuid(user.id);
+
+      console.log("Middleware - Datos obtenidos del usuario: ", userData);
+
+      if (!userData) {
+        return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
+      }
+
+      // Convertir userData en una string JSON válida
+      const userString = JSON.stringify(userData);
+
+      // Construimos nuevos encabezados y agregamos `x-user` con el objeto en formato JSON
+      const requestHeaders = new Headers(req.headers);
+      requestHeaders.set("x-user", userString);
+
+      const response = NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+
+      return response;
     }
 
     if (

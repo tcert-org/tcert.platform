@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/database/conection";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
   const page = Number(searchParams.get("page")) || 1;

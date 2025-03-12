@@ -1,17 +1,37 @@
 "use client";
 
-import type React from "react";
-
+import React from "react";
 import { AppSidebar } from "./app-sidebar";
 import { SiteHeader } from "./site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import type { UserProfile, MenuItem } from "@/lib/types";
+import type { MenuItem } from "@/lib/types";
+import { UserRowType } from "@/modules/auth/table";
+
+import {
+  Home,
+  BookOpen,
+  FileText,
+  CreditCard,
+  ShoppingBag,
+  BarChart,
+  Users,
+} from "lucide-react";
+
+const iconMap: Record<string, React.ElementType> = {
+  Home,
+  BookOpen,
+  FileText,
+  CreditCard,
+  ShoppingBag,
+  BarChart,
+  Users,
+};
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  userProfile: UserProfile;
+  userProfile: (UserRowType & { roles?: { name: string } | null }) | null;
   menuItems: MenuItem[];
-  currentModuleName: string; // Nombre del módulo actual
+  currentModuleName: string;
 }
 
 export function DashboardLayout({
@@ -28,7 +48,17 @@ export function DashboardLayout({
           platformTitle="Plataforma T-Cert"
         />
         <div className="flex flex-1">
-          <AppSidebar userProfile={userProfile} menuItems={menuItems} />
+          <AppSidebar
+            userProfile={userProfile}
+            menuItems={menuItems.map((item) => ({
+              ...item,
+              icon:
+                iconMap[item.iconName] &&
+                typeof iconMap[item.iconName] === "function"
+                  ? React.createElement(iconMap[item.iconName])
+                  : null,
+            }))}
+          />
           <SidebarInset>
             <div className="flex flex-1 flex-col gap-4 p-4">
               <h1 className="text-2xl font-bold">{currentModuleName}</h1>

@@ -1,14 +1,10 @@
 import { supabase } from "@/lib/database/conection";
 import { LoginUserType, RegisterUserType } from "./middleware";
 import UserTable, { UserRowType } from "./table";
-import { createClient, Session } from "@supabase/supabase-js";
+import { Session } from "@supabase/supabase-js";
 import { ApiResponse } from "@/lib/types";
 import CryptoJS from "crypto-js";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 const userTable = new UserTable();
 
 export default class AuthService {
@@ -18,17 +14,14 @@ export default class AuthService {
     const { email, password, role_id } = data;
 
     try {
-      const repeatedUser = await userTable.findByEmail(email);
-      if (repeatedUser !== null) {
-        throw {
-          statusCode: 400,
-          message: `User already exists with this email: ${email}`,
-        };
-      }
-
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            role_id: role_id,
+          },
+        },
       });
 
       if (authError || !authData?.user?.id || !authData.session) {
@@ -37,7 +30,11 @@ export default class AuthService {
         };
       }
 
-      const createdUser = await userTable.insert({ email, role_id });
+      const createdUser = await userTable.insert({
+        email,
+        role_id,
+        user_uuid: authData.user.id,
+      });
       if (createdUser === null) {
         throw {
           message: "Error creating user in database",
@@ -74,6 +71,7 @@ export default class AuthService {
         };
       }
       const user = await userTable.findByEmail(email);
+      console.log("user returned by findByEmail:", user);
       if (!user) {
         throw {
           message: "User not found in database",
@@ -119,7 +117,7 @@ export default class AuthService {
   }
   static async logOut(accessToken: string): Promise<ApiResponse<boolean>> {
     try {
-      const { error } = await supabaseAdmin.auth.admin.signOut(accessToken);
+      const { error } = await supabase.auth.admin.signOut(accessToken);
 
       if (error) {
         throw {

@@ -1,37 +1,32 @@
-import {
-  Home,
-  BookOpen,
-  FileText,
-  CreditCard,
-  ShoppingBag,
-  BarChart,
-  Users,
-} from "lucide-react";
-import type { UserRole, MenuItem } from "./types";
+import { MenuItem, UserRole } from "./types";
 
 const allMenuItems: Record<UserRole, MenuItem[]> = {
   student: [
-    { title: "Inicio", path: "/home", icon: Home },
-    { title: "Simuladores", path: "/simulators", icon: BookOpen },
-    { title: "Examen", path: "/exam", icon: FileText },
+    { title: "Inicio", path: "/home", iconName: "Home" },
+    { title: "Simuladores", path: "/simulators", iconName: "BookOpen" },
+    { title: "Examen", path: "/exam", iconName: "FileText" },
   ],
   partner: [
     {
       title: "Administración de Vouchers",
       path: "/voucher-administration",
-      icon: CreditCard,
+      iconName: "CreditCard",
     },
-    { title: "Comprar Vouchers", path: "/buy-vouchers", icon: ShoppingBag },
-    { title: "Reportes", path: "/reports", icon: BarChart },
+    {
+      title: "Comprar Vouchers",
+      path: "/buy-vouchers",
+      iconName: "ShoppingBag",
+    },
+    { title: "Reportes", path: "/reports", iconName: "BarChart" },
   ],
   admin: [
     {
       title: "Administración de Vouchers",
       path: "/voucher-administration",
-      icon: CreditCard,
+      iconName: "CreditCard",
     },
-    { title: "Reportes", path: "/reports", icon: BarChart },
-    { title: "Partners", path: "/partners", icon: Users },
+    { title: "Reportes", path: "/reports", iconName: "BarChart" },
+    { title: "Partners", path: "/partners", iconName: "Users" },
   ],
   unknown: [],
 };

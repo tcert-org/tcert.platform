@@ -2,12 +2,12 @@
 
 import { LogOut, Settings } from "lucide-react";
 import Link from "next/link";
-import type { UserProfile } from "@/lib/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { UserRowType } from "@/modules/auth/table";
 
 interface NavUserProps {
-  user: UserProfile;
+  user: (UserRowType & { roles?: { name: string } | null }) | null;
   className?: string;
 }
 
@@ -25,7 +25,7 @@ export function NavUser({ user, className }: NavUserProps) {
       case "student":
         return "Estudiante";
       case "partner":
-        return "Socio";
+        return "Partner";
       case "admin":
         return "Administrador";
       default:
@@ -51,7 +51,7 @@ export function NavUser({ user, className }: NavUserProps) {
               {user?.company_name ?? "Ultradev"}
             </span>
             <span className="truncate text-xs">
-              {getRoleInSpanish(user.nameRol)}
+              {getRoleInSpanish(user?.roles?.name ?? "unknown")}
             </span>
           </div>
         </div>

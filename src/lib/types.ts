@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react";
 import type { UserRowType } from "@/modules/auth/table";
 
 export type UserRole = "student" | "partner" | "admin" | "unknown";
@@ -10,7 +9,7 @@ export interface UserProfile extends UserRowType {
 export interface MenuItem {
   title: string;
   path: string;
-  icon: LucideIcon;
+  iconName: string;
 }
 
 export interface BreadcrumbItem {

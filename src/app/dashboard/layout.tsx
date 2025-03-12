@@ -1,73 +1,62 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { useUserStore } from "@/stores/user-store";
-import type { UserProfile, UserRole } from "@/lib/types";
 import { getMenuForRole, getDefaultPageForRole } from "@/lib/navigation";
+import type { UserRole } from "@/lib/types";
+import { UserRowType } from "@/modules/auth/table";
 
-export default function DashboardWrapper({
+export default async function DashboardWrapper({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const { getUser } = useUserStore();
-  const router = useRouter();
-  const pathname = usePathname();
+  const encabezados = await headers();
+  const userString = encabezados.get("x-user");
 
-  useEffect(() => {
-    async function fetchUserProfile() {
-      const user = await getUser();
-      if (user) {
-        const response = await fetch(`/api/roles?id=${user.role_id}`);
-        if (response.ok) {
-          console.log("entro aqui", response);
-          const { data: role } = await response.json();
-          const userWithRole = { ...user, nameRol: role.name as UserRole };
-          setUserProfile(userWithRole);
-
-          const expectedPathPrefix = `/dashboard/${userWithRole.nameRol}`;
-          if (!pathname.startsWith(expectedPathPrefix)) {
-            router.replace(
-              `${expectedPathPrefix}${getDefaultPageForRole(
-                userWithRole.nameRol
-              )}`
-            );
-          }
-        }
-      }
-    }
-
-    fetchUserProfile();
-  }, [getUser, router, pathname]);
-
-  if (!userProfile) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Cargando...</p>
-      </div>
-    );
+  if (!userString) {
+    redirect("/sign-in");
+    return null;
   }
 
-  const menuItems = getMenuForRole(userProfile.nameRol).map((item) => ({
-    ...item,
-    path: `/dashboard/${userProfile.nameRol}${item.path}`,
+  let user: (UserRowType & { roles?: { name: string } | null }) | null = null;
+  try {
+    user = JSON.parse(userString) as UserRowType & {
+      roles?: { name: string };
+    };
+  } catch (error) {
+    console.error("Error parsing user data:", error);
+    redirect("/sign-in");
+    return null;
+  }
+
+  const nameRol = user?.roles?.name as UserRole;
+  if (!nameRol) {
+    redirect("/sign-in");
+    return null;
+  }
+
+  const menuItems = getMenuForRole(nameRol).map((item) => ({
+    title: item.title,
+    path: `/dashboard/${nameRol}${item.path}`,
+    iconName: item.iconName,
   }));
 
-  const currentMenuItem = menuItems.find((item) =>
-    pathname.includes(item.path)
-  );
-  const currentModuleName = currentMenuItem
-    ? currentMenuItem.title
-    : "Módulo Desconocido";
+  const defaultPage = getDefaultPageForRole(nameRol);
+  const expectedPath = `/dashboard/${nameRol}${defaultPage}`;
+
+  const referer = encabezados.get("referer") || "";
+  const currentPath = new URL(referer, "http://localhost").pathname;
+
+  if (currentPath !== expectedPath) {
+    redirect(expectedPath);
+    return null;
+  }
 
   return (
     <DashboardLayout
-      userProfile={userProfile}
+      userProfile={user}
       menuItems={menuItems}
-      currentModuleName={currentModuleName}
+      currentModuleName="Dashboard"
     >
       {children}
     </DashboardLayout>

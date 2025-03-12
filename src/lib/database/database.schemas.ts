@@ -171,6 +171,7 @@ export const users_InsertSchema = z.object({
   contact_number: z.string().min(1).nullable(),
   email: z.string().email(),
   role_id: z.number().int().positive(),
+  user_uuid: z.string().uuid(),
 });
 
 export const users_UpdateSchema = z.object({
@@ -179,6 +180,7 @@ export const users_UpdateSchema = z.object({
   contact_number: z.string().min(1).nullable().optional(),
   email: z.string().email().optional(),
   role_id: z.number().int().positive().optional(),
+  user_uuid: z.string().uuid().optional(),
 });
 
 export const voucher_statuses_InsertSchema = z.object({

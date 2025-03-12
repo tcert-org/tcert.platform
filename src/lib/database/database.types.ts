@@ -400,7 +400,7 @@ export type Database = {
           fullname: string | null;
           id: number;
           updated_at: string | null;
-          voucher_id: number | null;
+          voucher_code: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -410,7 +410,7 @@ export type Database = {
           fullname?: string | null;
           id?: never;
           updated_at?: string | null;
-          voucher_id?: number | null;
+          voucher_code?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -420,15 +420,15 @@ export type Database = {
           fullname?: string | null;
           id?: never;
           updated_at?: string | null;
-          voucher_id?: number | null;
+          voucher_code?: string | null;
         };
         Relationships: [
           {
-            foreignKeyName: "students_voucher_id_fkey";
-            columns: ["voucher_id"];
+            foreignKeyName: "students_voucher_code_fkey";
+            columns: ["voucher_code"];
             isOneToOne: false;
             referencedRelation: "vouchers";
-            referencedColumns: ["id"];
+            referencedColumns: ["code"];
           }
         ];
       };
@@ -442,6 +442,7 @@ export type Database = {
           id: number;
           role_id: number;
           updated_at: string | null;
+          user_uuid: string | null;
         };
         Insert: {
           company_address?: string | null;
@@ -452,6 +453,7 @@ export type Database = {
           id?: never;
           role_id: number;
           updated_at?: string | null;
+          user_uuid?: string | null;
         };
         Update: {
           company_address?: string | null;
@@ -462,6 +464,7 @@ export type Database = {
           id?: never;
           role_id?: number;
           updated_at?: string | null;
+          user_uuid?: string | null;
         };
         Relationships: [
           {
@@ -505,7 +508,6 @@ export type Database = {
           partner_id: number | null;
           purchase_date: string;
           status_id: number | null;
-          student_id: number | null;
           updated_at: string | null;
           used: boolean | null;
         };
@@ -519,7 +521,6 @@ export type Database = {
           partner_id?: number | null;
           purchase_date?: string;
           status_id?: number | null;
-          student_id?: number | null;
           updated_at?: string | null;
           used?: boolean | null;
         };
@@ -533,7 +534,6 @@ export type Database = {
           partner_id?: number | null;
           purchase_date?: string;
           status_id?: number | null;
-          student_id?: number | null;
           updated_at?: string | null;
           used?: boolean | null;
         };
@@ -564,20 +564,6 @@ export type Database = {
             columns: ["status_id"];
             isOneToOne: false;
             referencedRelation: "voucher_statuses";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "vouchers_student_id_fkey";
-            columns: ["student_id"];
-            isOneToOne: false;
-            referencedRelation: "partner_voucher_counts";
-            referencedColumns: ["partner_id"];
-          },
-          {
-            foreignKeyName: "vouchers_student_id_fkey";
-            columns: ["student_id"];
-            isOneToOne: false;
-            referencedRelation: "users";
             referencedColumns: ["id"];
           }
         ];

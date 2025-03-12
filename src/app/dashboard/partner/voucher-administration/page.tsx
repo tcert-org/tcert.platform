@@ -1,5 +1,3 @@
 export default function VoucherAdministrationPage() {
-  return (
-    <p>Página de administración de vouchers para socios y administradores.</p>
-  );
+  return <p>Trabajando en módulo: Administración de vouchers para Partners</p>;
 }
