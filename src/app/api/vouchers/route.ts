@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const filters: Record<string, string | null> = {
     code: searchParams.get("code"),
     email: searchParams.get("email"),
-    used: searchParams.get("used"),
+    available: searchParams.get("available"),
     "student.fullname": searchParams.get("student"),
     "certification.name": searchParams.get("certification"),
     "status.name": searchParams.get("status"),
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     "id",
     "code",
     "email",
-    "used",
+    "available",
     "created_at",
     "student.fullname",
     "certification.name",
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase.from("vouchers").select(
     `
-      id, code, email, used, created_at,
+      id, code, email, available, created_at,
       student:students(fullname),
       certification:certifications(name),
       status:voucher_statuses(name)
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
   Object.entries(filters).forEach(([key, value]) => {
     if (value !== null) {
-      if (key === "used") {
+      if (key === "available") {
         query = query.eq(key, value === "true");
       } else {
         query = query.ilike(key, `%${value}%`);

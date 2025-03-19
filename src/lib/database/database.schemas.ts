@@ -207,7 +207,7 @@ export const vouchers_InsertSchema = z.object({
     .transform((str) => new Date(str)),
   status_id: z.number().int().positive().nullable(),
   student_id: z.number().int().positive().nullable(),
-  used: z.boolean().nullable(),
+  available: z.boolean().nullable(),
 });
 
 export const vouchers_UpdateSchema = z.object({
@@ -228,5 +228,5 @@ export const vouchers_UpdateSchema = z.object({
     .optional(),
   status_id: z.number().int().positive().nullable().optional(),
   student_id: z.number().int().positive().nullable().optional(),
-  used: z.boolean().nullable().optional(),
+  available: z.boolean().nullable().optional(),
 });

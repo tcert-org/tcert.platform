@@ -70,8 +70,8 @@ export default class AuthService {
           statusCode: 401,
         };
       }
-      const user = await userTable.findByEmail(email);
-      console.log("user returned by findByEmail:", user);
+      const user = await userTable.getByUuid(authData.user.id);
+      console.log("user returned by getByUuid:", user);
       if (!user) {
         throw {
           message: "User not found in database",

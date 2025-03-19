@@ -17,16 +17,19 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       path: "/buy-vouchers",
       iconName: "ShoppingBag",
     },
-    { title: "Reportes", path: "/reports", iconName: "BarChart" },
+    // { title: "Reportes", path: "/reports", iconName: "BarChart" },
   ],
   admin: [
+    {
+      title: "Administración de Partners",
+      path: "/partners",
+      iconName: "Users",
+    },
     {
       title: "Administración de Vouchers",
       path: "/voucher-administration",
       iconName: "CreditCard",
     },
-    { title: "Reportes", path: "/reports", iconName: "BarChart" },
-    { title: "Partners", path: "/partners", iconName: "Users" },
   ],
   unknown: [],
 };
@@ -36,5 +39,12 @@ export function getMenuForRole(role: UserRole): MenuItem[] {
 }
 
 export function getDefaultPageForRole(role: UserRole): string {
-  return role === "student" ? "/home" : "/voucher-administration";
+  const defaultPages: Record<UserRole, string> = {
+    student: "/home",
+    partner: "/voucher-administration",
+    admin: "/partners",
+    unknown: "/",
+  };
+
+  return defaultPages[role] || "/voucher-administration";
 }

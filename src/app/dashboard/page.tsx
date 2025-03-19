@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useUserStore } from "@/stores/user-store";
 import { useRouter } from "next/navigation";
 import { getDefaultPageForRole } from "@/lib/navigation";
+import { UserRole } from "@/lib/types";
 
 export default function DashboardRedirect() {
   const { getUser } = useUserStore();
@@ -13,11 +14,12 @@ export default function DashboardRedirect() {
     async function redirectUser() {
       const user = await getUser();
       if (user) {
-        const response = await fetch(`/api/roles?id=${user.role_id}`);
-        if (response.ok) {
-          const { data: role } = await response.json();
+        const roleName = user.roles?.name ?? "unknown";
+        if (roleName) {
           router.replace(
-            `/dashboard/${role.name}${getDefaultPageForRole(role.name)}`
+            `/dashboard/${roleName}${getDefaultPageForRole(
+              roleName as UserRole
+            )}`
           );
         }
       }

@@ -22,3 +22,11 @@ export type ApiResponse<T> = {
   data?: T | null;
   error?: string;
 };
+
+export interface FetchParams {
+  [key: string]: any;
+  page: number;
+  limit: number;
+  order_by: string;
+  order_dir: "asc" | "desc";
+}

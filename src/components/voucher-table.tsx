@@ -69,7 +69,7 @@ interface Voucher {
   id: number;
   code: string;
   email: string;
-  used: boolean;
+  available: boolean;
   student: Student | null;
   certification: Certification | null;
   status: Status | null;
@@ -87,7 +87,7 @@ interface FilterState {
   id?: string;
   code?: string;
   email?: string;
-  used?: boolean | null;
+  available?: boolean | null;
   student?: string;
   certification?: string;
   status?: string;
@@ -305,7 +305,7 @@ const RowActions = ({
         <DropdownMenuItem onClick={() => onAction("edit", voucher)}>
           Editar
         </DropdownMenuItem>
-        {!voucher.used && (
+        {!voucher.available && (
           <DropdownMenuItem onClick={() => onAction("resend", voucher)}>
             Reenviar
           </DropdownMenuItem>
@@ -636,21 +636,21 @@ const VoucherTable = () => {
                       <div className="flex items-center space-x-1">
                         <span
                           className="cursor-pointer"
-                          onClick={() => toggleSort("used")}
+                          onClick={() => toggleSort("available")}
                         >
                           Usado
                         </span>
-                        {sort.orderBy === "used" &&
+                        {sort.orderBy === "available" &&
                           (sort.orderDir === "ASC" ? (
                             <ArrowUp className="h-4 w-4" />
                           ) : (
                             <ArrowDown className="h-4 w-4" />
                           ))}
                         <ColumnFilter
-                          column="used"
+                          column="available"
                           type="boolean"
                           onFilter={handleFilter}
-                          value={filters.used}
+                          value={filters.available}
                         />
                       </div>
                     </TableHead>
@@ -769,7 +769,7 @@ const VoucherTable = () => {
                         </TableCell>
                         <TableCell>{voucher.email}</TableCell>
                         <TableCell>
-                          <Switch checked={voucher.used} disabled />
+                          <Switch checked={voucher.available} disabled />
                         </TableCell>
                         <TableCell>
                           {voucher.student ? voucher.student.fullname : "—"}

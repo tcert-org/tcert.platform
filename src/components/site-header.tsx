@@ -28,9 +28,11 @@ export function SiteHeader({
           <SidebarIcon />
         </Button>
         <Separator orientation="vertical" className="mr-2 h-4" />
-        <p className="text-sm text-gray-500">
-          Estás en el módulo de {currentModuleName}
-        </p>
+        {currentModuleName && (
+          <p className="text-sm text-gray-500">
+            Estás en el módulo de {currentModuleName}
+          </p>
+        )}
 
         <h1 className="text-xl font-bold ml-auto">{platformTitle}</h1>
       </div>

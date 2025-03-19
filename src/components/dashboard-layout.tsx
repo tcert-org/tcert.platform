@@ -60,8 +60,14 @@ export function DashboardLayout({
             }))}
           />
           <SidebarInset>
-            <div className="flex flex-1 flex-col gap-4 p-4">
-              <h1 className="text-2xl font-bold">{currentModuleName}</h1>
+            <div className="w-[87%] mx-auto py-10 2xl:w-[90%]">
+              <div className="mb-8">
+                {currentModuleName && (
+                  <h1 className="text-3xl font-bold mb-2">
+                    {currentModuleName}
+                  </h1>
+                )}
+              </div>
               {children}
             </div>
           </SidebarInset>

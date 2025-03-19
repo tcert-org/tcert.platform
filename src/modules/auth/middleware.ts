@@ -1,3 +1,4 @@
+import { ApiResponse } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -51,21 +52,26 @@ export default class UserMiddleware {
 
   static async validateLogin(
     req: NextRequest,
-    next: (data: LoginUserType) => Promise<NextResponse>
-  ) {
+    next: (
+      data: LoginUserType
+    ) => Promise<
+      | NextResponse<ApiResponse<null>>
+      | NextResponse<ApiResponse<{ user: string }>>
+    >
+  ): Promise<
+    | NextResponse<ApiResponse<null>>
+    | NextResponse<ApiResponse<{ user: string }>>
+  > {
     try {
       const body = await req.json();
       const validatedData = LoginUserSchema.parse(body) as LoginUserType;
       return await next(validatedData);
     } catch (error) {
-      return NextResponse.json(
-        {
-          statusCode: 400,
-          data: null,
-          error: `Invalid request data: ${error}`,
-        },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        statusCode: 400,
+        data: null,
+        error: `Invalid request data: ${error}`,
+      });
     }
   }
 }

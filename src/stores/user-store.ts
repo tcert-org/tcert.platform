@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Database } from "../lib/database/database.types";
+import { UserRowType } from "@/modules/auth/table";
 
-type User = Database["public"]["Tables"]["users"]["Row"];
+type User = UserRowType & { roles?: { name: string } | null };
 
 interface UserState {
   user: string | null;
+  decryptedUser: User | null;
   updateUser: (encryptedUser: string) => void;
   getUser: () => Promise<User | null>;
 }
@@ -14,12 +15,15 @@ export const useUserStore = create(
   persist<UserState>(
     (set, get) => ({
       user: null,
+      decryptedUser: null,
       updateUser: (encryptedUser) => {
-        set({ user: encryptedUser });
+        set({ user: encryptedUser, decryptedUser: null });
       },
       getUser: async () => {
-        const { user } = get();
+        const { user, decryptedUser } = get();
         if (!user) return null;
+
+        if (decryptedUser) return decryptedUser;
 
         const response = await fetch("/api/decrypt-user", {
           method: "POST",
@@ -35,7 +39,9 @@ export const useUserStore = create(
         }
 
         const data = await response.json();
-        return data.user;
+        const userData = data.user as User;
+        set({ decryptedUser: userData });
+        return userData;
       },
     }),
     {

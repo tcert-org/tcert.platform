@@ -509,7 +509,7 @@ export type Database = {
           purchase_date: string;
           status_id: number | null;
           updated_at: string | null;
-          used: boolean | null;
+          available: boolean | null;
         };
         Insert: {
           certification_id?: number | null;
@@ -522,7 +522,7 @@ export type Database = {
           purchase_date?: string;
           status_id?: number | null;
           updated_at?: string | null;
-          used?: boolean | null;
+          available?: boolean | null;
         };
         Update: {
           certification_id?: number | null;
@@ -535,7 +535,7 @@ export type Database = {
           purchase_date?: string;
           status_id?: number | null;
           updated_at?: string | null;
-          used?: boolean | null;
+          available?: boolean | null;
         };
         Relationships: [
           {

@@ -28,6 +28,7 @@ export function LoginForm({
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [loginType, setLoginType] = useState<"student" | "partner">("student");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
   const updateUser = useUserStore((state) => state.updateUser);
 
@@ -50,7 +51,13 @@ export function LoginForm({
       }
 
       const result = await response.json();
+      console.log("result: ", result);
+      console.log("response:  ", result);
 
+      if (result.statusCode === 401) {
+        setErrorMessage("Credenciales incorrectas");
+        return;
+      }
       updateUser(result.data.user);
 
       router.push("/dashboard");
@@ -66,6 +73,7 @@ export function LoginForm({
           <CardTitle className="text-xl">Ingreso a la plataforma</CardTitle>
           <CardDescription>Selecciona tu forma de ingreso</CardDescription>
         </CardHeader>
+
         <CardContent>
           <div className="flex flex-col gap-4 mb-6">
             <Button
@@ -98,6 +106,11 @@ export function LoginForm({
 
           {loginType === "partner" && (
             <PartnerLoginForm onSubmit={handlePartnerLogin} />
+          )}
+          {errorMessage && (
+            <div className=" text-center my-4">
+              <span className="text-red-500 text-sm">{errorMessage}</span>
+            </div>
           )}
         </CardContent>
       </Card>

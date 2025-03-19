@@ -62,7 +62,8 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
     }
 
-    if (user) {
+    console.log("req.nextUrl.pathname: ", req.nextUrl.pathname);
+    if (user && req.nextUrl.pathname.startsWith("/app/api")) {
       const userTable = new UserTable();
       const userData = await userTable.getByUuid(user.id);
 
@@ -72,10 +73,8 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
       }
 
-      // Convertir userData en una string JSON válida
       const userString = JSON.stringify(userData);
 
-      // Construimos nuevos encabezados y agregamos `x-user` con el objeto en formato JSON
       const requestHeaders = new Headers(req.headers);
       requestHeaders.set("x-user", userString);
 

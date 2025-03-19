@@ -23,7 +23,6 @@ export default class UserTable extends Table<typeof tableName> {
         .single();
 
       if (error) throw new Error(error.message);
-      console.log("data consulta db resultado: ", data);
       return data;
     } catch (error) {
       console.error(`Error in getByUuid(${uuid}) from ${tableName}:`, error);
