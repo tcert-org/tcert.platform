@@ -1,7 +1,7 @@
 import Table from "@/lib/database/table";
 import { Database } from "@/lib/database/database.types";
 import { supabase } from "@/lib/database/conection";
-import { FilterParams } from "@/app/api/request-table/partners/route";
+import { FilterParamsPartner } from "@/app/api/request-table/partners/route";
 import { PartnerDinamicTable } from "@/app/dashboard/admin/partners/page";
 
 export type PartnerRowType = Database["public"]["Tables"]["users"]["Row"];
@@ -23,8 +23,8 @@ export default class PartnerTable extends Table<"users"> {
     super("users");
   }
 
-  async getUsersWithRole(
-    filters: FilterParams
+  async getPartnersForTable(
+    filters: FilterParamsPartner
   ): Promise<{ data: PartnerDinamicTable[]; totalCount: number } | null> {
     try {
       const {
@@ -83,7 +83,7 @@ export default class PartnerTable extends Table<"users"> {
         totalCount: result.totalCount || 0,
       };
     } catch (error: any) {
-      console.error("Error in getUsersWithRole:", error.message);
+      console.error("Error in getPartnersForTable:", error.message);
       return null;
     }
   }

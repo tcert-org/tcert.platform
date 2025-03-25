@@ -29,4 +29,5 @@ export interface FetchParams {
   limit: number;
   order_by: string;
   order_dir: "asc" | "desc";
+  partner_id?: string;
 }

@@ -1,7 +1,7 @@
 import PartnerTable from "@/modules/partners/table";
 import { NextRequest, NextResponse } from "next/server";
 
-export type FilterParams = {
+export type FilterParamsPartner = {
   filter_company_name?: string;
   filter_email?: string;
   filter_total_vouchers_op?: string;
@@ -19,7 +19,7 @@ export type FilterParams = {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const params: FilterParams = {
+    const params: FilterParamsPartner = {
       filter_company_name: searchParams.get("filter_company_name") || undefined,
       filter_email: searchParams.get("filter_email") || undefined,
       filter_total_vouchers_op:
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
     const partnerTable = new PartnerTable();
 
-    const result = await partnerTable.getUsersWithRole(params);
+    const result = await partnerTable.getPartnersForTable(params);
     if (!result) {
       return NextResponse.json(
         { error: "Failed to fetch partners" },

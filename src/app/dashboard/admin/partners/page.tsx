@@ -6,7 +6,7 @@ import {
   type ActionItem,
 } from "@/components/data-table/action-menu";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Trash2, Eye, Copy } from "lucide-react";
+import { Edit, Eye } from "lucide-react";
 import { FetchParams } from "@/lib/types";
 
 export interface PartnerDinamicTable {
@@ -63,21 +63,6 @@ export default function PartnersPage() {
       label: "Editar",
       icon: Edit,
       navigateTo: (partner) => `/partners/edit/${partner.id}`, // Redirigir a edición
-    },
-    {
-      label: "Duplicar",
-      icon: Copy,
-      action: (partner) => {
-        console.log(`Duplicando a ${partner.company_name}`);
-      },
-    },
-    {
-      label: "Eliminar",
-      icon: Trash2,
-      action: (partner) => {
-        console.log(`Eliminando a ${partner.company_name}`);
-      },
-      variant: "destructive",
     },
   ];
 
