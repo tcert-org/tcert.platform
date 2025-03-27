@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/dashboard-layout";
 import { useUserStore } from "@/stores/user-store";
 import type { UserProfile, UserRole } from "@/lib/types";
 import { getMenuForRole, getDefaultPageForRole } from "@/lib/navigation";
-import { DashboardSkeleton } from "@/components/dashboard-skeleton";
+import { GeneralLoader } from "@/components/general-loader";
 
 export default function DashboardWrapper({
   children,
@@ -38,7 +38,7 @@ export default function DashboardWrapper({
   }, [fetchUserProfile]);
 
   if (!userProfile) {
-    return <DashboardSkeleton />;
+    return <GeneralLoader />;
   }
 
   const menuItems = getMenuForRole(userProfile.nameRol).map((item) => ({

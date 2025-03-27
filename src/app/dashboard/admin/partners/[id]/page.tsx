@@ -10,17 +10,10 @@ import {
 import type { ColumnDef } from "@tanstack/react-table";
 import { Eye } from "lucide-react";
 import { FetchParams } from "@/lib/types";
-
-export interface Voucher {
-  code: string;
-  certification_name: string;
-  student_name: string;
-  student_document: string;
-  buyer_email: string;
-  available: boolean;
-  purchase_date: string;
-  expiration_date: string;
-}
+import {
+  DataVoucherTable,
+  ResponseVoucherTable,
+} from "@/modules/vouchers/types";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -32,129 +25,104 @@ const PartnerDetailPage = ({ params }: PageProps) => {
 
   const fetchVouchers = async (
     params: FetchParams
-  ): Promise<{ data: Voucher[]; totalCount: number }> => {
+  ): Promise<ResponseVoucherTable> => {
     try {
-      const queryParams = new URLSearchParams(
-        Object.fromEntries(
-          Object.entries({
-            ...params,
-            partner_id: id,
-          }).map(([key, value]) => [key, String(value)])
-        )
-      ).toString();
+      const response = await fetch(`/api/request-table/vouchers/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...params,
+          filter_partner_id: id,
+        }),
+      });
 
-      // Hacer la petición al API
-      const response = await fetch(
-        `/api/request-table/vouchers/?${queryParams}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const result: {
+        statusCode: number;
+        data: ResponseVoucherTable | null;
+        error?: string;
+      } = await response.json();
 
-      // Log de la respuesta (aunque no se use)
-      if (!response.ok) {
+      if (!response.ok || result.statusCode !== 200 || !result.data) {
         console.error(
-          `"request /api/request-table/vouchers/?${queryParams}" was not successful: ${response.statusText}`
+          "Error getting vouchers:",
+          result.error || response.statusText
         );
-      } else {
-        const result = await response.json();
-        console.log("Respuesta del API de vouchers:", result);
+        return { data: [], totalCount: 0 };
       }
 
-      // Mantener los registros inventados
-      const mockVouchers: Voucher[] = [
-        {
-          code: "VOUCHER-001",
-          certification_name: "Certificación en Desarrollo Web",
-          student_name: "María González",
-          student_document: "12345678-9",
-          buyer_email: "empresa@ejemplo.com",
-          available: true,
-          purchase_date: "2024-01-15T00:00:00Z",
-          expiration_date: "2024-07-15T00:00:00Z",
-        },
-        {
-          code: "VOUCHER-002",
-          certification_name: "Certificación en Inteligencia Artificial",
-          student_name: "Carlos Ruiz",
-          student_document: "98765432-1",
-          buyer_email: "empresa@ejemplo.com",
-          available: true,
-          purchase_date: "2023-11-20T00:00:00Z",
-          expiration_date: "2024-05-20T00:00:00Z",
-        },
-        {
-          code: "VOUCHER-003",
-          certification_name: "Certificación en Ciberseguridad",
-          student_name: "Laura Morales",
-          student_document: "11223344-5",
-          buyer_email: "empresa@ejemplo.com",
-          available: false,
-          purchase_date: "2023-09-10T00:00:00Z",
-          expiration_date: "2024-03-10T00:00:00Z",
-        },
-      ];
-
       return {
-        data: mockVouchers,
-        totalCount: 100,
+        data: result.data.data,
+        totalCount: result.data.totalCount,
       };
     } catch (error) {
-      console.error("Error fetching vouchers:", error);
-      return {
-        data: [],
-        totalCount: 0,
-      };
+      console.error("Error inesperado al obtener vouchers:", error);
+      return { data: [], totalCount: 0 };
     }
   };
-
-  const voucherActions: ActionItem<Voucher>[] = [
+  const voucherActions: ActionItem<DataVoucherTable>[] = [
     {
       label: "Ver detalles",
       icon: Eye,
-      action: (voucher: Voucher) => {
+      action: (voucher: DataVoucherTable) => {
         console.log({
           title: "Ver voucher",
-          description: `Viendo detalles del voucher ${voucher.id}`,
+          description: `Viendo detalles del voucher ${voucher.code}`,
         });
       },
     },
   ];
 
-  const columns: ColumnDef<Voucher>[] = [
+  const columns: ColumnDef<DataVoucherTable>[] = [
     createActionsColumn(voucherActions),
     {
       accessorKey: "code",
       header: "Código único",
       size: 150,
-      enableSorting: true,
+      meta: { filterType: "text" },
     },
     {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 250,
       meta: { filterType: "text" },
+      cell: ({ row }) => {
+        const value = row.getValue("certification_name");
+        return value ? (
+          value
+        ) : (
+          <span className="text-gray-400 italic">Campo vacío</span>
+        );
+      },
     },
     {
-      accessorKey: "student_name",
+      accessorKey: "student_fullname",
       header: "Nombre estudiante",
       size: 200,
       meta: { filterType: "text" },
+      cell: ({ row }) => {
+        const value = row.getValue("student_fullname");
+        return value ? (
+          value
+        ) : (
+          <span className="text-gray-400 italic">Campo vacío</span>
+        );
+      },
     },
     {
-      accessorKey: "student_document",
+      accessorKey: "student_document_number",
       header: "N. Documento estudiante",
       size: 180,
       meta: { filterType: "text" },
-    },
-    {
-      accessorKey: "buyer_email",
-      header: "Correo de comprador",
-      size: 250,
-      meta: { filterType: "text" },
+      cell: ({ row }) => {
+        const value = row.getValue("student_document_number");
+        return value ? (
+          value
+        ) : (
+          <span className="text-gray-400 italic">Campo vacío</span>
+        );
+      },
     },
     {
       accessorKey: "available",

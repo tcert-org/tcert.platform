@@ -7,6 +7,7 @@ import type {
   PaginationState,
 } from "@tanstack/react-table";
 import { FetchParams } from "@/lib/types";
+import { format } from "date-fns";
 
 interface UseDataFetchProps<TData> {
   fetchFn: (
@@ -41,7 +42,6 @@ export function useDataFetch<TData>({
     setError(null);
 
     try {
-      // Construct filter parameters
       const filterParams: FetchParams = {
         page: 0,
         limit: 0,
@@ -49,12 +49,19 @@ export function useDataFetch<TData>({
         order_dir: "asc",
       };
 
-      // Add filters for each column
       filters.forEach((filter) => {
         const filterValue = filter.value;
 
-        // Handle number filters with operators
-        if (typeof filterValue === "string" && filterValue.includes(":")) {
+        if (
+          filterValue instanceof Date ||
+          (typeof filterValue === "string" && filterValue.includes("T"))
+        ) {
+          const formattedDate = format(new Date(filterValue), "yyyy-MM-dd");
+          filterParams[`filter_${filter.id}`] = formattedDate;
+        } else if (
+          typeof filterValue === "string" &&
+          filterValue.includes(":")
+        ) {
           const [operator, value] = filterValue.split(":");
           filterParams[`filter_${filter.id}_op`] = operator;
           filterParams[`filter_${filter.id}`] = value;
@@ -63,16 +70,13 @@ export function useDataFetch<TData>({
         }
       });
 
-      // Add pagination parameters
-      filterParams.page = pagination.pageIndex + 1; // Convert to 1-based for API
+      filterParams.page = pagination.pageIndex + 1;
       filterParams.limit = pagination.pageSize;
 
-      // Add sorting parameters
       if (sorting.length > 0) {
         filterParams.order_by = sorting[0].id;
         filterParams.order_dir = sorting[0].desc ? "desc" : "asc";
       } else {
-        // Default sort
         filterParams.order_by = "created_at";
         filterParams.order_dir = "desc";
       }
@@ -93,7 +97,6 @@ export function useDataFetch<TData>({
     fetchData();
   }, [fetchData]);
 
-  // Initial fetch
   useState(() => {
     fetchData();
   });

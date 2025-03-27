@@ -34,7 +34,7 @@ export default class PartnerTable extends Table<"users"> {
         filter_total_vouchers,
         filter_used_vouchers_op,
         filter_used_vouchers,
-        filter_created_at_op,
+        filter_created_at,
         page = 1,
         limit = 10,
         order_by = "created_at",
@@ -57,8 +57,8 @@ export default class PartnerTable extends Table<"users"> {
         "get_partners_with_filters",
         {
           filter_company_name: filter_company_name || null,
-          filter_created_at: filter_created_at_op
-            ? new Date(filter_created_at_op).toISOString().split("T")[0]
+          filter_created_at: filter_created_at
+            ? new Date(filter_created_at).toISOString().split("T")[0]
             : null,
           filter_email: filter_email || null,
           filter_total_vouchers: filter_total_vouchers || null,
