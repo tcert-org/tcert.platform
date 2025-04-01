@@ -1,11 +1,3 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
-
 export type Database = {
   public: {
     Tables: {
@@ -391,6 +383,38 @@ export type Database = {
         };
         Relationships: [];
       };
+      sessions: {
+        Row: {
+          created_at: string | null;
+          id: number;
+          updated_at: string | null;
+          voucher_code: string | null;
+          voucher_id: number | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          id?: never;
+          updated_at?: string | null;
+          voucher_code?: string | null;
+          voucher_id?: number | null;
+        };
+        Update: {
+          created_at?: string | null;
+          id?: never;
+          updated_at?: string | null;
+          voucher_code?: string | null;
+          voucher_id?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sessions_voucher_id_fkey";
+            columns: ["voucher_id"];
+            isOneToOne: false;
+            referencedRelation: "vouchers";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       students: {
         Row: {
           created_at: string | null;
@@ -400,7 +424,6 @@ export type Database = {
           fullname: string | null;
           id: number;
           updated_at: string | null;
-          voucher_code: string | null;
         };
         Insert: {
           created_at?: string | null;
@@ -410,7 +433,6 @@ export type Database = {
           fullname?: string | null;
           id?: never;
           updated_at?: string | null;
-          voucher_code?: string | null;
         };
         Update: {
           created_at?: string | null;
@@ -420,17 +442,8 @@ export type Database = {
           fullname?: string | null;
           id?: never;
           updated_at?: string | null;
-          voucher_code?: string | null;
         };
-        Relationships: [
-          {
-            foreignKeyName: "students_voucher_code_fkey";
-            columns: ["voucher_code"];
-            isOneToOne: false;
-            referencedRelation: "vouchers";
-            referencedColumns: ["code"];
-          }
-        ];
+        Relationships: [];
       };
       users: {
         Row: {
@@ -499,6 +512,7 @@ export type Database = {
       };
       vouchers: {
         Row: {
+          available: boolean | null;
           certification_id: number | null;
           code: string;
           created_at: string | null;
@@ -508,23 +522,12 @@ export type Database = {
           partner_id: number | null;
           purchase_date: string;
           status_id: number | null;
+          student_id: number | null;
           updated_at: string | null;
-          available: boolean | null;
+          voucher_code: string | null;
         };
         Insert: {
-          certification_id?: number | null;
-          code: string;
-          created_at?: string | null;
-          email?: string | null;
-          expiration_date?: string | null;
-          id?: never;
-          partner_id?: number | null;
-          purchase_date?: string;
-          status_id?: number | null;
-          updated_at?: string | null;
           available?: boolean | null;
-        };
-        Update: {
           certification_id?: number | null;
           code?: string;
           created_at?: string | null;
@@ -534,8 +537,24 @@ export type Database = {
           partner_id?: number | null;
           purchase_date?: string;
           status_id?: number | null;
+          student_id?: number | null;
           updated_at?: string | null;
+          voucher_code?: string | null;
+        };
+        Update: {
           available?: boolean | null;
+          certification_id?: number | null;
+          code?: string;
+          created_at?: string | null;
+          email?: string | null;
+          expiration_date?: string | null;
+          id?: never;
+          partner_id?: number | null;
+          purchase_date?: string;
+          status_id?: number | null;
+          student_id?: number | null;
+          updated_at?: string | null;
+          voucher_code?: string | null;
         };
         Relationships: [
           {
@@ -565,6 +584,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "voucher_statuses";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "vouchers_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "vouchers_voucher_code_fkey";
+            columns: ["voucher_code"];
+            isOneToOne: true;
+            referencedRelation: "vouchers";
+            referencedColumns: ["code"];
           }
         ];
       };
@@ -573,6 +606,7 @@ export type Database = {
       partner_voucher_counts: {
         Row: {
           partner_id: number | null;
+          total_vouchers: number | null;
           unused_vouchers: number | null;
           used_vouchers: number | null;
         };
@@ -580,7 +614,38 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      get_partners_with_filters: {
+        Args: {
+          filter_company_name?: string;
+          filter_email?: string;
+          filter_created_at?: string;
+          filter_total_vouchers_op?: string;
+          filter_total_vouchers?: number;
+          filter_used_vouchers_op?: string;
+          filter_used_vouchers?: number;
+          order_by?: string;
+          order_dir?: string;
+          page?: number;
+        };
+        Returns: JSON;
+      };
+      get_vouchers_with_filters: {
+        Args: {
+          filter_code?: string;
+          filter_certification_name?: string;
+          filter_student_fullname?: string;
+          filter_student_document_number?: string;
+          filter_email?: string;
+          filter_available?: boolean;
+          filter_purchase_date?: string;
+          filter_expiration_date?: string;
+          filter_partner_id?: number;
+          order_by?: string;
+          order_dir?: string;
+          page?: number;
+        };
+        Returns: JSON;
+      };
     };
     Enums: {
       [_ in never]: never;

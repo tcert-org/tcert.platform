@@ -103,7 +103,7 @@ export default class PartnerTable extends Table<"users"> {
       // Segunda consulta: obtener los datos de los vouchers desde la view
       const { data: voucherData, error: voucherError } = await supabase
         .from("partner_voucher_counts")
-        .select("used_vouchers, unused_vouchers")
+        .select("*")
         .eq("partner_id", id)
         .single();
 
@@ -111,7 +111,11 @@ export default class PartnerTable extends Table<"users"> {
         throw new Error(`Error fetching voucher data: ${voucherError.message}`);
 
       // Valores por defecto si no hay datos de vouchers
-      const { used_vouchers = 0, unused_vouchers = 0 } = voucherData || {};
+      const {
+        used_vouchers = 0,
+        unused_vouchers = 0,
+        total_vouchers = 0,
+      } = voucherData || {};
 
       return {
         id: userData.id,
@@ -121,7 +125,7 @@ export default class PartnerTable extends Table<"users"> {
         contact_number: userData.contact_number,
         used_vouchers,
         unused_vouchers,
-        total_vouchers: used_vouchers + unused_vouchers,
+        total_vouchers,
       };
     } catch (error) {
       console.error(error);

@@ -14,6 +14,7 @@ import {
   DataVoucherTable,
   ResponseVoucherTable,
 } from "@/modules/vouchers/types";
+import { GeneralLoader } from "@/components/general-loader";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -132,7 +133,7 @@ const PartnerDetailPage = ({ params }: PageProps) => {
         filterType: "boolean",
         booleanOptions: {
           trueLabel: "Disponible",
-          falseLabel: "No disponible",
+          falseLabel: "Usado o vencido",
         },
       },
       cell: ({ row }) => {
@@ -143,7 +144,7 @@ const PartnerDetailPage = ({ params }: PageProps) => {
               isAvailable ? "text-green-600" : "text-red-600"
             }`}
           >
-            {isAvailable ? "Disponible" : "No disponible"}
+            {isAvailable ? "Disponible" : "Usado o vencido"}
           </div>
         );
       },
@@ -199,6 +200,9 @@ const PartnerDetailPage = ({ params }: PageProps) => {
     fetchPartnerData();
   }, [id]);
 
+  if (!partnerData) {
+    return <GeneralLoader />;
+  }
   return (
     <>
       {partnerData && (

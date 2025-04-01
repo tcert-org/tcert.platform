@@ -230,3 +230,13 @@ export const vouchers_UpdateSchema = z.object({
   student_id: z.number().int().positive().nullable().optional(),
   available: z.boolean().nullable().optional(),
 });
+
+export const sessions_InsertSchema = z.object({
+  voucher_code: z.string().min(1).nullable(),
+  voucher_id: z.number().int().positive().nullable(),
+});
+
+export const sessions_UpdateSchema = z.object({
+  voucher_code: z.string().min(1).nullable().optional(),
+  voucher_id: z.number().int().positive().nullable().optional(),
+});

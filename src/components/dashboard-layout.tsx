@@ -4,8 +4,7 @@ import React from "react";
 import { AppSidebar } from "./app-sidebar";
 import { SiteHeader } from "./site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import type { MenuItem } from "@/lib/types";
-import { UserRowType } from "@/modules/auth/table";
+import type { MenuItem, ProfileWithRole } from "@/lib/types";
 
 import {
   Home,
@@ -29,7 +28,7 @@ const iconMap: Record<string, React.ElementType> = {
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  userProfile: (UserRowType & { roles?: { name: string } | null }) | null;
+  userProfile: ProfileWithRole | null; // Updated to use ProfileWithRole
   menuItems: MenuItem[];
   currentModuleName: string;
 }

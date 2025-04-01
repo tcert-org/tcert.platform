@@ -19,6 +19,7 @@ import { studentLoginSchema, partnerLoginSchema } from "@/lib/schemas";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/user-store";
+import { useStudentStore } from "@/stores/student-store";
 
 type StudentLoginForm = z.infer<typeof studentLoginSchema>;
 type PartnerLoginForm = z.infer<typeof partnerLoginSchema>;
@@ -31,9 +32,37 @@ export function LoginForm({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
   const updateUser = useUserStore((state) => state.updateUser);
+  const updateStudent = useStudentStore((state) => state.updateStudent);
 
   const handleStudentLogin = async (data: StudentLoginForm) => {
-    console.log(data);
+    try {
+      const response = await fetch("/api/auth-student/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response.status === 400) {
+        setErrorMessage("Formato del token inválido");
+        return;
+      }
+      if (response.status === 401) {
+        setErrorMessage("Token inválido");
+        return;
+      }
+
+      const result = await response.json();
+
+      updateStudent(result.data.student);
+
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error en el login:", error);
+      setErrorMessage("Algo salió mal, intenta nuevamente más tarde");
+      return;
+    }
   };
 
   const handlePartnerLogin = async (data: PartnerLoginForm) => {

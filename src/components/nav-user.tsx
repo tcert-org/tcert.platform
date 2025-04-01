@@ -4,10 +4,10 @@ import { LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { UserRowType } from "@/modules/auth/table";
+import type { ProfileWithRole } from "@/lib/types";
 
 interface NavUserProps {
-  user: (UserRowType & { roles?: { name: string } | null }) | null;
+  user: ProfileWithRole | null;
   className?: string;
 }
 
@@ -43,15 +43,25 @@ export function NavUser({ user, className }: NavUserProps) {
         <div className="flex items-center gap-2">
           <Avatar className="h-8 w-8 rounded-lg">
             <AvatarFallback className="rounded-lg">
-              {getInitials(user?.company_name ?? "Ultradev")}
+              {user?.nameRol === "student"
+                ? getInitials(
+                    "fullname" in user ? user.fullname ?? "tcert" : "tcert"
+                  )
+                : getInitials(
+                    user && "company_name" in user
+                      ? user.company_name ?? "Ultradev"
+                      : "Ultradev"
+                  )}
             </AvatarFallback>
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-semibold">
-              {user?.company_name ?? "Ultradev"}
+              {user && "company_name" in user
+                ? user.company_name ?? "Ultradev"
+                : "Ultradev"}
             </span>
             <span className="truncate text-xs">
-              {getRoleInSpanish(user?.roles?.name ?? "unknown")}
+              {getRoleInSpanish(user?.nameRol ?? "unknown")}
             </span>
           </div>
         </div>

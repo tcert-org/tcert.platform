@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useUserStore } from "@/stores/user-store";
-import type { UserProfile, UserRole } from "@/lib/types";
+import { useStudentStore } from "@/stores/student-store";
+import type { ProfileWithRole, UserRole } from "@/lib/types";
 import { getMenuForRole, getDefaultPageForRole } from "@/lib/navigation";
 import { GeneralLoader } from "@/components/general-loader";
 
@@ -13,37 +14,61 @@ export default function DashboardWrapper({
 }: {
   children: React.ReactNode;
 }) {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<ProfileWithRole | null>(null);
   const { getUser } = useUserStore();
+  const { getStudent } = useStudentStore();
   const router = useRouter();
   const pathname = usePathname();
 
-  const fetchUserProfile = useCallback(async () => {
-    const user = await getUser();
-    if (user) {
-      const userWithRole = { ...user, nameRol: user.roles?.name as UserRole };
-      setUserProfile(userWithRole);
+  const fetchProfile = useCallback(async () => {
+    const student = await getStudent();
+    if (student) {
+      setProfile({
+        ...student,
+        nameRol: student.role as UserRole,
+      });
 
-      const expectedPathPrefix = `/dashboard/${userWithRole.nameRol}`;
+      const expectedPathPrefix = `/dashboard/${student.role}`;
       if (!pathname.startsWith(expectedPathPrefix)) {
         router.replace(
-          `${expectedPathPrefix}${getDefaultPageForRole(userWithRole.nameRol)}`
+          `${expectedPathPrefix}${getDefaultPageForRole(
+            student.role as UserRole
+          )}`
+        );
+      }
+      return;
+    }
+
+    // If no student profile, fallback to user profile
+    const user = await getUser();
+    if (user) {
+      setProfile({
+        ...user,
+        nameRol: user.roles?.name as UserRole,
+      });
+
+      const expectedPathPrefix = `/dashboard/${user.roles?.name}`;
+      if (!pathname.startsWith(expectedPathPrefix)) {
+        router.replace(
+          `${expectedPathPrefix}${getDefaultPageForRole(
+            user.roles?.name as UserRole
+          )}`
         );
       }
     }
-  }, [getUser, router, pathname]);
+  }, [getStudent, getUser, router, pathname]);
 
   useEffect(() => {
-    fetchUserProfile();
-  }, [fetchUserProfile]);
+    fetchProfile();
+  }, [fetchProfile]);
 
-  if (!userProfile) {
+  if (!profile) {
     return <GeneralLoader />;
   }
 
-  const menuItems = getMenuForRole(userProfile.nameRol).map((item) => ({
+  const menuItems = getMenuForRole(profile.nameRol).map((item) => ({
     ...item,
-    path: `/dashboard/${userProfile.nameRol}${item.path}`,
+    path: `/dashboard/${profile.nameRol}${item.path}`,
   }));
 
   const currentMenuItem = menuItems.find((item) =>
@@ -53,7 +78,7 @@ export default function DashboardWrapper({
 
   return (
     <DashboardLayout
-      userProfile={userProfile}
+      userProfile={profile}
       menuItems={menuItems}
       currentModuleName={currentModuleName}
     >

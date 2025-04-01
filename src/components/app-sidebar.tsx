@@ -8,8 +8,7 @@ import {
   SidebarContent,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import type { MenuItem } from "@/lib/types";
-import { UserRowType } from "@/modules/auth/table";
+import type { MenuItem, ProfileWithRole } from "@/lib/types";
 
 import {
   Home,
@@ -32,7 +31,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  userProfile: (UserRowType & { roles?: { name: string } | null }) | null;
+  userProfile: ProfileWithRole | null; // Updated to use ProfileWithRole
   menuItems: MenuItem[];
 }
 

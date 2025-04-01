@@ -1,10 +1,12 @@
 import type { UserRowType } from "@/modules/auth/table";
+import { Database } from "../../supabase-types";
 
 export type UserRole = "student" | "partner" | "admin" | "unknown";
+export type StudentRowType = Database["public"]["Tables"]["students"]["Row"];
 
-export interface UserProfile extends UserRowType {
+export type ProfileWithRole = (UserRowType | StudentRowType) & {
   nameRol: UserRole;
-}
+};
 
 export interface MenuItem {
   title: string;
