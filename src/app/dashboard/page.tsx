@@ -13,30 +13,33 @@ export default function DashboardRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-    async function redirectUser() {
-      const student = await getStudent();
-      if (student) {
-        const roleName = student.role as UserRole;
-        router.replace(
-          `/dashboard/${roleName}${getDefaultPageForRole(roleName)}`
-        );
-        return;
-      }
-      const user = await getUser();
-      if (user) {
-        const roleName = user.roles?.name ?? "unknown";
-        if (roleName) {
-          router.replace(
-            `/dashboard/${roleName}${getDefaultPageForRole(
-              roleName as UserRole
-            )}`
-          );
-        }
-      }
+  async function redirectUser() {
+    const user = await getUser();
+    console.log("[Redirect] Usuario cargado:", user);
+
+    if (user) {
+      const roleName = user.roles?.name ?? "unknown";
+      console.log("[Redirect] Redirigiendo a rol usuario:", roleName);
+      router.replace(
+        `/dashboard/${roleName}${getDefaultPageForRole(roleName as UserRole)}`
+      );
+      return;
     }
 
-    redirectUser();
-  }, [getStudent, getUser, router]);
+    const studentResult = await getStudent();
+    console.log("[Redirect] Resultado estudiante:", studentResult);
+
+    if (studentResult.statusCode === "active" && studentResult.data) {
+      const roleName = studentResult.data.role as UserRole;
+      console.log("[Redirect] Redirigiendo a rol estudiante:", roleName);
+      router.replace(
+        `/dashboard/${roleName}${getDefaultPageForRole(roleName)}`
+      );
+    }
+  }
+
+  redirectUser();
+}, [getStudent, getUser, router]);
 
   return null;
 }

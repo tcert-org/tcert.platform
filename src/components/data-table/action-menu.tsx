@@ -49,14 +49,14 @@ export function ActionMenu<TData>({ record, actions }: ActionMenuProps<TData>) {
         {visibleActions.map((action, index) => {
           const label =
             typeof action.label === "function"
-              ? action.label(record)
+              ? action.label(record as any)
               : action.label;
 
           const Icon =
             typeof action.icon === "function"
-              ? action.icon(record)
+              ? action.icon(record as any)
               : action.icon;
-
+// TODO Icon
           return (
             <DropdownMenuItem
               key={index}
@@ -72,7 +72,7 @@ export function ActionMenu<TData>({ record, actions }: ActionMenuProps<TData>) {
                 action.variant === "destructive" ? "text-destructive" : ""
               }
             >
-              {Icon && <Icon className="mr-2 h-4 w-4" />}
+              {Icon && <span className="mr-2 h-4 w-4" />} 
               {label}
             </DropdownMenuItem>
           );

@@ -10,8 +10,16 @@ const userTable = new UserTable();
 export default class AuthService {
   static async createUser(
     data: RegisterUserType
-  ): Promise<{ user: UserRowType; session: Session }> {
-    const { email, password, role_id } = data;
+  ): Promise<{ user: UserRowType; session: Session | null }> {
+    const {
+      first_name,
+      last_name,
+      email,
+      password,
+      role_id,
+      company_name,
+      contact_number,
+    } = data;
 
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -19,12 +27,16 @@ export default class AuthService {
         password,
         options: {
           data: {
-            role_id: role_id,
+            role_id,
+            first_name,
+            last_name,
+            company_name,
+            contact_number,
           },
         },
       });
 
-      if (authError || !authData?.user?.id || !authData.session) {
+      if (authError || !authData?.user?.id) {
         throw {
           message: `Error creating user in Supabase Auth: ${authError?.message}`,
         };
@@ -34,7 +46,12 @@ export default class AuthService {
         email,
         role_id,
         user_uuid: authData.user.id,
+        company_name,
+        contact_number,
+        first_name,
+        last_name,
       });
+
       if (createdUser === null) {
         throw {
           message: "Error creating user in database",
@@ -43,7 +60,7 @@ export default class AuthService {
 
       return {
         user: createdUser,
-        session: authData.session,
+        session: authData?.session,
       };
     } catch (error: any) {
       throw {
@@ -71,7 +88,6 @@ export default class AuthService {
         };
       }
       const user = await userTable.getByUuid(authData.user.id);
-      console.log("user returned by getByUuid:", user);
       if (!user) {
         throw {
           message: "User not found in database",

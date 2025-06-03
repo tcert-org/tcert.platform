@@ -10,6 +10,7 @@ export default function HomePage() {
     async function redirectUser() {
       router.replace(`/dashboard/`);
     }
+  
 
     redirectUser();
   }, [router]);

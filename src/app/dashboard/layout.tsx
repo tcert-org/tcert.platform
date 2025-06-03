@@ -4,10 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useUserStore } from "@/stores/user-store";
-import { useStudentStore } from "@/stores/student-store";
+import { StudentStatusLogin, useStudentStore } from "@/stores/student-store";
 import type { ProfileWithRole, UserRole } from "@/lib/types";
 import { getMenuForRole, getDefaultPageForRole } from "@/lib/navigation";
 import { GeneralLoader } from "@/components/general-loader";
+import StudentForm from "@/components/form-first-time-student";
 
 export default function DashboardWrapper({
   children,
@@ -15,54 +16,67 @@ export default function DashboardWrapper({
   children: React.ReactNode;
 }) {
   const [profile, setProfile] = useState<ProfileWithRole | null>(null);
+  const [studentFirstTime, setStudentFirstTime] = useState<boolean>(false);
   const { getUser } = useUserStore();
   const { getStudent } = useStudentStore();
   const router = useRouter();
   const pathname = usePathname();
 
   const fetchProfile = useCallback(async () => {
-    const student = await getStudent();
-    if (student) {
-      setProfile({
-        ...student,
-        nameRol: student.role as UserRole,
-      });
+    console.log("[DEBUG] Iniciando fetch paralelo de perfil...");
 
-      const expectedPathPrefix = `/dashboard/${student.role}`;
+    const [studentResult, userResult] = await Promise.all([
+      getStudent(),
+      getUser(),
+    ]);
+
+    console.log("[DEBUG] Resultado getStudent:", studentResult);
+    console.log("[DEBUG] Resultado getUser:", userResult);
+
+    if (studentResult?.statusCode === StudentStatusLogin.FIRST_TIME) {
+      console.log("[DEBUG] Estudiante primera vez detectado.");
+      setStudentFirstTime(true);
+      return;
+    }
+
+    if (
+      studentResult?.statusCode === StudentStatusLogin.ACTIVE &&
+      studentResult?.data
+    ) {
+      const role = studentResult.data.role as UserRole;
+      setProfile({ ...studentResult.data, nameRol: role });
+
+      const expectedPathPrefix = `/dashboard/${role}`;
       if (!pathname.startsWith(expectedPathPrefix)) {
-        router.replace(
-          `${expectedPathPrefix}${getDefaultPageForRole(
-            student.role as UserRole
-          )}`
-        );
+        router.replace(`${expectedPathPrefix}${getDefaultPageForRole(role)}`);
       }
       return;
     }
 
-    // If no student profile, fallback to user profile
-    const user = await getUser();
-    if (user) {
-      setProfile({
-        ...user,
-        nameRol: user.roles?.name as UserRole,
-      });
+    if (userResult) {
+      const role = userResult.roles?.name as UserRole;
+      setProfile({ ...userResult, nameRol: role });
 
-      const expectedPathPrefix = `/dashboard/${user.roles?.name}`;
+      const expectedPathPrefix = `/dashboard/${role}`;
       if (!pathname.startsWith(expectedPathPrefix)) {
-        router.replace(
-          `${expectedPathPrefix}${getDefaultPageForRole(
-            user.roles?.name as UserRole
-          )}`
-        );
+        router.replace(`${expectedPathPrefix}${getDefaultPageForRole(role)}`);
       }
+      return;
     }
-  }, [getStudent, getUser, router, pathname]);
+
+    console.warn("[DEBUG] Ni estudiante ni usuario están autenticados");
+    setProfile(null);
+    setStudentFirstTime(false);
+  }, [getStudent, getUser, pathname, router]);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
   if (!profile) {
+    if (studentFirstTime) {
+      return <StudentForm />;
+    }
     return <GeneralLoader />;
   }
 

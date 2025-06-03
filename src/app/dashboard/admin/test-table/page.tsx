@@ -367,7 +367,7 @@ export default function UsersPage() {
         <DataTable
           columns={columns}
           fetchDataFn={fetchUsers}
-          booleanLabels={{ trueLabel: "Sí", falseLabel: "No" }}
+          //*/booleanLabels={{ trueLabel: "Sí", falseLabel: "No" }}*/
         />
       </div>
     </div>

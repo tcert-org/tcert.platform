@@ -5,7 +5,9 @@ import {
   FilterParamsVoucher,
   ResponseVoucherTable,
   RpcParamsVoucher,
+  createParamsVoucher,
 } from "./types";
+import { addMonths } from "date-fns";
 
 export default class VoucherController {
   static async getVouchers(
@@ -15,8 +17,6 @@ export default class VoucherController {
       const {
         filter_code,
         filter_certification_name,
-        filter_student_fullname,
-        filter_student_document_number,
         filter_email,
         filter_available,
         filter_purchase_date,
@@ -30,8 +30,6 @@ export default class VoucherController {
       const rpcParams: RpcParamsVoucher = {
         filter_code: filter_code || null,
         filter_certification_name: filter_certification_name || null,
-        filter_student_fullname: filter_student_fullname || null,
-        filter_student_document_number: filter_student_document_number || null,
         filter_email: filter_email || null,
         filter_available: filter_available ?? null,
         filter_purchase_date: filter_purchase_date || null,
@@ -57,6 +55,54 @@ export default class VoucherController {
         statusCode: 500,
         data: null,
         error: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  static async createVoucher(
+    data: createParamsVoucher
+  ): Promise<NextResponse<ApiResponse<any>>> {
+    try {
+      const {
+        partner_id,
+        certification_id = null,
+        status_id,
+        email,
+        expiration_dates,
+        used = false,
+      } = data;
+
+      const expiration_date = expiration_dates ?? addMonths(new Date(), parseInt(process.env.VOUCHER_EXPIRATION_MONTHS || "24")).toISOString();
+
+      const voucherData = {
+        partner_id: Number(partner_id),
+        certification_id: certification_id ? Number(certification_id) : null,
+        status_id: status_id ? Number(status_id) : null,
+        email: email,
+        expiration_date,
+        used:used,
+      };
+
+      const voucherTable = new VoucherTable();
+      const result = await voucherTable.createVoucher(voucherData);
+
+      if (!result) {
+        return NextResponse.json({
+          statusCode: 400,
+          data: null,
+          error: "No se pudo crear el voucher",
+        });
+      }
+
+      return NextResponse.json({
+        statusCode: 201,
+        data: result,
+      });
+    } catch (error) {
+      return NextResponse.json({
+        statusCode: 500,
+        data: null,
+        error: error instanceof Error ? error.message : "Error desconocido",
       });
     }
   }

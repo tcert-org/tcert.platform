@@ -2,8 +2,6 @@
 export type FilterParamsVoucher = {
   filter_code?: string;
   filter_certification_name?: string;
-  filter_student_fullname?: string;
-  filter_student_document_number?: string;
   filter_email?: string;
   filter_available?: boolean;
   filter_purchase_date?: string;
@@ -14,12 +12,19 @@ export type FilterParamsVoucher = {
   page?: number;
   limit?: number;
 };
+//params to create vouchers
+export type createParamsVoucher = {
+  partner_id: string;
+  certification_id?: string | null;
+  status_id?: string
+  email: string;
+  used?: boolean;
+  expiration_dates?: string;
+};
 // params for the RPC vouchers_with_filters function
 export type RpcParamsVoucher = {
   filter_code: string | null;
   filter_certification_name: string | null;
-  filter_student_fullname: string | null;
-  filter_student_document_number: string | null;
   filter_email: string | null;
   filter_available: boolean | null;
   filter_purchase_date: string | null;
@@ -41,10 +46,7 @@ export interface DataVoucherTable {
   id?: number;
   code: string;
   certification_name: string;
-  student_fullname: string;
-  student_document_number: string;
-  email?: string;
-  available: boolean;
+  email: string;
   purchase_date: string;
   expiration_date: string;
 }

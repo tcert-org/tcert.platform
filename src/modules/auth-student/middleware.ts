@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ApiResponse } from "@/lib/types";
 
 const StudentLoginSchema = z.object({
-  token: z.string().uuid(),
+  token: z.string(),
 });
 
 export type StudentLoginType = z.infer<typeof StudentLoginSchema>;

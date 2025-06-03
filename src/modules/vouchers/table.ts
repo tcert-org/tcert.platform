@@ -1,13 +1,11 @@
 import Table from "@/lib/database/table";
-import { Database } from "@/lib/database/database.types";
 import { supabase } from "@/lib/database/conection";
 import { ResponseVoucherTable, RpcParamsVoucher } from "./types";
+import { nanoid } from "nanoid";
+import { Database } from "@/lib/database/database.types";
 
 export type VoucherRowType = Database["public"]["Tables"]["vouchers"]["Row"];
-export type VoucherInsertType =
-  Database["public"]["Tables"]["vouchers"]["Insert"];
-export type VoucherUpdateType =
-  Database["public"]["Tables"]["vouchers"]["Update"];
+export type VoucherInsertType = Database["public"]["Tables"]["vouchers"]["Insert"];
 
 export default class VoucherTable extends Table<"vouchers"> {
   constructor() {
@@ -27,5 +25,22 @@ export default class VoucherTable extends Table<"vouchers"> {
     }
 
     return data as ResponseVoucherTable;
+  }
+
+  async createVoucher(data: Omit<VoucherInsertType, "code">): Promise<VoucherRowType> {
+    const uniqueCode = `VCHR-${nanoid(10).toUpperCase()}`;
+
+    const { data: inserted, error } = await supabase
+      .from("vouchers")
+      .insert({ ...data, code: uniqueCode })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("[CREATE_VOUCHER_ERROR]", error.message);
+      throw new Error("Error creating voucher: " + error.message);
+    }
+
+    return inserted;
   }
 }

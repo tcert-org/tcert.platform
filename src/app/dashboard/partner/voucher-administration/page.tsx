@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/user-store";
 import { UserRowType } from "@/modules/auth/table";
 import { DataTable } from "@/components/data-table/data-table";
@@ -8,18 +9,20 @@ import {
   type ActionItem,
 } from "@/components/data-table/action-menu";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye } from "lucide-react";
+import { Eye, Plus } from "lucide-react";
 import { GeneralLoader } from "@/components/general-loader";
 import {
   DataVoucherTable,
   ResponseVoucherTable,
 } from "@/modules/vouchers/types";
 import PartnerDetail from "@/components/partner-detail";
+import { Button } from "@/components/ui/button";
 
 export default function VoucherAdministrationPage() {
   const { getUser } = useUserStore();
   const [user, setUser] = useState<UserRowType | null>(null);
   const [partnerData, setPartnerData] = useState<any | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -121,34 +124,6 @@ export default function VoucherAdministrationPage() {
       },
     },
     {
-      accessorKey: "student_fullname",
-      header: "Nombre estudiante",
-      size: 200,
-      meta: { filterType: "text" },
-      cell: ({ row }) => {
-        const value = row.getValue("student_fullname");
-        return value ? (
-          value
-        ) : (
-          <span className="text-gray-400 italic">Campo vacío</span>
-        );
-      },
-    },
-    {
-      accessorKey: "student_document_number",
-      header: "N. Documento estudiante",
-      size: 180,
-      meta: { filterType: "text" },
-      cell: ({ row }) => {
-        const value = row.getValue("student_document_number");
-        return value ? (
-          value
-        ) : (
-          <span className="text-gray-400 italic">Campo vacío</span>
-        );
-      },
-    },
-    {
       accessorKey: "available",
       header: "Estado del voucher",
       size: 150,
@@ -206,22 +181,25 @@ export default function VoucherAdministrationPage() {
     },
   ];
 
-  if (!partnerData) {
-    return <GeneralLoader />;
-  }
+  if (!partnerData) return <GeneralLoader />;
 
   return (
     <>
-      {partnerData && (
-        <>
-          <PartnerDetail partner={partnerData} />
-          <h2 className="text-3xl font-bold mt-8">Tus voucher</h2>
+      <PartnerDetail partner={partnerData} />
+      <div className="flex items-center justify-between mt-8">
+        <h2 className="text-3xl font-bold">Tus voucher</h2>
+        <Button
+          onClick={() => router.push("/dashboard/partner/assign-voucher")}
+          className="gap-2"
+        >
+          <Plus size={18} />
+          Asignar nuevo voucher
+        </Button>
+      </div>
 
-          <section className="mt-3 bg-card rounded-lg border shadow-sm p-6">
-            <DataTable columns={columns} fetchDataFn={fetchVouchers} />
-          </section>
-        </>
-      )}
+      <section className="mt-3 bg-card rounded-lg border shadow-sm p-6">
+        <DataTable columns={columns} fetchDataFn={fetchVouchers} />
+      </section>
     </>
   );
 }

@@ -166,6 +166,8 @@ export const students_UpdateSchema = z.object({
 });
 
 export const users_InsertSchema = z.object({
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
   company_address: z.string().min(1).nullable(),
   company_name: z.string().min(1).nullable(),
   contact_number: z.string().min(1).nullable(),
@@ -173,6 +175,7 @@ export const users_InsertSchema = z.object({
   role_id: z.number().int().positive(),
   user_uuid: z.string().uuid(),
 });
+
 
 export const users_UpdateSchema = z.object({
   company_address: z.string().min(1).nullable().optional(),

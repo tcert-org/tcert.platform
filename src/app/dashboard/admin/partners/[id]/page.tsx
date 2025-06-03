@@ -98,34 +98,6 @@ const PartnerDetailPage = ({ params }: PageProps) => {
       },
     },
     {
-      accessorKey: "student_fullname",
-      header: "Nombre estudiante",
-      size: 200,
-      meta: { filterType: "text" },
-      cell: ({ row }) => {
-        const value = row.getValue("student_fullname");
-        return value ? (
-          value
-        ) : (
-          <span className="text-gray-400 italic">Campo vacío</span>
-        );
-      },
-    },
-    {
-      accessorKey: "student_document_number",
-      header: "N. Documento estudiante",
-      size: 180,
-      meta: { filterType: "text" },
-      cell: ({ row }) => {
-        const value = row.getValue("student_document_number");
-        return value ? (
-          value
-        ) : (
-          <span className="text-gray-400 italic">Campo vacío</span>
-        );
-      },
-    },
-    {
       accessorKey: "available",
       header: "Estado del voucher",
       size: 150,

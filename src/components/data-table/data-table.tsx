@@ -127,7 +127,7 @@ export function DataTable<TData, TValue>({
     if (column?.meta?.booleanOptions) {
       return column.meta.booleanOptions;
     }
-    return booleanLabels;
+    return null;
   };
 
   const formatFilterValue = (value: any, column: any) => {
