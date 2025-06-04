@@ -1,6 +1,6 @@
 import Table from "@/lib/database/table";
 import { supabase } from "@/lib/database/conection";
-import { VoucherCounts } from "./types"; 
+import { VoucherCounts } from "./types";
 
 export default class VoucherCountTable extends Table<"vouchers"> {
   constructor() {

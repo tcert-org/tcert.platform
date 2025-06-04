@@ -1,6 +1,6 @@
 import { SignJWT } from "jose";
 import CryptoJS from "crypto-js";
-import { StudentLoginTable, SessionsInsertType } from "./table";
+import { StudentLoginTable } from "./table";
 
 const studentLoginTable = new StudentLoginTable();
 
@@ -15,7 +15,6 @@ export class StudentLoginService {
 
       if (
         !voucherWithStudent ||
-        !voucherWithStudent.used ||
         (voucherWithStudent?.expiration_date &&
           new Date(voucherWithStudent.expiration_date) < new Date())
       ) {
@@ -40,14 +39,11 @@ export class StudentLoginService {
         .setExpirationTime("24h")
         .sign(secret);
 
-        
-//TODO: pasar ip real
-      const createdSession = await studentLoginTable.createSession(
-        {
-          ip_address: "0.0.0.0", 
-          session_token: sessionJWT,
-        }
-      );
+      //TODO: pasar ip real
+      const createdSession = await studentLoginTable.createSession({
+        ip_address: "0.0.0.0",
+        session_token: sessionJWT,
+      });
       if (!createdSession) {
         throw new Error("Error creating session");
       }
@@ -60,7 +56,7 @@ export class StudentLoginService {
           JSON.stringify(studentWithRole),
           process.env.JWT_SECRET!
         ).toString();
-console.log("Encrypted student data:", studentWithRole);
+        console.log("Encrypted student data:", studentWithRole);
         return {
           student: encryptedStudent,
           session: sessionJWT,

@@ -123,6 +123,24 @@ export default function PartnersPage() {
       ),
     },
     {
+      accessorKey: "used_vouchers",
+      header: "Vouchers Disponibles",
+      size: 80,
+      enableSorting: true,
+      meta: {
+        filterType: "number",
+        numberOptions: {
+          step: 1,
+          operators: true,
+        },
+      },
+      cell: ({ row }) => (
+        <div className="!text-center font-medium">
+          {row.getValue("used_vouchers")}
+        </div>
+      ),
+    },
+    {
       accessorKey: "created_at",
       header: "Antigüedad",
       size: 180,

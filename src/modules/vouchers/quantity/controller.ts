@@ -1,34 +1,24 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-);
+import VoucherCountTable from "./table";
 
 export default class VoucherController {
   static async getVoucherCounts(partner_id: number) {
     try {
-      const { data, error } = await supabase
-        .rpc("get_voucher_counts", { partner_id });
-
-      if (error) {
-        return NextResponse.json({
-          statusCode: 500,
-          data: null,
-          error: error.message,
-        });
-      }
+      const countTable = new VoucherCountTable();
+      const data = await countTable.getVoucherCounts(partner_id);
 
       return NextResponse.json({
         statusCode: 200,
-        data,
+        data: {
+          voucher_purchased: data.voucher_purchased,
+          voucher_asigned: data.voucher_asigned,
+          voucher_available: data.voucher_available,
+        },
       });
     } catch (error) {
       return NextResponse.json({
         statusCode: 500,
-        data: null,
-        error: error instanceof Error ? error.message : "Unknown error",
+        message: error instanceof Error ? error.message : "Unknown error",
       });
     }
   }
