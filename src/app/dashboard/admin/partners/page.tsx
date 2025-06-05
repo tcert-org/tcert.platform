@@ -15,6 +15,7 @@ export interface PartnerDinamicTable {
   email: string;
   total_vouchers: number;
   used_vouchers: number;
+  available_vouchers: number;
   created_at: string;
 }
 
@@ -86,6 +87,7 @@ export default function PartnersPage() {
       size: 250,
       meta: { filterType: "text" },
     },
+    //Vouchers Comprados///////////////////
     {
       accessorKey: "total_vouchers",
       header: "Vouchers Comprados",
@@ -104,6 +106,7 @@ export default function PartnersPage() {
         </div>
       ),
     },
+    //Vouchers Usados///////////////////
     {
       accessorKey: "used_vouchers",
       header: "Vouchers Usados",
@@ -122,8 +125,9 @@ export default function PartnersPage() {
         </div>
       ),
     },
+    //Vouchers Disponibles///////////////////
     {
-      accessorKey: "used_vouchers",
+      accessorKey: "available_vouchers",
       header: "Vouchers Disponibles",
       size: 80,
       enableSorting: true,
@@ -136,10 +140,11 @@ export default function PartnersPage() {
       },
       cell: ({ row }) => (
         <div className="!text-center font-medium">
-          {row.getValue("used_vouchers")}
+          {row.getValue("available_vouchers")}
         </div>
       ),
     },
+
     {
       accessorKey: "created_at",
       header: "Antigüedad",

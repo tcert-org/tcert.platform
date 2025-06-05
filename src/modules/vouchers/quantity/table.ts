@@ -9,7 +9,7 @@ export default class VoucherCountTable extends Table<"vouchers"> {
 
   async getVoucherCounts(partnerId: number): Promise<VoucherCounts> {
     const { data, error } = await supabase.rpc("get_voucher_counts", {
-      partner_id: partnerId,
+      p_id: partnerId,
     });
 
     if (error) {
@@ -21,6 +21,12 @@ export default class VoucherCountTable extends Table<"vouchers"> {
       throw new Error("No voucher counts returned from Supabase.");
     }
 
-    return data[0] as VoucherCounts;
+    const counts = data[0] as VoucherCounts;
+
+    return {
+      voucher_purchased: counts.voucher_purchased ?? 0,
+      voucher_asigned: counts.voucher_asigned ?? 0,
+      voucher_available: counts.voucher_available ?? 0,
+    };
   }
 }

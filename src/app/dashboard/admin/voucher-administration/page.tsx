@@ -137,8 +137,6 @@ export default function VoucherAdministrationPage() {
           />
         </div>
 
-        
-
         <div className="col-span-1">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Cantidad Vouchers
@@ -195,8 +193,7 @@ export default function VoucherAdministrationPage() {
           />
         </div>
         <div className="col-span-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1"></label>
           <input type="hidden" name="admin_id" value={formData.admin_id} />
         </div>
 
