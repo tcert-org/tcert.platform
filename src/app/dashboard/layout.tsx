@@ -23,18 +23,12 @@ export default function DashboardWrapper({
   const pathname = usePathname();
 
   const fetchProfile = useCallback(async () => {
-    console.log("[DEBUG] Iniciando fetch paralelo de perfil...");
-
     const [studentResult, userResult] = await Promise.all([
       getStudent(),
       getUser(),
     ]);
 
-    console.log("[DEBUG] Resultado getStudent:", studentResult);
-    console.log("[DEBUG] Resultado getUser:", userResult);
-
     if (studentResult?.statusCode === StudentStatusLogin.FIRST_TIME) {
-      console.log("[DEBUG] Estudiante primera vez detectado.");
       setStudentFirstTime(true);
       return;
     }
@@ -89,12 +83,14 @@ export default function DashboardWrapper({
     pathname.includes(item.path)
   );
   const currentModuleName = currentMenuItem ? currentMenuItem.title : "";
+  const showModuleName = currentMenuItem ? currentMenuItem.showModuleName : false;
 
   return (
     <DashboardLayout
       userProfile={profile}
       menuItems={menuItems}
       currentModuleName={currentModuleName}
+      showModuleName={showModuleName}
     >
       {children}
     </DashboardLayout>

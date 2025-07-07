@@ -15,11 +15,9 @@ export default function DashboardRedirect() {
   useEffect(() => {
   async function redirectUser() {
     const user = await getUser();
-    console.log("[Redirect] Usuario cargado:", user);
 
     if (user) {
       const roleName = user.roles?.name ?? "unknown";
-      console.log("[Redirect] Redirigiendo a rol usuario:", roleName);
       router.replace(
         `/dashboard/${roleName}${getDefaultPageForRole(roleName as UserRole)}`
       );
@@ -27,11 +25,9 @@ export default function DashboardRedirect() {
     }
 
     const studentResult = await getStudent();
-    console.log("[Redirect] Resultado estudiante:", studentResult);
 
     if (studentResult.statusCode === "active" && studentResult.data) {
       const roleName = studentResult.data.role as UserRole;
-      console.log("[Redirect] Redirigiendo a rol estudiante:", roleName);
       router.replace(
         `/dashboard/${roleName}${getDefaultPageForRole(roleName)}`
       );

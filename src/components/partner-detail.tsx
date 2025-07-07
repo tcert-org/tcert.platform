@@ -31,8 +31,6 @@ export default function PartnerDetail({ partner }: PartnerDetailProps) {
         );
         const json = await res.json();
 
-        console.log("API response:", json);
-
         if (res.ok) {
           setCounts(json.data);
         } else {

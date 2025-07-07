@@ -23,13 +23,12 @@ export default class StudentMiddleware {
       const body = await req.json();
       const studentLoginTable = new StudentLoginTable();
       const token=req.cookies.get("student_access_token")?.value;
-      console.log("*Token:", token);
+
       if(token){
-        
         const payload = await studentLoginTable.decodeStudentJWT(token);
         body.email = payload?.email;
         body.voucher_id = payload?.voucher_id;
-        console.log("*body:", body);
+
       }
       const validatedData = createStudentSchema.parse(body) as StudentInsertType;
       return next(validatedData, req);

@@ -87,7 +87,7 @@ async function handleStudentAuth(req: NextRequest) {
       return { authenticated: false, student: null };
     }
     return { authenticated: true, student: payload };
-  } catch (error) {
+  } catch {
     return { authenticated: false, student: null };
   }
 }

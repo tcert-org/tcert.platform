@@ -15,7 +15,6 @@ export default class PartnerMiddleware {
       const validatedData = users_InsertSchema.parse(body) as PartnerInsertType;
       return next(validatedData);
     } catch (error) {
-      console.log(error);
       return NextResponse.json(
         {
           statusCode: 400,

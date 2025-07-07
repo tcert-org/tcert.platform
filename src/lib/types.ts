@@ -12,6 +12,7 @@ export interface MenuItem {
   title: string;
   path: string;
   iconName: string;
+  showModuleName: boolean
 }
 
 export interface BreadcrumbItem {

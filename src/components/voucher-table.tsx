@@ -469,7 +469,6 @@ const VoucherTable = () => {
 
   // Handle row actions
   const handleRowAction = (action: string, voucher: Voucher) => {
-    console.log(`Action: ${action}`, voucher);
 
     switch (action) {
       case "view":

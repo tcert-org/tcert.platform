@@ -9,7 +9,6 @@ export default class StudentController {
     data: StudentInsertType
   ): Promise<NextResponse<ApiResponse<any>>> {
     try {
-      console.log("Creating student with data:", data);
       const studentTable = new StudentTable();
 
       const existingByDocument = await studentTable.getByDocumentNumber(

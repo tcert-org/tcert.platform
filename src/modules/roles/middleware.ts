@@ -15,7 +15,6 @@ export default class RoleMiddleware {
       const validatedData = roles_InsertSchema.parse(body) as RoleInsertType;
       return next(validatedData);
     } catch (error) {
-      console.log(error);
       return NextResponse.json(
         {
           statusCode: 400,

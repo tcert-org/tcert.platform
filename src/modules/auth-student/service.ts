@@ -7,11 +7,9 @@ const studentLoginTable = new StudentLoginTable();
 export class StudentLoginService {
   async processToken(token: string) {
     try {
-      console.log("Processing student token:", token);
       const voucherWithStudent = await studentLoginTable.getVoucherWithStudent(
         token
       );
-      console.log("Voucher with student:", voucherWithStudent);
 
       if (
         !voucherWithStudent ||
@@ -56,7 +54,6 @@ export class StudentLoginService {
           JSON.stringify(studentWithRole),
           process.env.JWT_SECRET!
         ).toString();
-        console.log("Encrypted student data:", studentWithRole);
         return {
           student: encryptedStudent,
           session: sessionJWT,

@@ -9,7 +9,6 @@ export default class PaymentController {
     data: PaymentsInsertType
   ): Promise<NextResponse<ApiResponse<any>>> {
     try {
-      console.log("[CREATE_PAYMENT] Data:", data);
       const paymentTable = new PaymentTable();
 
       const result = await paymentTable.createPayment(data);
@@ -19,7 +18,6 @@ export default class PaymentController {
         data: result,
       });
     } catch (error) {
-      console.error("[CREATE_PAYMENT_ERROR]", error);
       return NextResponse.json({
         statusCode: 500,
         data: null,

@@ -12,7 +12,7 @@ export default class AuthController {
       const { user } = await AuthService.createUser(data);
 
       const response = NextResponse.json({ statusCode: 201, data: { user } });
-     /* if (session) {
+      /* if (session) {
         response.cookies.set("access_token", session.access_token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
@@ -123,6 +123,13 @@ export default class AuthController {
       });
 
       response.cookies.set("refresh_token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 0,
+        path: "/",
+      });
+
+      response.cookies.set("student_access_token", "", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         maxAge: 0,

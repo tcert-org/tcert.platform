@@ -2,20 +2,37 @@ import { MenuItem, UserRole } from "./types";
 
 const allMenuItems: Record<UserRole, MenuItem[]> = {
   student: [
-    { title: "Inicio", path: "/home", iconName: "Home" },
-    { title: "Simuladores", path: "/simulators", iconName: "BookOpen" },
-    { title: "Examen", path: "/exam", iconName: "FileText" },
+    {
+      title: "Material",
+      path: "/home",
+      iconName: "Home",
+      showModuleName: false,
+    },
+    {
+      title: "Simuladores",
+      path: "/simulators",
+      iconName: "BookOpen",
+      showModuleName: true,
+    },
+    {
+      title: "Examen",
+      path: "/exam",
+      iconName: "FileText",
+      showModuleName: true,
+    },
   ],
   partner: [
     {
       title: "Administración de Vouchers",
       path: "/voucher-administration",
       iconName: "CreditCard",
+      showModuleName: true,
     },
     {
       title: "Comprar Vouchers",
       path: "/buy-vouchers",
       iconName: "ShoppingBag",
+      showModuleName: true,
     },
     // { title: "Reportes", path: "/reports", iconName: "BarChart" },
   ],
@@ -24,11 +41,13 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       title: "Administración de Partners",
       path: "/partners",
       iconName: "Users",
+      showModuleName: true,
     },
     {
       title: "Administración de Vouchers",
       path: "/voucher-administration",
       iconName: "CreditCard",
+      showModuleName: true,
     },
   ],
   unknown: [],

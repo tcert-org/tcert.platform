@@ -54,9 +54,7 @@ export function LoginForm({
     }
 
     const result = await response.json();
-    console.log("Saber qué información tenemos del estudiante:", result);
 
-    // ✅ Aquí está el fix importante:
     updateStudent(result.data.student, result.data.access_token);
 
     router.push("/dashboard");
