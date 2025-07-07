@@ -46,7 +46,6 @@ export function DashboardLayout({
       <SidebarProvider className="flex flex-col">
         <SiteHeader
           currentModuleName={currentModuleName}
-          platformTitle="Plataforma T-Cert"
         />
         <div className="flex flex-1">
           <AppSidebar
