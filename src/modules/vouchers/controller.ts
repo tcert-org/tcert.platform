@@ -43,11 +43,23 @@ export default class VoucherController {
       const voucherTable = new VoucherTable();
       const result = await voucherTable.getVouchersWithFilters(rpcParams);
 
+      // Si el RPC devuelve un array directo este bloque lo soporta
+      if (Array.isArray(result)) {
+        return NextResponse.json({
+          statusCode: 200,
+          data: {
+            data: result,
+            totalCount: result.length,
+          },
+        });
+      }
+
+      // Cubre el caso normal si el RPC devuelve { data, totalCount }
       return NextResponse.json({
         statusCode: 200,
         data: {
-          data: result.data,
-          totalCount: result.totalCount,
+          data: result?.data ?? [],
+          totalCount: result?.totalCount ?? 0,
         },
       });
     } catch (error) {
@@ -72,7 +84,12 @@ export default class VoucherController {
         used = false,
       } = data;
 
-      const expiration_date = expiration_dates ?? addMonths(new Date(), parseInt(process.env.VOUCHER_EXPIRATION_MONTHS || "24")).toISOString();
+      const expiration_date =
+        expiration_dates ??
+        addMonths(
+          new Date(),
+          parseInt(process.env.VOUCHER_EXPIRATION_MONTHS || "24")
+        ).toISOString();
 
       const voucherData = {
         partner_id: Number(partner_id),
@@ -80,7 +97,7 @@ export default class VoucherController {
         status_id: status_id ? Number(status_id) : null,
         email: email,
         expiration_date,
-        used:used,
+        used: used,
       };
 
       const voucherTable = new VoucherTable();
