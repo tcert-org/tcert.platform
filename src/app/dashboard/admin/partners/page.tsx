@@ -36,16 +36,51 @@ async function fetchPartners(
 
     if (!response.ok) {
       throw new Error(
-        `"request /api/request-table/partners/?${queryParams}" was not successfull: ${response.statusText}`
+        `"request /api/request-table/partners/?${queryParams}" was not successful: ${response.statusText}`
       );
     }
 
     const result = await response.json();
+    const partners: PartnerDinamicTable[] = result.data;
 
-    const formattedData = result.data as PartnerDinamicTable[];
+    // Fetch real voucher data for each partner in paralelo
+    const enrichedData = await Promise.all(
+      partners.map(async (partner) => {
+        try {
+          const res = await fetch(
+            `/api/vouchers/quantity?partner_id=${partner.id}`
+          );
+          const json = await res.json();
+          if (res.ok && json?.data) {
+            return {
+              ...partner,
+              total_vouchers: json.data.voucher_purchased,
+              used_vouchers: json.data.voucher_asigned,
+              available_vouchers: json.data.voucher_available,
+            };
+          } else {
+            console.error(`Error fetching vouchers for partner ${partner.id}`);
+            return {
+              ...partner,
+              total_vouchers: 0,
+              used_vouchers: 0,
+              available_vouchers: 0,
+            };
+          }
+        } catch (err) {
+          console.error(`Network error for partner ${partner.id}:`, err);
+          return {
+            ...partner,
+            total_vouchers: 0,
+            used_vouchers: 0,
+            available_vouchers: 0,
+          };
+        }
+      })
+    );
 
     return {
-      data: formattedData,
+      data: enrichedData,
       totalCount: result.totalCount,
     };
   } catch (error) {
