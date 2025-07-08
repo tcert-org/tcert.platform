@@ -42,6 +42,7 @@
     "react-pageflip": "^2.0.3",
     "react-pdf": "^10.0.1",
     "react-select": "^5.10.1",
+    "react-toastify": "^11.0.5",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "zod": "^3.24.2",
