@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import HTMLFlipBook from 'react-pageflip';
-import { Document, Page, pdfjs } from 'react-pdf';
+import React, { useState, useEffect, useRef } from "react";
+import HTMLFlipBook from "react-pageflip";
+import { Document, Page, pdfjs } from "react-pdf";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
 ).toString();
 
 const FlipPage = React.forwardRef(({ pageNumber, width }, ref) => (
   <div
     ref={ref}
     className="bg-white flex items-center justify-center"
-    style={{ width: '100%', height: '100%' }}
+    style={{ width: "100%", height: "100%" }}
   >
     <Page
       pageNumber={pageNumber}
@@ -24,7 +24,7 @@ const FlipPage = React.forwardRef(({ pageNumber, width }, ref) => (
   </div>
 ));
 
-FlipPage.displayName = 'FlipPage';
+FlipPage.displayName = "FlipPage";
 
 function Flipbook({ material }) {
   const [numPages, setNumPages] = useState(null);
@@ -52,8 +52,8 @@ function Flipbook({ material }) {
     };
 
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   return (
@@ -74,6 +74,7 @@ function Flipbook({ material }) {
             showCover={true}
             usePortrait={isMobile}
             mobileScrollSupport={true}
+            maxShadowOpacity={1}
             className="shadow-md"
           >
             {Array.from({ length: numPages }, (_, i) => (
