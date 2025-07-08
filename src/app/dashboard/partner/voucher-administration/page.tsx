@@ -22,6 +22,8 @@ export default function VoucherAdministrationPage() {
   const { getUser } = useUserStore();
   const [user, setUser] = useState<UserRowType | null>(null);
   const [partnerData, setPartnerData] = useState<any | null>(null);
+  const [voucherAvailable, setVoucherAvailable] = useState<number | null>(null);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -41,9 +43,23 @@ export default function VoucherAdministrationPage() {
             throw new Error("Failed to fetch partner data");
           }
           const data = await response.json();
-          setPartnerData(data?.data || null);
+          const partner = data?.data || null;
+          setPartnerData(partner);
+
+          // voucher counts
+          if (partner?.id) {
+            const res = await fetch(
+              `/api/vouchers/quantity?partner_id=${partner.id}`
+            );
+            const json = await res.json();
+            if (res.ok && json?.data) {
+              setVoucherAvailable(json.data.voucher_available);
+            } else {
+              setVoucherAvailable(0); // fallback en caso de error
+            }
+          }
         } catch (error) {
-          console.error("Error fetching partner data:", error);
+          console.error("Error fetching partner or voucher data:", error);
         }
       };
 
@@ -103,6 +119,7 @@ export default function VoucherAdministrationPage() {
 
   const columns: ColumnDef<DataVoucherTable>[] = [
     createActionsColumn(voucherActions),
+
     {
       accessorKey: "code",
       header: "Código único",
@@ -189,8 +206,15 @@ export default function VoucherAdministrationPage() {
       <div className="flex items-center justify-between mt-8">
         <h2 className="text-3xl font-bold">Tus voucher</h2>
         <Button
-          onClick={() => router.push("/dashboard/partner/assign-voucher")}
+          onClick={() => {
+            if (voucherAvailable && voucherAvailable > 0) {
+              router.push("/dashboard/partner/assign-voucher");
+            } else {
+              alert("No tienes vouchers disponibles para asignar.");
+            }
+          }}
           className="gap-2"
+          disabled={voucherAvailable === 0}
         >
           <Plus size={18} />
           Asignar nuevo voucher

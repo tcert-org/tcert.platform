@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Select, { SingleValue } from "react-select";
-import { Controller } from "react-hook-form";
 import { useUserStore } from "@/stores/user-store";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 type VoucherFormData = {
   partner_id: string;
@@ -27,7 +28,7 @@ type OptionType = {
 function getDatePlusTwoYears() {
   const date = new Date();
   date.setFullYear(date.getFullYear() + 2);
-  return date.toISOString().split("T")[0]; // YYYY-MM-DD
+  return date.toISOString().split("T")[0];
 }
 
 export default function VoucherForm() {
@@ -35,20 +36,17 @@ export default function VoucherForm() {
     register,
     handleSubmit,
     control,
-    formState: {},
     reset,
     setValue,
+    formState: { errors },
   } = useForm<VoucherFormData>({
-    defaultValues: {
-      used: false,
-    },
+    defaultValues: { used: false },
   });
 
   const router = useRouter();
   const { decryptedUser, getUser } = useUserStore();
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [certifications, setCertifications] = useState<OptionType[]>([]);
   const [statuses, setStatuses] = useState<OptionType[]>([]);
@@ -84,8 +82,7 @@ export default function VoucherForm() {
         setStatuses(options);
 
         const defaultOption = options.find(
-          (item: { label: string }) =>
-            item.label.toLowerCase() === "sin presentar"
+          (item) => item.label.toLowerCase() === "sin presentar"
         );
 
         if (defaultOption) {
@@ -100,7 +97,6 @@ export default function VoucherForm() {
 
   const onSubmit = async (data: VoucherFormData) => {
     setLoading(true);
-    setSuccess(false);
     setErrorMessage(null);
 
     try {
@@ -127,11 +123,15 @@ export default function VoucherForm() {
         return;
       }
 
-      setSuccess(true);
+      toast.success("✅ Voucher creado exitosamente", {
+        position: "top-center",
+        theme: "colored",
+      });
+
       reset();
       setTimeout(
         () => router.push("/dashboard/partner/voucher-administration"),
-        1000
+        4000
       );
     } catch {
       setErrorMessage("Error inesperado al crear el voucher.");
@@ -145,54 +145,59 @@ export default function VoucherForm() {
 
   return (
     <section className="flex justify-center items-start p-6">
+      <ToastContainer />
       <div className="w-full max-w-xl">
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
-          {/* Campos ocultos */}
           <input
             type="hidden"
-            {...register("partner_id", { required: true })}
+            {...register("partner_id")}
             value={decryptedUser.id}
           />
-          <input type="hidden" {...register("status_id", { required: true })} />
-          <input
-            type="hidden"
-            {...register("expiration_dates", { required: true })}
-          />
+          <input type="hidden" {...register("status_id")} />
+          <input type="hidden" {...register("expiration_dates")} />
           <input type="hidden" {...register("used")} value="false" />
 
-          {/* Certificación */}
           <div>
             <Label>Certificación</Label>
             <Controller
               control={control}
               name="certification_id"
-              rules={{ required: true }}
+              rules={{ required: "Debe seleccionar una certificación" }}
               render={({ field }) => (
-                <Select<OptionType, false>
-                  options={certifications}
-                  placeholder="Seleccione una certificación"
-                  className="text-sm"
-                  isSearchable
-                  value={certifications.find((o) => o.value === field.value)}
-                  onChange={(o: SingleValue<OptionType>) =>
-                    field.onChange(o?.value || "")
-                  }
-                />
+                <>
+                  <Select
+                    options={certifications}
+                    placeholder="Seleccione una certificación"
+                    isSearchable
+                    value={certifications.find((o) => o.value === field.value)}
+                    onChange={(o) => field.onChange(o?.value || "")}
+                  />
+                  {errors.certification_id && (
+                    <p className="text-red-600 text-sm mt-1">
+                      {errors.certification_id.message}
+                    </p>
+                  )}
+                </>
               )}
             />
           </div>
 
-          {/* Email */}
           <div>
             <Label htmlFor="email">Correo</Label>
             <Input
               id="email"
               type="email"
-              {...register("email", { required: true })}
+              {...register("email", {
+                required: "El correo es obligatorio",
+              })}
             />
+            {errors.email && (
+              <p className="text-red-600 text-sm mt-1">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
-          {/* Botón de envío */}
           <Button
             type="submit"
             className="w-full bg-black text-white hover:bg-gray-800"
@@ -200,12 +205,6 @@ export default function VoucherForm() {
             {loading ? "Guardando..." : "Crear Voucher"}
           </Button>
 
-          {/* Mensajes */}
-          {success && (
-            <p className="text-green-600 text-sm text-center">
-              Voucher creado exitosamente
-            </p>
-          )}
           {errorMessage && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm text-center">
               <strong className="font-bold">Error:</strong>{" "}

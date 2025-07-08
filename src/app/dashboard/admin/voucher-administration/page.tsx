@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 import Select from "react-select";
 import { useUserStore } from "@/stores/user-store";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { useRouter } from "next/navigation";
 
 export default function VoucherAdministrationPage() {
+  const router = useRouter();
   const { getUser } = useUserStore();
   const [formData, setFormData] = useState({
     partner_id: "",
@@ -18,7 +22,6 @@ export default function VoucherAdministrationPage() {
   const [partners, setPartners] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -74,7 +77,6 @@ export default function VoucherAdministrationPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(false);
 
     try {
       const res = await fetch("/api/payments", {
@@ -94,9 +96,13 @@ export default function VoucherAdministrationPage() {
 
       const result = await res.json();
 
-      if (!res.ok) throw new Error(result.error || "Error al generar ");
+      if (!res.ok) throw new Error(result.error || "Error al generar");
 
-      setSuccess(true);
+      toast.success("✅ La asignación de vouchers fue exitosa", {
+        position: "top-center",
+        theme: "colored",
+      });
+
       setFormData({
         partner_id: "",
         admin_id: formData.admin_id,
@@ -105,6 +111,11 @@ export default function VoucherAdministrationPage() {
         total_price: 0,
         file_url: "",
       });
+
+      // ⏱ Redirección después de 3 segundos
+      setTimeout(() => {
+        router.push("/dashboard/admin/partners");
+      }, 3000);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -192,8 +203,8 @@ export default function VoucherAdministrationPage() {
             className="w-full border rounded px-3 py-2"
           />
         </div>
+
         <div className="col-span-1">
-          <label className="block text-sm font-medium text-gray-700 mb-1"></label>
           <input type="hidden" name="admin_id" value={formData.admin_id} />
         </div>
 
@@ -206,14 +217,12 @@ export default function VoucherAdministrationPage() {
             {loading ? "Enviando..." : "Generar"}
           </button>
 
-          {success && (
-            <p className="mt-2 text-green-600 text-sm">
-              Pago creado correctamente.
-            </p>
+          {error && (
+            <p className="mt-2 text-red-600 text-sm text-center">{error}</p>
           )}
-          {error && <p className="mt-2 text-red-600 text-sm">{error}</p>}
         </div>
       </form>
+      <ToastContainer />
     </div>
   );
 }
