@@ -6,7 +6,7 @@ import {
   type ActionItem,
 } from "@/components/data-table/action-menu";
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Eye } from "lucide-react";
+import { CloudCog, Edit, Eye } from "lucide-react";
 import { FetchParams } from "@/lib/types";
 
 export interface PartnerDinamicTable {
@@ -15,7 +15,7 @@ export interface PartnerDinamicTable {
   email: string;
   total_vouchers: number;
   used_vouchers: number;
-  available_vouchers: number;
+  unused_vouchers: number;
   created_at: string;
 }
 
@@ -57,35 +57,9 @@ async function fetchPartners(
     }
 
     const result = await response.json();
-    const partners: PartnerDinamicTable[] = result.data;
-
-    // Si aún haces enrich de datos (como total_vouchers) aquí:
-    const enrichedData = await Promise.all(
-      partners.map(async (partner) => {
-        const res = await fetch(
-          `/api/vouchers/quantity?partner_id=${partner.id}`
-        );
-        const json = await res.json();
-        return res.ok && json?.data
-          ? {
-              ...partner,
-              total_vouchers: json.data.voucher_purchased,
-              used_vouchers: json.data.voucher_asigned,
-              available_vouchers: json.data.voucher_available,
-            }
-          : {
-              ...partner,
-              total_vouchers: 0,
-              used_vouchers: 0,
-              available_vouchers: 0,
-            };
-      })
-    );
-
-    console.log("DatosYarnold", enrichedData);
-
+    console.log("🔍 Partners recibidos:", result.data);
     return {
-      data: enrichedData,
+      data: result.data,
       totalCount: result.totalCount,
     };
   } catch (error) {
@@ -99,12 +73,12 @@ export default function PartnersPage() {
     {
       label: "Ver detalles",
       icon: Eye,
-      navigateTo: (partner) => `/dashboard/admin/partners/${partner.id}`, // Redirigir a detalles
+      navigateTo: (partner) => `/dashboard/admin/partners/${partner.id}`,
     },
     {
       label: "Editar",
       icon: Edit,
-      navigateTo: (partner) => `/partners/edit/${partner.id}`, // Redirigir a edición
+      navigateTo: (partner) => `/partners/edit/${partner.id}`,
     },
   ];
 
@@ -128,7 +102,6 @@ export default function PartnersPage() {
       size: 250,
       meta: { filterType: "text" },
     },
-    //Vouchers Comprados///////////////////
     {
       accessorKey: "total_vouchers",
       header: "Vouchers Comprados",
@@ -136,10 +109,7 @@ export default function PartnersPage() {
       enableSorting: true,
       meta: {
         filterType: "number",
-        numberOptions: {
-          step: 1,
-          operators: true,
-        },
+        numberOptions: { step: 1, operators: true },
       },
       cell: ({ row }) => (
         <div className="text-center font-medium">
@@ -147,7 +117,6 @@ export default function PartnersPage() {
         </div>
       ),
     },
-    //Vouchers Usados///////////////////
     {
       accessorKey: "used_vouchers",
       header: "Vouchers Usados",
@@ -155,37 +124,29 @@ export default function PartnersPage() {
       enableSorting: true,
       meta: {
         filterType: "number",
-        numberOptions: {
-          step: 1,
-          operators: true,
-        },
+        numberOptions: { step: 1, operators: true },
       },
       cell: ({ row }) => (
-        <div className="!text-center font-medium">
+        <div className="text-center font-medium">
           {row.getValue("used_vouchers")}
         </div>
       ),
     },
-    //Vouchers Disponibles///////////////////
     {
-      accessorKey: "available_vouchers",
+      accessorKey: "unused_vouchers",
       header: "Vouchers Disponibles",
       size: 80,
       enableSorting: true,
       meta: {
         filterType: "number",
-        numberOptions: {
-          step: 1,
-          operators: true,
-        },
+        numberOptions: { step: 1, operators: true },
       },
       cell: ({ row }) => (
-        <div className="!text-center font-medium">
-          {row.getValue("available_vouchers")}
+        <div className="text-center font-medium">
+          {row.getValue("unused_vouchers")}
         </div>
       ),
     },
-
     {
       accessorKey: "created_at",
       header: "Antigüedad",

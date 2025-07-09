@@ -3,16 +3,22 @@ import VoucherTable from "@/modules/vouchers/table";
 import { ApiResponse } from "@/lib/types";
 import {
   FilterParamsVoucher,
-  ResponseVoucherTable,
   RpcParamsVoucher,
   createParamsVoucher,
 } from "./types";
 import { addMonths } from "date-fns";
 
 export default class VoucherController {
-  static async getVouchers(
-    filters: FilterParamsVoucher
-  ): Promise<NextResponse<ApiResponse<ResponseVoucherTable | null>>> {
+  static async getVouchers(filters: FilterParamsVoucher): Promise<
+    NextResponse<
+      ApiResponse<{
+        data: any[];
+        total: number;
+        page: number;
+        totalPages: number;
+      }>
+    >
+  > {
     try {
       const {
         filter_code,
@@ -24,8 +30,10 @@ export default class VoucherController {
         filter_partner_id,
         order_by,
         order_dir,
-        page,
+        page = 1,
       } = filters;
+
+      const limit = 10;
 
       const rpcParams: RpcParamsVoucher = {
         filter_code: filter_code || null,
@@ -37,29 +45,20 @@ export default class VoucherController {
         filter_partner_id: filter_partner_id || null,
         order_by: order_by || "purchase_date",
         order_dir: order_dir || "desc",
-        page: page || 1,
+        page,
+        limit_count: limit,
       };
 
       const voucherTable = new VoucherTable();
       const result = await voucherTable.getVouchersWithFilters(rpcParams);
 
-      // Si el RPC devuelve un array directo este bloque lo soporta
-      if (Array.isArray(result)) {
-        return NextResponse.json({
-          statusCode: 200,
-          data: {
-            data: result,
-            totalCount: result.length,
-          },
-        });
-      }
-
-      // Cubre el caso normal si el RPC devuelve { data, totalCount }
       return NextResponse.json({
         statusCode: 200,
         data: {
-          data: result?.data ?? [],
-          totalCount: result?.totalCount ?? 0,
+          data: result,
+          total: result.length, // puedes reemplazar esto con un count si modificas el RPC
+          page,
+          totalPages: Math.ceil(result.length / limit), // opcional: ajustar si tienes count real
         },
       });
     } catch (error) {
