@@ -469,7 +469,6 @@ const VoucherTable = () => {
 
   // Handle row actions
   const handleRowAction = (action: string, voucher: Voucher) => {
-
     switch (action) {
       case "view":
         router.push(`/vouchers/${voucher.id}`);
