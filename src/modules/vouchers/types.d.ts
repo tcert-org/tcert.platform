@@ -16,23 +16,24 @@ export type FilterParamsVoucher = {
 export type createParamsVoucher = {
   partner_id: string;
   certification_id?: string | null;
-  status_id?: string
+  status_id?: string;
   email: string;
   used?: boolean;
   expiration_dates?: string;
 };
 // params for the RPC vouchers_with_filters function
 export type RpcParamsVoucher = {
-  filter_code: string | null;
-  filter_certification_name: string | null;
-  filter_email: string | null;
-  filter_available: boolean | null;
-  filter_purchase_date: string | null;
-  filter_expiration_date: string | null;
-  filter_partner_id: string | null;
-  order_by: string;
-  order_dir: "asc" | "desc";
-  page: number;
+  filter_code?: string | null;
+  filter_certification_name?: string | null;
+  filter_email?: string | null;
+  filter_available?: boolean | null;
+  filter_purchase_date?: string | null;
+  filter_expiration_date?: string | null;
+  filter_partner_id?: number | null;
+  filter_status_id?: number | null;
+  order_by?: string;
+  order_dir?: "asc" | "desc";
+  page?: number;
 };
 
 // response from the RPC vouchers_with_filters function

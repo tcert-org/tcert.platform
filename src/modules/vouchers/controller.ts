@@ -42,11 +42,11 @@ export default class VoucherController {
         filter_available: filter_available ?? null,
         filter_purchase_date: filter_purchase_date || null,
         filter_expiration_date: filter_expiration_date || null,
-        filter_partner_id: filter_partner_id || null,
+        filter_partner_id: filter_partner_id ? Number(filter_partner_id) : null,
+        filter_status_id: null,
         order_by: order_by || "purchase_date",
         order_dir: order_dir || "desc",
-        page,
-        limit_count: limit,
+        page: page || 1,
       };
 
       const voucherTable = new VoucherTable();
