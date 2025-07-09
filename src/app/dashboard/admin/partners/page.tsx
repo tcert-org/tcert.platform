@@ -82,6 +82,8 @@ async function fetchPartners(
       })
     );
 
+    console.log("DatosYarnold", enrichedData);
+
     return {
       data: enrichedData,
       totalCount: result.totalCount,
@@ -150,7 +152,7 @@ export default function PartnersPage() {
       accessorKey: "used_vouchers",
       header: "Vouchers Usados",
       size: 80,
-      enableSorting: false,
+      enableSorting: true,
       meta: {
         filterType: "number",
         numberOptions: {
