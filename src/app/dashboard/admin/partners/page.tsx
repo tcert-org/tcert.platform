@@ -23,59 +23,62 @@ async function fetchPartners(
   params: FetchParams
 ): Promise<{ data: PartnerDinamicTable[]; totalCount: number }> {
   try {
-    const queryParams = new URLSearchParams(params).toString();
+    const query: Record<string, any> = {
+      page: params.page ?? 1,
+      limit: params.limit ?? 10,
+      order_by: params.order_by ?? "created_at",
+      order_dir: params.order_dir ?? "desc",
+    };
+
+    if (params.filters) {
+      for (const filter of params.filters) {
+        const val = filter.value;
+        if (typeof val === "string" && val.includes(":")) {
+          const [op, rawValue] = val.split(":");
+          query[`filter_${filter.id}_op`] = op;
+          query[`filter_${filter.id}`] = rawValue;
+        } else {
+          query[`filter_${filter.id}`] = val;
+        }
+      }
+    }
+
+    const queryParams = new URLSearchParams(query).toString();
+
     const response = await fetch(
       `/api/request-table/partners/?${queryParams}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
+      { method: "GET" }
     );
 
     if (!response.ok) {
       throw new Error(
-        `"request /api/request-table/partners/?${queryParams}" was not successful: ${response.statusText}`
+        `"request /api/request-table/partners/?${queryParams}" failed: ${response.statusText}`
       );
     }
 
     const result = await response.json();
     const partners: PartnerDinamicTable[] = result.data;
 
-    // Fetch real voucher data for each partner in paralelo
+    // Si aún haces enrich de datos (como total_vouchers) aquí:
     const enrichedData = await Promise.all(
       partners.map(async (partner) => {
-        try {
-          const res = await fetch(
-            `/api/vouchers/quantity?partner_id=${partner.id}`
-          );
-          const json = await res.json();
-          if (res.ok && json?.data) {
-            return {
+        const res = await fetch(
+          `/api/vouchers/quantity?partner_id=${partner.id}`
+        );
+        const json = await res.json();
+        return res.ok && json?.data
+          ? {
               ...partner,
               total_vouchers: json.data.voucher_purchased,
               used_vouchers: json.data.voucher_asigned,
               available_vouchers: json.data.voucher_available,
-            };
-          } else {
-            console.error(`Error fetching vouchers for partner ${partner.id}`);
-            return {
+            }
+          : {
               ...partner,
               total_vouchers: 0,
               used_vouchers: 0,
               available_vouchers: 0,
             };
-          }
-        } catch (err) {
-          console.error(`Network error for partner ${partner.id}:`, err);
-          return {
-            ...partner,
-            total_vouchers: 0,
-            used_vouchers: 0,
-            available_vouchers: 0,
-          };
-        }
       })
     );
 
@@ -84,7 +87,8 @@ async function fetchPartners(
       totalCount: result.totalCount,
     };
   } catch (error) {
-    throw error;
+    console.error("Error fetching partners:", error);
+    return { data: [], totalCount: 0 };
   }
 }
 
@@ -146,7 +150,7 @@ export default function PartnersPage() {
       accessorKey: "used_vouchers",
       header: "Vouchers Usados",
       size: 80,
-      enableSorting: true,
+      enableSorting: false,
       meta: {
         filterType: "number",
         numberOptions: {

@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import Select, { SingleValue } from "react-select";
+import Select from "react-select";
 import { useUserStore } from "@/stores/user-store";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import VoucherStats from "@/components/Vouchers-info";
 
 type VoucherFormData = {
   partner_id: string;
@@ -44,13 +45,18 @@ export default function VoucherForm() {
   });
 
   const router = useRouter();
+  //Constantes de estados en react
   const { decryptedUser, getUser } = useUserStore();
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [certifications, setCertifications] = useState<OptionType[]>([]);
   const [statuses, setStatuses] = useState<OptionType[]>([]);
+  const [voucherStatsKey, setVoucherStatsKey] = useState(0);
+  const [availableVouchers, setAvailableVouchers] = useState<number>(0);
 
+  const selectRef = useRef<any>(null);
+  //Agrega la fecha de compra y de expiracion del voucher
   useEffect(() => {
     const init = async () => {
       await getUser();
@@ -60,6 +66,7 @@ export default function VoucherForm() {
     init();
   }, [setValue, getUser]);
 
+  //Busca la certificacion para asignarla
   useEffect(() => {
     fetch("/api/vouchers/certifications")
       .then((r) => r.json())
@@ -70,6 +77,7 @@ export default function VoucherForm() {
       );
   }, []);
 
+  //Agrega un status default
   useEffect(() => {
     fetch("/api/vouchers/statutes")
       .then((r) => r.json())
@@ -95,9 +103,47 @@ export default function VoucherForm() {
       });
   }, [setValue]);
 
+  //Se hace la consulta de la cantidad de Vouchers, los usados y disponibles
+  useEffect(() => {
+    if (!decryptedUser?.id) return;
+
+    const fetchVouchers = async () => {
+      try {
+        const res = await fetch(
+          `/api/vouchers/quantity?partner_id=${decryptedUser.id}`
+        );
+        const json = await res.json();
+        if (res.ok) {
+          setAvailableVouchers(json.data.voucher_available);
+        } else {
+          console.error("Error al obtener vouchers:", json.error);
+        }
+      } catch (err) {
+        console.error("Error de red al obtener vouchers:", err);
+      }
+    };
+
+    fetchVouchers();
+  }, [decryptedUser?.id, voucherStatsKey]);
+
+  //Funcion onSbumit, contiene la logica para mandar alertas, resetear form y resetear el contador de vouchers
   const onSubmit = async (data: VoucherFormData) => {
     setLoading(true);
     setErrorMessage(null);
+
+    //Valida que los vouchers disponibles no sean menores a cero
+    if (availableVouchers < 1) {
+      toast.error("Vouchers agotados", {
+        position: "top-center",
+        theme: "colored",
+      });
+
+      // Si los vouchers son menores a uno entonces redirige a la pagina de administracion
+      setTimeout(() => {
+        router.push("/dashboard/partner/voucher-administration");
+      }, 2500);
+      return;
+    }
 
     try {
       const payload = {
@@ -123,16 +169,26 @@ export default function VoucherForm() {
         return;
       }
 
-      toast.success("✅ Voucher creado exitosamente", {
+      toast.success("Voucher creado exitosamente", {
         position: "top-center",
         theme: "colored",
       });
 
+      //Cuando el voucher se crea con exito se resetean los valores por defecto
       reset();
-      setTimeout(
-        () => router.push("/dashboard/partner/voucher-administration"),
-        4000
-      );
+
+      //Deberia reiniciar el campo certificacion
+      setValue("certification_id", "", {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      });
+
+      setVoucherStatsKey((prev) => prev + 1);
+
+      setTimeout(() => {
+        selectRef.current?.focus();
+      }, 100);
     } catch {
       setErrorMessage("Error inesperado al crear el voucher.");
     } finally {
@@ -144,8 +200,13 @@ export default function VoucherForm() {
     return <p className="text-center mt-4">Cargando usuario...</p>;
 
   return (
-    <section className="flex justify-center items-start p-6">
+    <section className="flex flex-col items-center px-6 pt-6">
       <ToastContainer />
+
+      <div className="w-full max-w-xl mb-8">
+        <VoucherStats key={voucherStatsKey} partnerId={decryptedUser.id} />
+      </div>
+
       <div className="w-full max-w-xl">
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
           <input
@@ -166,6 +227,7 @@ export default function VoucherForm() {
               render={({ field }) => (
                 <>
                   <Select
+                    ref={selectRef}
                     options={certifications}
                     placeholder="Seleccione una certificación"
                     isSearchable
@@ -201,6 +263,7 @@ export default function VoucherForm() {
           <Button
             type="submit"
             className="w-full bg-black text-white hover:bg-gray-800"
+            disabled={loading}
           >
             {loading ? "Guardando..." : "Crear Voucher"}
           </Button>

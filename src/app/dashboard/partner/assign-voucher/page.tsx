@@ -37,7 +37,7 @@ export default function AssignVoucherPage() {
           });
           setTimeout(() => {
             router.replace("/dashboard/partner/voucher-administration");
-          }, 4000); // ligeramente más largo que autoClose para garantizar visibilidad
+          }, 4000);
         }
       } catch (err) {
         console.error("Error validando acceso:", err);

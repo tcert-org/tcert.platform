@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type {
   ColumnFiltersState,
   SortingState,
@@ -43,10 +43,10 @@ export function useDataFetch<TData>({
 
     try {
       const filterParams: FetchParams = {
-        page: 0,
-        limit: 0,
-        order_by: "",
-        order_dir: "asc",
+        page: pagination.pageIndex + 1,
+        limit: pagination.pageSize,
+        order_by: sorting[0]?.id ?? "created_at",
+        order_dir: sorting[0]?.desc ? "desc" : "asc",
       };
 
       filters.forEach((filter) => {
@@ -70,17 +70,6 @@ export function useDataFetch<TData>({
         }
       });
 
-      filterParams.page = pagination.pageIndex + 1;
-      filterParams.limit = pagination.pageSize;
-
-      if (sorting.length > 0) {
-        filterParams.order_by = sorting[0].id;
-        filterParams.order_dir = sorting[0].desc ? "desc" : "asc";
-      } else {
-        filterParams.order_by = "created_at";
-        filterParams.order_dir = "desc";
-      }
-
       const result = await fetchFn(filterParams);
       setData(result.data);
       setTotalCount(result.totalCount);
@@ -97,9 +86,9 @@ export function useDataFetch<TData>({
     fetchData();
   }, [fetchData]);
 
-  useState(() => {
+  useEffect(() => {
     fetchData();
-  });
+  }, [fetchData]);
 
   return { data, totalCount, isLoading, error, refetch };
 }

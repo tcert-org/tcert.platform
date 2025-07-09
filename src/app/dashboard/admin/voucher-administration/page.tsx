@@ -98,7 +98,7 @@ export default function VoucherAdministrationPage() {
 
       if (!res.ok) throw new Error(result.error || "Error al generar");
 
-      toast.success("✅ La asignación de vouchers fue exitosa", {
+      toast.success("La asignación de vouchers fue exitosa", {
         position: "top-center",
         theme: "colored",
       });
