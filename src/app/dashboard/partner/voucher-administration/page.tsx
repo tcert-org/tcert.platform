@@ -124,13 +124,13 @@ export default function VoucherAdministrationPage() {
       accessorKey: "code",
       header: "Código único",
       size: 150,
-      meta: { filterType: "text" },
+      enableSorting: false,
     },
     {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 250,
-      meta: { filterType: "text" },
+      enableSorting: false,
       cell: ({ row }) => {
         const value = row.getValue("certification_name");
         return value ? (
@@ -141,7 +141,7 @@ export default function VoucherAdministrationPage() {
       },
     },
     {
-      accessorKey: "available",
+      accessorKey: "used",
       header: "Estado del voucher",
       size: 150,
       meta: {
@@ -152,7 +152,7 @@ export default function VoucherAdministrationPage() {
         },
       },
       cell: ({ row }) => {
-        const isAvailable = row.getValue("available");
+        const isAvailable = row.getValue("used");
         return (
           <div
             className={`font-medium ${

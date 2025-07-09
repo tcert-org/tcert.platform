@@ -52,7 +52,6 @@ const PartnerDetailPage = ({ params }: PageProps) => {
         );
         return { data: [], totalCount: 0 };
       }
-
       return {
         data: result.data.data,
         totalCount: result.data.totalCount,
@@ -82,12 +81,13 @@ const PartnerDetailPage = ({ params }: PageProps) => {
       header: "Código único",
       size: 150,
       meta: { filterType: "text" },
+      enableSorting: false,
     },
     {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 250,
-      meta: { filterType: "text" },
+      enableSorting: false,
       cell: ({ row }) => {
         const value = row.getValue("certification_name");
         return value ? (
@@ -98,7 +98,7 @@ const PartnerDetailPage = ({ params }: PageProps) => {
       },
     },
     {
-      accessorKey: "available",
+      accessorKey: "used",
       header: "Estado del voucher",
       size: 150,
       meta: {
@@ -109,7 +109,7 @@ const PartnerDetailPage = ({ params }: PageProps) => {
         },
       },
       cell: ({ row }) => {
-        const isAvailable = row.getValue("available");
+        const isAvailable = row.getValue("used");
         return (
           <div
             className={`font-medium ${
