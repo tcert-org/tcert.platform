@@ -56,9 +56,9 @@ export default class VoucherController {
         statusCode: 200,
         data: {
           data: result,
-          total: result.length, // puedes reemplazar esto con un count si modificas el RPC
+          total: result.length,
           page,
-          totalPages: Math.ceil(result.length / limit), // opcional: ajustar si tienes count real
+          totalPages: Math.ceil(result.length / limit),
         },
       });
     } catch (error) {

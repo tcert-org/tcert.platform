@@ -219,8 +219,8 @@ export type Database = {
       payments: {
         Row: {
           id: number;
-          partner_id: string; 
-          admin_id: string | null; 
+          partner_id: string;
+          admin_id: string | null;
           voucher_quantity: number;
           unit_price: number;
           total_price: number | null;
@@ -263,33 +263,36 @@ export type Database = {
 
       exams: {
         Row: {
-          attempts: number;
-          certification_id: number | null;
-          created_at: string | null;
-          id: number;
-          max_attempts: number;
+          certification_id: number;
           simulator: boolean;
           time_limit: number | null;
+          attempts: number;
+          name_exam: string;
+          active: boolean;
+          created_at: string | null;
+          id: number;
           updated_at: string | null;
         };
         Insert: {
-          attempts?: number;
           certification_id?: number | null;
-          created_at?: string | null;
-          id?: never;
-          max_attempts: number;
           simulator: boolean;
           time_limit?: number | null;
+          attempts?: number;
+          name_exam: string;
+          active: boolean;
+          created_at?: string | null;
+          id?: never;
           updated_at?: string | null;
         };
         Update: {
-          attempts?: number;
           certification_id?: number | null;
+          simulator: boolean;
+          time_limit?: number | null;
+          attempts?: number;
+          name_exam: string;
+          active: boolean;
           created_at?: string | null;
           id?: never;
-          max_attempts?: number;
-          simulator?: boolean;
-          time_limit?: number | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -377,25 +380,30 @@ export type Database = {
       };
       questions: {
         Row: {
-          content: string;
-          created_at: string | null;
-          exam_id: number | null;
           id: number;
+          exam_id: number | null;
+          content: string;
+          type_question: number;
+          active: boolean;
+          created_at: string | null;
           updated_at: string | null;
         };
         Insert: {
+          exam_id: number | null;
           content: string;
-          created_at?: string | null;
-          exam_id?: number | null;
-          id?: never;
-          updated_at?: string | null;
+          type_question: number;
+          active: boolean;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Update: {
-          content?: string;
-          created_at?: string | null;
-          exam_id?: number | null;
-          id?: never;
-          updated_at?: string | null;
+          id: number;
+          exam_id: number | null;
+          content: string;
+          type_question: number;
+          active: boolean;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Relationships: [
           {

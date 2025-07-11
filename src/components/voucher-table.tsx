@@ -393,6 +393,8 @@ const VoucherTable = () => {
           sort.orderDir
         );
 
+        console.log("data boton", result.data);
+
         setVouchers(result.data);
         setTotal(result.total || 0);
         setTotalPages(result.totalPages || 1);

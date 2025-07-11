@@ -63,14 +63,14 @@ export function DataTable<TData, TValue>({
     pageSize: 10,
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-
+  console.log("Antes de la peticion", columnFilters, pagination, sorting);
   const { data, totalCount, isLoading, error, refetch } = useDataFetch<TData>({
     fetchFn: fetchDataFn,
     filters: columnFilters,
     pagination,
     sorting,
   });
-
+  console.log("Despues de la peticion", data, totalCount);
   const table = useReactTable({
     data: data || [],
     columns,
@@ -357,43 +357,61 @@ export function DataTable<TData, TValue>({
           de {totalCount || 0} registros
         </div>
         <div className="flex items-center space-x-2">
+          {/* Este es el boton para devolverse a la primera paginacion */}
           <Button
             variant="outline"
             size="icon"
             onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
             className="h-8 w-8"
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
+
+          {/* Este es el boton para devolverse a la pagina previa */}
           <Button
             variant="outline"
             size="icon"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
             className="h-8 w-8"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
+
           <span className="text-sm mx-2">
             Página {table.getState().pagination.pageIndex + 1} de{" "}
             {table.getPageCount() || 1}
           </span>
+
+          {/* Este es el boton para ir a la siguiente pagina  */}
           <Button
             variant="outline"
             size="icon"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={() =>
+              setPagination((prev) => ({
+                ...prev,
+                pageIndex: prev.pageIndex + 1,
+              }))
+            }
             className="h-8 w-8"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+
+          {/* Este es el boton para ir a la ultima pagina */}
           <Button
             variant="outline"
             size="icon"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
+            onClick={() =>
+              setPagination((prev) => ({
+                ...prev,
+                pageIndex: Math.max(
+                  0,
+                  Math.ceil((totalCount || 0) / prev.pageSize) - 1
+                ),
+              }))
+            }
             className="h-8 w-8"
+            disabled={!totalCount}
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>
