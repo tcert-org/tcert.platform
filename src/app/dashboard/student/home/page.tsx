@@ -1,15 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Flipbook from "@/components/flipbook/Flipbook";
 import FlipbookModal from "@/components/flipbook/FlipbookModal";
+import FlipbookFullModal from "@/components/flipbook/FlipbookFullModal";
 
 export default function StudentHomePage() {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    const detectMobile = () => {
+      const isMobileUA =
+        /Mobi|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        );
+      const isNarrowScreen = window.innerWidth < 768;
+
+      return isMobileUA || isNarrowScreen;
+    };
+
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(detectMobile());
     };
 
     handleResize();
@@ -31,7 +41,7 @@ export default function StudentHomePage() {
         {isMobile ? (
           <FlipbookModal material="itil_dpi.pdf" />
         ) : (
-          <Flipbook material="itil_dpi.pdf" />
+          <FlipbookFullModal material="itil_dpi.pdf" />
         )}
       </div>
     </div>
