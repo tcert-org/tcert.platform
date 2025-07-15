@@ -3,6 +3,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { Document, Page, pdfjs } from "react-pdf";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -26,11 +28,13 @@ FlipPage.displayName = "FlipPage";
 
 export default function Flipbook({ material }) {
   const [numPages, setNumPages] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isPortrait, setIsPortrait] = useState(false);
   const [bookSize, setBookSize] = useState({ width: 800, height: 600 });
   const [showModal, setShowModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef(null);
+  const flipBookRef = useRef(null);
 
   useEffect(() => {
     const updateSize = () => {
@@ -39,7 +43,6 @@ export default function Flipbook({ material }) {
 
       const forcePortrait = containerWidth < 900;
       setIsPortrait(forcePortrait);
-
       const scaleFactor = 0.9;
       const pageWidth = forcePortrait
         ? containerWidth * scaleFactor
@@ -57,36 +60,72 @@ export default function Flipbook({ material }) {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
+  const goNextPage = () => {
+    if (flipBookRef.current) {
+      flipBookRef.current.pageFlip().flipNext();
+    }
+  };
+
+  const goPrevPage = () => {
+    if (flipBookRef.current) {
+      flipBookRef.current.pageFlip().flipPrev();
+    }
+  };
+
+  const handlePageChange = (e) => {
+    const page = e.data; // contiene { page, pageElement }
+    setCurrentPage(page + 1); // se indexa desde 0
+  };
+
   return (
     <div
       ref={containerRef}
-      className="w-full flex justify-center items-center px-4 overflow-x-hidden overflow-y-hidden"
+      className="w-full flex flex-col items-center px-4 overflow-x-hidden overflow-y-hidden"
     >
       <Document
         file={`/materials/${material}`}
-        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+        onLoadSuccess={({ numPages }) => {
+          setNumPages(numPages);
+          setCurrentPage(1);
+        }}
         loading={<p>Cargando PDF...</p>}
       >
         {numPages && !isMobile && (
-          <HTMLFlipBook
-            width={bookSize.width / 2}
-            height={bookSize.height}
-            size="fixed"
-            showCover={true}
-            usePortrait={isPortrait}
-            drawShadow
-            mobileScrollSupport
-            maxShadowOpacity={0.5}
-            className="shadow-lg"
-          >
-            {Array.from({ length: numPages }, (_, index) => (
-              <FlipPage
-                key={index}
-                pageNumber={index + 1}
-                pageWidth={bookSize.width / 2}
-              />
-            ))}
-          </HTMLFlipBook>
+          <>
+            <HTMLFlipBook
+              ref={flipBookRef}
+              width={bookSize.width / 2}
+              height={bookSize.height}
+              size="fixed"
+              showCover={true}
+              usePortrait={isPortrait}
+              drawShadow
+              mobileScrollSupport
+              maxShadowOpacity={0.5}
+              onFlip={handlePageChange}
+              className="shadow-lg"
+            >
+              {Array.from({ length: numPages }, (_, index) => (
+                <FlipPage
+                  key={index}
+                  pageNumber={index + 1}
+                  pageWidth={bookSize.width / 2}
+                />
+              ))}
+            </HTMLFlipBook>
+
+            <div className="flex items-center justify-center gap-4 mt-6">
+              <Button onClick={goPrevPage} disabled={currentPage <= 1}>
+                <ChevronLeft className="w-4 h-4" /> Anterior
+              </Button>
+              <span className="text-sm text-gray-600">
+                Página {currentPage} de {numPages}
+              </span>
+              <Button onClick={goNextPage} disabled={currentPage >= numPages}>
+                Siguiente <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </>
         )}
 
         {isMobile && (
@@ -104,7 +143,7 @@ export default function Flipbook({ material }) {
         )}
       </Document>
 
-      {/* Modal para mobile */}
+      {/* Modal solo para móviles */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center">
           <button
@@ -113,7 +152,6 @@ export default function Flipbook({ material }) {
           >
             ✕
           </button>
-
           <div className="w-full max-w-[90vw] h-[90vh] overflow-auto bg-white p-4 rounded-lg shadow-lg">
             <Document
               file={`/materials/${material}`}

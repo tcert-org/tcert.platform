@@ -13,15 +13,45 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 export default function FlipbookStatic({ material }) {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const [inputValue, setInputValue] = useState("1");
 
-  const nextPage = () => setPageNumber((prev) => Math.min(prev + 1, numPages));
-  const prevPage = () => setPageNumber((prev) => Math.max(prev - 1, 1));
+  const nextPage = () => {
+    const next = Math.min(pageNumber + 1, numPages);
+    setPageNumber(next);
+    setInputValue(String(next));
+  };
+
+  const prevPage = () => {
+    const prev = Math.max(pageNumber - 1, 1);
+    setPageNumber(prev);
+    setInputValue(String(prev));
+  };
+
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value);
+  };
+
+  const handleInputSubmit = (e) => {
+    e.preventDefault();
+    const page = parseInt(inputValue);
+    if (!isNaN(page) && page >= 1 && page <= numPages) {
+      setPageNumber(page);
+    } else {
+      setInputValue(String(pageNumber)); // restaura el valor anterior si es inválido
+    }
+  };
 
   return (
     <div className="w-full h-full flex flex-col items-center gap-4 p-2">
       <Document
         file={`/materials/${material}`}
-        onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+        onLoadSuccess={({ numPages }) => {
+          setNumPages(numPages);
+          if (pageNumber > numPages) {
+            setPageNumber(numPages);
+            setInputValue(String(numPages));
+          }
+        }}
         loading={<p>Cargando PDF...</p>}
       >
         <Page
@@ -36,9 +66,17 @@ export default function FlipbookStatic({ material }) {
         <Button onClick={prevPage} disabled={pageNumber <= 1}>
           <ChevronLeft className="w-4 h-4" /> Anterior
         </Button>
-        <span className="text-xs">
-          Pág {pageNumber} de {numPages}
-        </span>
+
+        <form onSubmit={handleInputSubmit} className="flex items-center gap-1">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            className="w-12 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+          />
+          <span className="text-sm text-gray-700">de {numPages}</span>
+        </form>
+
         <Button onClick={nextPage} disabled={pageNumber >= numPages}>
           Siguiente <ChevronRight className="w-4 h-4" />
         </Button>
