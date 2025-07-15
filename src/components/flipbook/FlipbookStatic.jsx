@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,27 @@ export default function FlipbookStatic({ material }) {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [inputValue, setInputValue] = useState("1");
+
+  // 🧠 Restaurar después de que el PDF esté completamente cargado
+  const handleLoadSuccess = ({ numPages }) => {
+    setNumPages(numPages);
+
+    const savedPage = parseInt(
+      localStorage.getItem("flipbook_last_page") || "1",
+      10
+    );
+    const validPage = Math.min(Math.max(savedPage, 1), numPages);
+
+    setPageNumber(validPage);
+    setInputValue(String(validPage));
+  };
+
+  // 🧠 Guardar en localStorage cada vez que cambie la página
+  useEffect(() => {
+    if (numPages) {
+      localStorage.setItem("flipbook_last_page", String(pageNumber));
+    }
+  }, [pageNumber, numPages]);
 
   const nextPage = () => {
     const next = Math.min(pageNumber + 1, numPages);
@@ -45,13 +66,7 @@ export default function FlipbookStatic({ material }) {
     <div className="w-full h-full flex flex-col items-center gap-4 p-2">
       <Document
         file={`/materials/${material}`}
-        onLoadSuccess={({ numPages }) => {
-          setNumPages(numPages);
-          if (pageNumber > numPages) {
-            setPageNumber(numPages);
-            setInputValue(String(numPages));
-          }
-        }}
+        onLoadSuccess={handleLoadSuccess}
         loading={<p>Cargando PDF...</p>}
       >
         <Page

@@ -26,6 +26,7 @@ export default function FlipbookFullModal({ material }) {
   const [pageInput, setPageInput] = useState("1");
   const [browserZoom, setBrowserZoom] = useState(1);
   const flipbookRef = useRef();
+  const isProgrammaticFlip = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -33,23 +34,49 @@ export default function FlipbookFullModal({ material }) {
     };
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    };
+
+    if (open) {
+      document.addEventListener("keydown", handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
   const handlePageChange = (e) => {
     const newPage = e.data + 1;
+
+    if (isProgrammaticFlip.current) {
+      isProgrammaticFlip.current = false;
+    }
+
     setCurrentPage(newPage);
     setPageInput(String(newPage));
+    localStorage.setItem("flipbook_last_page", String(newPage));
   };
 
   const goToPage = (page) => {
-    if (flipbookRef.current && page >= 1 && page <= numPages) {
+    if (
+      flipbookRef.current &&
+      typeof flipbookRef.current.pageFlip === "function" &&
+      page >= 1 &&
+      page <= numPages
+    ) {
+      isProgrammaticFlip.current = true;
       flipbookRef.current.pageFlip().flip(page - 1);
-      setCurrentPage(page);
-      setPageInput(String(page));
     }
   };
 
   const nextPage = () => {
     if (currentPage < numPages) {
-      goToPage(currentPage + 1);
+      goToPage(currentPage + 2);
     }
   };
 
@@ -81,13 +108,44 @@ export default function FlipbookFullModal({ material }) {
     resetZoom();
   };
 
+  useEffect(() => {
+    if (open && numPages) {
+      const saved = parseInt(
+        localStorage.getItem("flipbook_last_page") || "1",
+        10
+      );
+      const validPage = Math.min(Math.max(saved, 1), numPages);
+
+      setCurrentPage(validPage); // sincroniza estado
+      setPageInput(String(validPage)); // sincroniza input
+
+      // Espera a que el libro esté listo para hacer el flip
+      const interval = setInterval(() => {
+        try {
+          if (
+            flipbookRef.current &&
+            typeof flipbookRef.current.pageFlip === "function"
+          ) {
+            isProgrammaticFlip.current = true;
+            flipbookRef.current.pageFlip().flip(validPage - 1);
+            clearInterval(interval); // detener intervalo cuando se haga el flip
+          }
+        } catch (error) {
+          console.log(
+            error,
+            "Es posible que el pageFlip() este llamando undefinded porque aun no esta listo"
+          );
+        }
+      }, 100);
+    }
+  }, [open, numPages]);
+
   return (
     <div className="w-full flex justify-center">
       <Button onClick={() => setOpen(true)}>Abrir material</Button>
 
       {open && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex flex-col items-center justify-center px-4">
-          {/* Botón de cierre */}
           <button
             className="absolute top-4 left-4 text-white text-2xl z-50"
             onClick={handleClose}
@@ -95,7 +153,6 @@ export default function FlipbookFullModal({ material }) {
             <X />
           </button>
 
-          {/* Flipbook */}
           <Document
             file={`/materials/${material}`}
             onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -129,9 +186,7 @@ export default function FlipbookFullModal({ material }) {
             </HTMLFlipBook>
           </Document>
 
-          {/* Controles flotantes */}
           <div className="absolute bottom-4 flex flex-col md:flex-row items-center gap-4 bg-white rounded-lg p-3 shadow z-50">
-            {/* Paginación */}
             <div className="flex items-center gap-2">
               <Button onClick={prevPage} variant="outline" size="sm">
                 <ChevronLeft className="w-4 h-4" />
@@ -146,7 +201,7 @@ export default function FlipbookFullModal({ material }) {
                   onChange={(e) => setPageInput(e.target.value)}
                   onBlur={() => goToPage(Number(pageInput))}
                   onKeyDown={(e) => {
-                    if (e.key === "a") {
+                    if (e.key === "Enter") {
                       goToPage(Number(pageInput));
                     }
                   }}
@@ -159,7 +214,6 @@ export default function FlipbookFullModal({ material }) {
               </Button>
             </div>
 
-            {/* Zoom */}
             <div className="flex items-center gap-2 mt-2 md:mt-0">
               <Button
                 onClick={zoomOut}
