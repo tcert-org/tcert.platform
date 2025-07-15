@@ -58,3 +58,17 @@ export const QuestionRegisterSchema = z.object({
     required_error: "Debes seleccionar si está activa o inactiva la pregunta.",
   }),
 });
+
+//esquema de validacion de opciones
+export const OptionRegisterSchema = z.object({
+  question_id: z
+    .number({
+      required_error: "Es obligatorio asignar una pregunta a las opciones.",
+    })
+    .min(1, "Debes seleccionar una pregunta valida"),
+  content: z.string({ required_error: "La opcion debe tener un contenido." }),
+  is_correct: z.boolean({
+    required_error:
+      "Es obligatorio seleccionar si la opcion es falsa o correcta.",
+  }),
+});

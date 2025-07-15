@@ -39,4 +39,29 @@ export default class ExamTable extends Table<"exams"> {
     }
     return data ?? null;
   }
+  async getAllExams(): Promise<{
+    data: ExamRowType[] | null;
+    error: any;
+  }> {
+    const { data, error } = await supabase.from("exams").select(`
+      id,
+      name_exam,
+      simulator,
+      time_limit,
+      attempts,
+      active,
+      certification_id,
+      certifications ( name )
+    `);
+
+    if (error) return { data: null, error };
+
+    // Transformamos la data para extraer certification_name
+    const mappedData = data?.map((exam: any) => ({
+      ...exam,
+      certification_name: exam.certifications?.name ?? "Sin nombre",
+    }));
+
+    return { data: mappedData, error: null };
+  }
 }

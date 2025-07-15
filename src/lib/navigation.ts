@@ -1,5 +1,4 @@
 import { MenuItem, UserRole } from "./types";
-
 const allMenuItems: Record<UserRole, MenuItem[]> = {
   student: [
     {
@@ -47,6 +46,12 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       title: "Administración de Vouchers",
       path: "/voucher-administration",
       iconName: "CreditCard",
+      showModuleName: true,
+    },
+    {
+      title: "Academica",
+      path: "/exam",
+      iconName: "BookOpen",
       showModuleName: true,
     },
   ],
