@@ -21,5 +21,6 @@ export async function GET() {
       { message: "Error obteniendo exámenes" },
       { status: 500 }
     );
+    console.log(error);
   }
 }
