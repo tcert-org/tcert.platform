@@ -1,5 +1,5 @@
 "use client";
-
+import { BookA } from "lucide-react";
 import React, { useState } from "react";
 import FlipbookStatic from "./FlipbookStatic";
 import { Button } from "@/components/ui/button";
@@ -10,14 +10,15 @@ export default function FlipbookModal({ material }) {
   return (
     <>
       <div className="w-full flex justify-center">
-        <Button onClick={() => setOpen(true)} className="w-full">
+        <Button onClick={() => setOpen(true)} className="w-full bg-red-600">
+          <BookA />
           Abrir material
         </Button>
       </div>
 
       {open && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center px-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto p-4 relative">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto p-4">
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-800"
               onClick={() => setOpen(false)}
