@@ -27,11 +27,10 @@ export function NavUser({ user, className }: NavUserProps) {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-    } catch {
-    }
+    } catch {}
 
     sessionStorage.clear();
-    localStorage.clear();
+    //localStorage.clear();
     window.location.href = "/sign-in";
   };
 

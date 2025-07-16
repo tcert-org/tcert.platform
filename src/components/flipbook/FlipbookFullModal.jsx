@@ -1,5 +1,5 @@
 "use client";
-
+import { BookA } from "lucide-react";
 import React, { useRef, useState, useEffect } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { Document, Page, pdfjs } from "react-pdf";
@@ -142,7 +142,10 @@ export default function FlipbookFullModal({ material }) {
 
   return (
     <div className="w-full flex justify-center">
-      <Button onClick={() => setOpen(true)}>Abrir material</Button>
+      <Button onClick={() => setOpen(true)}>
+        <BookA />
+        Abrir material
+      </Button>
 
       {open && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex flex-col items-center justify-center px-4">

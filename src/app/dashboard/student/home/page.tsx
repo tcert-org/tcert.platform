@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import FlipbookModal from "@/components/flipbook/FlipbookModal";
 import FlipbookFullModal from "@/components/flipbook/FlipbookFullModal";
+import { Button } from "@/components/ui/button";
 
 export default function StudentHomePage() {
   const [isMobile, setIsMobile] = useState(false);
   const [material, setMaterial] = useState<string | null>(null);
+  const [materialLoaded, setMaterialLoaded] = useState<boolean>(true); // cambia el control visual
 
   useEffect(() => {
     const detectMobile = () => {
@@ -38,6 +40,7 @@ export default function StudentHomePage() {
 
         if (!voucher_id) {
           console.error("No se encontró voucher_id en la sesión");
+          setMaterialLoaded(false);
           return;
         }
 
@@ -56,18 +59,36 @@ export default function StudentHomePage() {
         } else {
           console.error("No se encontró el material del estudiante");
           console.log("MENSAJE DEL SERVIDOR:", data);
+          setMaterialLoaded(false);
         }
       } catch (err) {
         console.error("Error al obtener el material del estudiante:", err);
+        setMaterialLoaded(false);
       }
     };
 
     fetchMaterial();
   }, []);
 
-  if (!material) {
-    return <p className="text-gray-500">Cargando material...</p>;
-  }
+  const renderMaterialButton = () => {
+    if (!materialLoaded || !material) {
+      return (
+        <Button
+          className="w-full bg-gray-300 text-gray-600 cursor-not-allowed"
+          disabled
+          title="Contenido no disponible"
+        >
+          Material no disponible
+        </Button>
+      );
+    }
+
+    return isMobile ? (
+      <FlipbookModal material={material} />
+    ) : (
+      <FlipbookFullModal material={material} />
+    );
+  };
 
   return (
     <div className="flex flex-col gap-4 px-4 items-center text-center">
@@ -80,11 +101,7 @@ export default function StudentHomePage() {
       </p>
 
       <div className="w-full max-w-7xl mx-auto mt-8">
-        {isMobile ? (
-          <FlipbookModal material={material} />
-        ) : (
-          <FlipbookFullModal material={material} />
-        )}
+        {renderMaterialButton()}
       </div>
     </div>
   );
