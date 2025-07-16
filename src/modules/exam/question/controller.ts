@@ -24,4 +24,23 @@ export default class QuestionController {
       });
     }
   }
+  static async getQuestions(
+    exam_id?: number
+  ): Promise<NextResponse<ApiResponse<any>>> {
+    try {
+      const questionTable = new QuestionTable();
+      // Llama a un método que consulte las preguntas filtradas
+      const result = await questionTable.getQuestions(exam_id);
+      return NextResponse.json({
+        statusCode: 200,
+        data: result,
+      });
+    } catch (error) {
+      return NextResponse.json({
+        statusCode: 500,
+        data: null,
+        error: error instanceof Error ? error.message : "Error desconocido",
+      });
+    }
+  }
 }

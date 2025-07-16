@@ -25,4 +25,25 @@ export default class QuestionTable extends Table<"questions"> {
     }
     return inserted;
   }
+  async getQuestions(exam_id?: number): Promise<QuestionRowType[]> {
+    let query = supabase.from("questions").select("*");
+    if (exam_id !== undefined) {
+      query = query.eq("exam_id", exam_id);
+    }
+    const { data, error } = await query;
+    if (error) {
+      throw new Error("Error consultando preguntas: " + error.message);
+    }
+    return data || [];
+  }
+
+  async updateActive(id: number, active: boolean) {
+    const { data, error } = await supabase
+      .from("questions")
+      .update({ active })
+      .eq("id", id)
+      .select()
+      .single();
+    return { data, error };
+  }
 }

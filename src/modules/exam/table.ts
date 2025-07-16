@@ -25,7 +25,6 @@ export default class ExamTable extends Table<"exams"> {
   }
 
   //Buscar examen por nombre
-
   async getbyname(name_exam: string): Promise<ExamRowType | null> {
     const { data, error } = await supabase
       .from("exams")
@@ -39,6 +38,8 @@ export default class ExamTable extends Table<"exams"> {
     }
     return data ?? null;
   }
+
+  //Traemos todos los examenes para listarlos
   async getAllExams(): Promise<{
     data: ExamRowType[] | null;
     error: any;
@@ -63,5 +64,29 @@ export default class ExamTable extends Table<"exams"> {
     }));
 
     return { data: mappedData, error: null };
+  }
+
+  //Obtener un examen por su ID
+  async getExamById(id: number) {
+    const { data, error } = await supabase
+      .from("exams")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    return { data, error };
+  }
+
+  //Actualizar nombre examen
+
+  async updateExamName(id: number, name_exam: string) {
+    const { data, error } = await supabase
+      .from("exams")
+      .update({ name_exam })
+      .eq("id", id)
+      .select()
+      .single();
+
+    return { data, error };
   }
 }
