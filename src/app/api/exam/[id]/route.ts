@@ -3,10 +3,9 @@ import ExamTable from "@/modules/exam/table";
 
 export async function GET(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  // No es necesario hacer await aquí
-  const { id } = context.params;
+  const { id } = await context.params;
   try {
     const examTable = new ExamTable();
     const { data, error } = await examTable.getExamById(Number(id));
@@ -30,9 +29,9 @@ export async function GET(
 // -------------- MÉTODO PUT ----------------
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = (await context.params);
   try {
     const body = await req.json();
     const { name_exam } = body;

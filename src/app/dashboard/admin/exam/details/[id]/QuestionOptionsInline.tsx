@@ -31,6 +31,9 @@ export default function QuestionOptionsInline({
   const [newContent, setNewContent] = useState("");
   const [newCorrect, setNewCorrect] = useState(false);
 
+  // Validación de opción correcta
+  const [validationError, setValidationError] = useState<string | null>(null);
+
   // Traer opciones
   useEffect(() => {
     async function fetchOptions() {
@@ -49,6 +52,10 @@ export default function QuestionOptionsInline({
     fetchOptions();
   }, [questionId]);
 
+  function hasAtLeastOneCorrect(opts: Option[]) {
+    return opts.some((o) => o.is_correct);
+  }
+
   // Eliminar opción
   async function handleDeleteOption(id: number) {
     if (!window.confirm("¿Seguro que quieres eliminar esta opción?")) return;
@@ -60,7 +67,14 @@ export default function QuestionOptionsInline({
         body: JSON.stringify({ id }),
       });
       if (res.ok) {
-        setOptions((prev) => prev.filter((o) => o.id !== id));
+        const updated = options.filter((o) => o.id !== id);
+        setOptions(updated);
+        // Si eliminando se quedan todas incorrectas, marca error
+        if (updated.length > 0 && !hasAtLeastOneCorrect(updated)) {
+          setValidationError("Debe haber al menos una opción correcta.");
+        } else {
+          setValidationError(null);
+        }
       }
     } finally {
       setUpdating(false);
@@ -72,10 +86,19 @@ export default function QuestionOptionsInline({
     setEditId(option.id);
     setEditContent(option.content);
     setEditCorrect(option.is_correct);
+    setValidationError(null);
   }
 
   // Guardar edición
   async function handleSaveEdit(id: number) {
+    // Si desmarcando la correcta dejaría todas incorrectas, bloquea
+    if (
+      !editCorrect &&
+      options.filter((o) => o.id !== id && o.is_correct).length === 0
+    ) {
+      setValidationError("Debe haber al menos una opción correcta.");
+      return;
+    }
     setUpdating(true);
     try {
       const res = await fetch("/api/exam/question/elections", {
@@ -88,14 +111,14 @@ export default function QuestionOptionsInline({
         }),
       });
       if (res.ok) {
-        setOptions((prev) =>
-          prev.map((o) =>
-            o.id === id
-              ? { ...o, content: editContent, is_correct: editCorrect }
-              : o
-          )
+        const updated = options.map((o) =>
+          o.id === id
+            ? { ...o, content: editContent, is_correct: editCorrect }
+            : o
         );
+        setOptions(updated);
         setEditId(null);
+        setValidationError(null);
       }
     } finally {
       setUpdating(false);
@@ -105,6 +128,22 @@ export default function QuestionOptionsInline({
   // Guardar nueva opción
   async function handleSaveNewOption() {
     if (!newContent.trim()) return;
+    // No permite agregar si ya hay 4
+    if (options.length >= 4) return;
+    // Si NO hay opción correcta tras agregar, bloquea
+    const simuladas = [
+      ...options,
+      {
+        id: -1,
+        content: newContent,
+        question_id: questionId,
+        is_correct: newCorrect,
+      },
+    ];
+    if (!hasAtLeastOneCorrect(simuladas)) {
+      setValidationError("Debe haber al menos una opción correcta.");
+      return;
+    }
     setUpdating(true);
     try {
       const res = await fetch("/api/exam/question/elections", {
@@ -122,9 +161,22 @@ export default function QuestionOptionsInline({
         setAdding(false);
         setNewContent("");
         setNewCorrect(false);
+        setValidationError(null);
       }
     } finally {
       setUpdating(false);
+    }
+  }
+
+  // No permite cerrar si no hay una correcta
+  function handleTryClose() {
+    if (options.length > 0 && !hasAtLeastOneCorrect(options)) {
+      setValidationError(
+        "Debe haber al menos una opción correcta antes de cerrar."
+      );
+    } else {
+      setValidationError(null);
+      onClose();
     }
   }
 
@@ -132,10 +184,17 @@ export default function QuestionOptionsInline({
     <div className="bg-white border border-gray-300 rounded-lg p-4 mt-3">
       <div className="font-semibold mb-2 text-sm text-gray-700 flex justify-between">
         Opciones de la pregunta
-        <Button size="sm" variant="outline" onClick={onClose}>
+        <Button size="sm" variant="outline" onClick={handleTryClose}>
           Cerrar
         </Button>
       </div>
+
+      {validationError && (
+        <div className="mb-2 text-xs text-red-600 bg-red-100 border border-red-300 px-2 py-1 rounded">
+          {validationError}
+        </div>
+      )}
+
       {/* Agregar nueva opción */}
       {adding ? (
         <div className="flex gap-2 items-center bg-blue-50 p-2 rounded mb-3">
@@ -158,14 +217,17 @@ export default function QuestionOptionsInline({
             size="sm"
             className="bg-green-600 hover:bg-green-700 text-white"
             onClick={handleSaveNewOption}
-            disabled={updating || !newContent.trim()}
+            disabled={updating || !newContent.trim() || options.length >= 4}
           >
             <Save className="w-4 h-4 mr-1" /> Guardar
           </Button>
           <Button
             size="sm"
             variant="outline"
-            onClick={() => setAdding(false)}
+            onClick={() => {
+              setAdding(false);
+              setValidationError(null);
+            }}
             disabled={updating}
           >
             <X className="w-4 h-4" />
@@ -176,7 +238,11 @@ export default function QuestionOptionsInline({
           size="sm"
           variant="outline"
           className="mb-3"
-          onClick={() => setAdding(true)}
+          onClick={() => {
+            setAdding(true);
+            setValidationError(null);
+          }}
+          disabled={options.length >= 4}
         >
           <Plus className="w-4 h-4 mr-1" /> Agregar opción
         </Button>
@@ -223,7 +289,10 @@ export default function QuestionOptionsInline({
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setEditId(null)}
+                  onClick={() => {
+                    setEditId(null);
+                    setValidationError(null);
+                  }}
                   disabled={updating}
                 >
                   <X className="w-4 h-4" />

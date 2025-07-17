@@ -13,29 +13,29 @@ export default function DashboardRedirect() {
   const router = useRouter();
 
   useEffect(() => {
-  async function redirectUser() {
-    const user = await getUser();
+    async function redirectUser() {
+      const user = await getUser();
 
-    if (user) {
-      const roleName = user.roles?.name ?? "unknown";
-      router.replace(
-        `/dashboard/${roleName}${getDefaultPageForRole(roleName as UserRole)}`
-      );
-      return;
+      if (user) {
+        const roleName = user.roles?.name ?? "unknown";
+        router.replace(
+          `/dashboard/${roleName}${getDefaultPageForRole(roleName as UserRole)}`
+        );
+        return;
+      }
+
+      const studentResult = await getStudent();
+
+      if (studentResult.statusCode === "active" && studentResult.data) {
+        const roleName = studentResult.data.role as UserRole;
+        router.replace(
+          `/dashboard/${roleName}${getDefaultPageForRole(roleName)}`
+        );
+      }
     }
 
-    const studentResult = await getStudent();
-
-    if (studentResult.statusCode === "active" && studentResult.data) {
-      const roleName = studentResult.data.role as UserRole;
-      router.replace(
-        `/dashboard/${roleName}${getDefaultPageForRole(roleName)}`
-      );
-    }
-  }
-
-  redirectUser();
-}, [getStudent, getUser, router]);
+    redirectUser();
+  }, [getStudent, getUser, router]);
 
   return null;
 }

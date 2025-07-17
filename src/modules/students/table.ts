@@ -4,7 +4,8 @@ import { Database } from "@/lib/database/database.types";
 
 // Tipos generados automáticamente por Supabase
 export type StudentRowType = Database["public"]["Tables"]["students"]["Row"];
-export type StudentInsertType = Database["public"]["Tables"]["students"]["Insert"];
+export type StudentInsertType =
+  Database["public"]["Tables"]["students"]["Insert"];
 
 export default class StudentTable extends Table<"students"> {
   constructor() {
@@ -23,7 +24,7 @@ export default class StudentTable extends Table<"students"> {
       console.error("[CREATE_STUDENT_ERROR]", error.message);
       throw new Error("Error creando estudiante: " + error.message);
     }
-    
+
     return inserted;
   }
 
@@ -44,7 +45,9 @@ export default class StudentTable extends Table<"students"> {
   }
 
   // Buscar por número de documento
-  async getByDocumentNumber(document_number: string): Promise<StudentRowType | null> {
+  async getByDocumentNumber(
+    document_number: string
+  ): Promise<StudentRowType | null> {
     const { data, error } = await supabase
       .from("students")
       .select("*")
@@ -59,19 +62,40 @@ export default class StudentTable extends Table<"students"> {
     return data ?? null;
   }
   // Buscar estudiante por voucher_id
-async getByVoucherId(voucher_id: string): Promise<StudentRowType | null> {
-  const { data, error } = await supabase
-    .from("students")
-    .select("*")
-    .eq("voucher_id", voucher_id)
-    .single();
+  async getByVoucherId(voucher_id: string): Promise<StudentRowType | null> {
+    const { data, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq("voucher_id", voucher_id)
+      .single();
 
-  if (error && error.code !== "PGRST116") {
-    throw new Error("Error al buscar por voucher: " + error.message);
+    if (error && error.code !== "PGRST116") {
+      throw new Error("Error al buscar por voucher: " + error.message);
+    }
+
+    return data ?? null;
   }
+  async getCertificationNameByVoucherIdSimple(
+    voucher_id: string
+  ): Promise<string | null> {
+    const { data, error } = await supabase
+      .from("vouchers")
+      .select(
+        `
+      certification_id,
+      certifications!inner (
+        name
+      )
+    `
+      )
+      .eq("id", voucher_id)
+      .single();
 
-  return data ?? null;
-}
+    if (error) {
+      console.error("[GET_CERTIFICATION_NAME_ERROR]", error.message);
+      throw new Error("Error buscando certificación: " + error.message);
+    }
 
-  
+    return data?.certifications?.[0]?.name || null;
+  }
 }
