@@ -99,9 +99,6 @@ export default function StudentSimulatorsPage() {
                   <div className="text-sm sm:text-base text-[#213763] font-bold">
                     {sim.name}
                   </div>
-                  <div className="text-sm text-[#4b607b] font-semibold">
-                    Certificación: {sim.certification}
-                  </div>
                   <div className="text-sm text-gray-500 mt-1">
                     Estado:{" "}
                     <span className={statusColor[sim.status]}>
@@ -111,7 +108,9 @@ export default function StudentSimulatorsPage() {
                 </div>
               </div>
               <div className="mt-auto">
-                <Link href={`/simulator/${sim.id}`}>
+                <Link
+                  href={`/dashboard/student/simulators/form?simulatorId=${sim.id}`}
+                >
                   <Button className="w-full">Ir</Button>
                 </Link>
               </div>

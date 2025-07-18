@@ -7,10 +7,9 @@ import Link from "next/link";
 
 type SimulatorStatus = "completed" | "in_progress" | "not_started";
 
-type SimulatorCard = {
+type ExamCard = {
   id: number;
   name: string;
-  certification: string;
   status: SimulatorStatus;
 };
 
@@ -26,55 +25,68 @@ const statusLabel = {
   not_started: "No realizado",
 };
 
-export default function StudentExamPage() {
-  const [simulators, setSimulators] = useState<SimulatorCard[]>([]);
+export default function StudentSimulatorsPage() {
+  const [exams, setExams] = useState<ExamCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchSimulators() {
       setLoading(true);
+
       try {
-        const res = await fetch("/api/exam");
-        const data = await res.json();
+        // ✅ Obtener voucher_id desde la cookie de sesión del estudiante
+        const session = JSON.parse(
+          sessionStorage.getItem("student-data") || "{}"
+        );
+        const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
-        // Filtra solo examenes usando el campo booleano
-        const simulatorsOnly = Array.isArray(data)
-          ? data.filter((exam: any) => exam.simulator === true)
-          : [];
+        if (!voucherId) {
+          console.warn("voucher_id no disponible en la sesión");
+          setExams([]);
+          setLoading(false);
+          return;
+        }
 
-        // Mapea a tu estructura visual, esperando mostrar el nombre del examen
-        const mapped = simulatorsOnly.map((exam: any) => ({
-          id: exam.id,
-          name: exam.name_exam,
-          certification: exam.certification_name || "Sin certificar",
-          status: "not_started" as SimulatorStatus,
-        }));
+        const res = await fetch(`/api/students/exam?voucher_id=${voucherId}`);
+        const result = await res.json();
 
-        setSimulators(mapped);
+        if (!res.ok || !Array.isArray(result.data)) {
+          setExams([]);
+        } else {
+          const mapped = result.data.map((exam: any) => ({
+            id: exam.id,
+            name: exam.name_exam || "Sin nombre",
+            status: "not_started" as SimulatorStatus,
+          }));
+          setExams(mapped);
+        }
       } catch (err) {
-        setSimulators([]);
+        console.error("Error al obtener simuladores:", err);
+        setExams([]);
       }
+
       setLoading(false);
     }
+
     fetchSimulators();
   }, []);
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl sm:text-4xl font-bold text-center mb-10">
-        Tus Examenes
+        Tu examen
       </h1>
       {loading ? (
         <div className="text-center text-lg text-gray-500 py-16">
-          Cargando Examenes...
+          Cargando examen...
         </div>
-      ) : simulators.length === 0 ? (
+      ) : exams.length === 0 ? (
         <div className="text-center text-lg text-gray-500 py-16">
-          No tienes examenes disponibles.
+          No tienes examen disponible.
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {simulators.map((sim) => (
+          {exams.map((sim) => (
             <div
               key={sim.id}
               className="flex flex-col justify-between bg-white shadow-md border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all min-h-[12rem]"
@@ -85,10 +97,7 @@ export default function StudentExamPage() {
                   <div className="text-sm sm:text-base text-[#213763] font-bold">
                     {sim.name}
                   </div>
-                  <div className="text-xs sm:text-sm text-[#4b607b] font-semibold">
-                    Certificación: {sim.certification}
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-500 mt-1">
+                  <div className="text-sm text-gray-500 mt-1">
                     Estado:{" "}
                     <span className={statusColor[sim.status]}>
                       {statusLabel[sim.status]}
