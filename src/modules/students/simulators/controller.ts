@@ -1,37 +1,16 @@
-import { supabase } from "@/lib/database/conection";
-import { SimulatorType } from "./type";
+import SimulatorTable from "./table";
 
-export async function getStudentSimulators(studentId: number): Promise<{
-  data: SimulatorType[] | null;
-  error: any;
-}> {
-  const { data: student, error: studentError } = await supabase
-    .from("students")
-    .select(
-      `
-      voucher_id,
-      vouchers:voucher_id (
-        certification_id
-      )
-    `
-    )
-    .eq("id", studentId)
-    .single();
-
-  const certificationId = student?.vouchers?.[0]?.certification_id;
-
-  if (studentError || !certificationId) {
-    return {
-      data: null,
-      error: studentError || "Certificación no encontrada para el estudiante",
-    };
+export async function getSimulatorsByVoucher(voucher_id: number) {
+  if (!voucher_id || typeof voucher_id !== "number") {
+    throw new Error("voucher_id inválido");
   }
 
-  const { data: simulators, error: simError } = await supabase
-    .from("exams")
-    .select("id, name_exam, simulator, active, certification_id")
-    .eq("certification_id", certificationId)
-    .eq("simulator", true);
+  const table = new SimulatorTable();
+  const simulators = await table.getSimulatorsByVoucherId(voucher_id);
 
-  return { data: simulators, error: simError };
+  if (!simulators || simulators.length === 0) {
+    throw new Error("No se encontraron simuladores");
+  }
+
+  return simulators;
 }
