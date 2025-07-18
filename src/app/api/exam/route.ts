@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExamTable from "@/modules/exam/table";
+import ExamController from "@/modules/exam/controller";
+import ExamMiddleware from "@/modules/exam/middleware";
 
 export async function POST(req: NextRequest) {
-  // Validación y creación (igual que antes)
-  // ...
+  return ExamMiddleware.validateCreate(req, ExamController.createExam);
 }
 
 export async function GET(req: NextRequest) {
