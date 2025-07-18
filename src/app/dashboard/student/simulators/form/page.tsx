@@ -1,30 +1,88 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 
-const mockExam = {
-  name: "Examen de Matemáticas Básicas",
-  questions: Array.from({ length: 40 }, (_, i) => ({
-    id: i + 1,
-    text: `Esta es la pregunta número ${i + 1}`, // Backticks para interpolar
-    options: [
-      `Opción A para pregunta ${i + 1}`, // Backticks
-      `Opción B para pregunta ${i + 1}`,
-      `Opción C para pregunta ${i + 1}`,
-      `Opción D para pregunta ${i + 1}`,
-    ],
-  })),
-};
+function FormSimulador() {
+  const searchParams = useSearchParams();
+  const examId = searchParams.get("simulatorId");
 
-function FormExam() {
+  const [examName, setSimName] = useState("Cargando título...");
+  const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedOptions, setSelectedOptions] = useState<{
-    [key: number]: number;
-  }>({});
-  const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const [selectedOptions, setSelectedOptions] = useState({});
+  const [options, setOptions] = useState([]); // Opciones para la pregunta actual
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const itemRefs = useRef([]);
 
-  const currentQuestion = mockExam.questions[currentIndex];
+  useEffect(() => {
+    async function fetchData() {
+      if (!examId) {
+        setSimName("ID del examen no proporcionado");
+        setQuestions([]);
+        return;
+      }
 
-  const handleOptionSelect = (optionIndex: number) => {
+      try {
+        // 1. Fetch exam name
+        const simRes = await fetch(`/api/exam?id=${examId}`);
+        if (!simRes.ok) throw new Error("Error al obtener examen");
+        const simData = await simRes.json();
+        setSimName(simData.name_exam || "Sin nombre");
+
+        // 2. Fetch questions
+        const questionRes = await fetch(`/api/exam/question?exam_id=${examId}`);
+        if (!questionRes.ok) throw new Error("Error al obtener preguntas");
+        const questionResponse = await questionRes.json();
+
+        const questionDataArray = questionResponse.data || [];
+        const questionsTransformed = questionDataArray.map((q) => ({
+          id: q.id,
+          text: q.content,
+        }));
+
+        setQuestions(questionsTransformed);
+        setCurrentIndex(0);
+        setSelectedOptions({});
+      } catch (error) {
+        setSimName("Error cargando el examen o preguntas");
+        setQuestions([]);
+        console.error(error);
+      }
+    }
+
+    fetchData();
+  }, [examId]);
+
+  // Cargar opciones cada vez que cambie la pregunta actual
+  useEffect(() => {
+    async function fetchOptions() {
+      if (!questions[currentIndex]) {
+        setOptions([]);
+        return;
+      }
+
+      const questionId = questions[currentIndex].id;
+      setLoadingOptions(true);
+      try {
+        const res = await fetch(
+          `/api/exam/question/elections?question_id=${questionId}`
+        );
+        if (!res.ok) throw new Error("Error al obtener opciones");
+        const data = await res.json();
+        setOptions(data.data || []);
+      } catch (error) {
+        console.error(error);
+        setOptions([]);
+      }
+      setLoadingOptions(false);
+    }
+
+    fetchOptions();
+  }, [currentIndex, questions]);
+
+  const currentQuestion = questions[currentIndex] || {};
+
+  const handleOptionSelect = (optionIndex) => {
     setSelectedOptions({
       ...selectedOptions,
       [currentQuestion.id]: optionIndex,
@@ -32,7 +90,7 @@ function FormExam() {
   };
 
   const goNext = () => {
-    if (currentIndex < mockExam.questions.length - 1) {
+    if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
@@ -43,21 +101,23 @@ function FormExam() {
     }
   };
 
-  const handleSubmit = () => {
-    alert("Examen enviado! Gracias.");
-  };
+  const isLastQuestion = currentIndex === questions.length - 1;
 
-  useEffect(() => {
-    const ref = itemRefs.current[currentIndex];
-    if (ref) {
-      ref.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
-    }
-  }, [currentIndex]);
-
-  const isLastQuestion = currentIndex === mockExam.questions.length - 1;
+  if (questions.length === 0)
+    return (
+      <div
+        style={{
+          maxWidth: 900,
+          margin: "40px auto",
+          fontFamily: "Arial, sans-serif",
+        }}
+      >
+        <h2 style={{ textAlign: "center" }}>{examName}</h2>
+        <p style={{ textAlign: "center", marginTop: 30 }}>
+          No hay preguntas para mostrar.
+        </p>
+      </div>
+    );
 
   return (
     <div
@@ -70,17 +130,10 @@ function FormExam() {
         gap: 20,
       }}
     >
-      <h2 style={{ textAlign: "center", marginBottom: 0 }}>{mockExam.name}</h2>
+      <h2 style={{ textAlign: "center", marginBottom: 0 }}>{examName}</h2>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 20,
-          height: 450,
-          minWidth: 720,
-        }}
-      >
-        {/* Card lateral con scroll automático */}
+      <div style={{ display: "flex", gap: 20, height: 450, minWidth: 720 }}>
+        {/* Preguntas laterales */}
         <div
           style={{
             width: 220,
@@ -98,20 +151,14 @@ function FormExam() {
           }}
           aria-label="Navegación preguntas"
         >
-          {mockExam.questions.map((q, idx) => {
+          {questions.map((q, idx) => {
             const isCurrent = idx === currentIndex;
             const isAnswered = selectedOptions.hasOwnProperty(q.id);
 
-            let backgroundColor = "#bbdefb"; // azul claro default
-            let color = "#0d47a1"; // azul oscuro texto
-
-            if (isCurrent) {
-              backgroundColor = "#213763"; // azul oscuro fondo
-              color = "#fff";
-            } else if (isAnswered) {
-              backgroundColor = "#4caf50"; // verde fondo
-              color = "#fff";
-            }
+            // Ahora, preguntas contestadas y la actual tienen azul oscuro
+            let backgroundColor =
+              isCurrent || isAnswered ? "#213763" : "#bbdefb";
+            let color = isCurrent || isAnswered ? "#fff" : "#0d47a1";
 
             return (
               <div
@@ -130,7 +177,7 @@ function FormExam() {
                   userSelect: "none",
                   transition: "background-color 0.3s, color 0.3s",
                 }}
-                title={`Pregunta ${q.id}`} // Aquí sí comillas y backticks
+                title={`Pregunta ${idx + 1}`}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -139,13 +186,13 @@ function FormExam() {
                   }
                 }}
               >
-                Pregunta {q.id}
+                Pregunta {idx + 1}
               </div>
             );
           })}
         </div>
 
-        {/* Card principal */}
+        {/* Pregunta actual */}
         <div
           style={{
             flexGrow: 1,
@@ -159,9 +206,7 @@ function FormExam() {
             minHeight: 350,
           }}
         >
-          <h3 style={{ marginBottom: 20 }}>
-            Pregunta {currentQuestion.id}: {currentQuestion.text}
-          </h3>
+          <h3 style={{ marginBottom: 20 }}>{currentQuestion.text}</h3>
 
           <div
             style={{
@@ -173,32 +218,40 @@ function FormExam() {
               paddingRight: 10,
             }}
           >
-            {currentQuestion.options.map((option, i) => {
-              const isSelected = selectedOptions[currentQuestion.id] === i;
-              return (
-                <button
-                  key={i}
-                  onClick={() => handleOptionSelect(i)}
-                  style={{
-                    padding: "12px 20px",
-                    borderRadius: 8,
-                    border: isSelected ? "2px solid #213763" : "1px solid #ccc",
-                    backgroundColor: isSelected ? "#e1e8f7" : "#fff",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontSize: 16,
-                    userSelect: "none",
-                    transition: "all 0.2s",
-                    boxShadow: isSelected
-                      ? "0 0 8px rgba(33, 55, 99, 0.5)"
-                      : "none",
-                  }}
-                  aria-pressed={isSelected}
-                >
-                  {option}
-                </button>
-              );
-            })}
+            {loadingOptions ? (
+              <p>Cargando opciones...</p>
+            ) : options.length === 0 ? (
+              <p>No hay opciones para esta pregunta.</p>
+            ) : (
+              options.map((option, i) => {
+                const isSelected = selectedOptions[currentQuestion.id] === i;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => handleOptionSelect(i)}
+                    style={{
+                      padding: "12px 20px",
+                      borderRadius: 8,
+                      border: isSelected
+                        ? "2px solid #213763"
+                        : "1px solid #ccc",
+                      backgroundColor: isSelected ? "#e1e8f7" : "#fff",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: 16,
+                      userSelect: "none",
+                      transition: "all 0.2s",
+                      boxShadow: isSelected
+                        ? "0 0 8px rgba(33, 55, 99, 0.5)"
+                        : "none",
+                    }}
+                    aria-pressed={isSelected}
+                  >
+                    {option.content || option.text || `Opción ${i + 1}`}
+                  </button>
+                );
+              })
+            )}
           </div>
 
           <div
@@ -226,7 +279,7 @@ function FormExam() {
               Atrás
             </button>
 
-            {currentIndex === mockExam.questions.length - 1 ? (
+            {isLastQuestion ? (
               <button
                 onClick={() => alert("Examen enviado! Gracias.")}
                 style={{
@@ -268,4 +321,4 @@ function FormExam() {
   );
 }
 
-export default FormExam;
+export default FormSimulador;

@@ -100,4 +100,15 @@ export default class ExamTable extends Table<"exams"> {
 
     return { data, error };
   }
+
+  //Nombre examen
+  async getExamNameById(id: number) {
+    const { data, error } = await supabase
+      .from("exams")
+      .select("name_exam")
+      .eq("id", id)
+      .single();
+
+    return { data, error };
+  }
 }

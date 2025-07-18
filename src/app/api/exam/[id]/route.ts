@@ -9,7 +9,6 @@ export async function GET(
   try {
     const examTable = new ExamTable();
     const { data, error } = await examTable.getExamById(Number(id));
-
     if (error || !data) {
       return NextResponse.json(
         { message: error?.message || "Examen no encontrado" },
