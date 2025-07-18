@@ -2,116 +2,118 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 
-function FormSimulador() {
+interface Question {
+  id: number;
+  text: string;
+}
+
+interface Option {
+  id: number;
+  content: string;
+}
+
+export default function FormSimulador() {
   const searchParams = useSearchParams();
   const examId = searchParams.get("simulatorId");
 
-  const [examName, setSimName] = useState("Cargando título...");
-  const [questions, setQuestions] = useState([]);
+  const [examName, setExamName] = useState("Cargando título...");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [options, setOptions] = useState<Option[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedOptions, setSelectedOptions] = useState({});
-  const [options, setOptions] = useState([]); // Opciones para la pregunta actual
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<number, number>
+  >({});
   const [loadingOptions, setLoadingOptions] = useState(false);
-  const itemRefs = useRef([]);
+  const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
+  const currentQuestion = questions[currentIndex];
+
+  // Traer nombre + preguntas
   useEffect(() => {
-    async function fetchData() {
+    async function fetchExamData() {
       if (!examId) {
-        setSimName("ID del examen no proporcionado");
-        setQuestions([]);
+        setExamName("ID del examen no proporcionado");
         return;
       }
 
       try {
-        // 1. Fetch exam name
-        const simRes = await fetch(`/api/exam?id=${examId}`);
-        if (!simRes.ok) throw new Error("Error al obtener examen");
-        const simData = await simRes.json();
-        setSimName(simData.name_exam || "Sin nombre");
+        const [examRes, questionRes] = await Promise.all([
+          fetch(`/api/exam/${examId}`),
+          fetch(`/api/exam/question?exam_id=${examId}`),
+        ]);
 
-        // 2. Fetch questions
-        const questionRes = await fetch(`/api/exam/question?exam_id=${examId}`);
-        if (!questionRes.ok) throw new Error("Error al obtener preguntas");
-        const questionResponse = await questionRes.json();
+        if (!examRes.ok) throw new Error("Error al obtener el examen.");
+        const examData = await examRes.json();
+        setExamName(examData.name_exam || "Examen sin nombre");
 
-        const questionDataArray = questionResponse.data || [];
-        const questionsTransformed = questionDataArray.map((q) => ({
-          id: q.id,
-          text: q.content,
-        }));
+        if (!questionRes.ok) throw new Error("Error al obtener preguntas.");
+        const questionData = await questionRes.json();
 
-        setQuestions(questionsTransformed);
+        const parsedQuestions: Question[] = (questionData.data ?? []).map(
+          (q: any) => ({
+            id: q.id,
+            text: q.content,
+          })
+        );
+
+        setQuestions(parsedQuestions);
         setCurrentIndex(0);
         setSelectedOptions({});
       } catch (error) {
-        setSimName("Error cargando el examen o preguntas");
+        setExamName("Error al cargar el examen");
         setQuestions([]);
         console.error(error);
       }
     }
 
-    fetchData();
+    fetchExamData();
   }, [examId]);
 
-  // Cargar opciones cada vez que cambie la pregunta actual
+  // Traer opciones por pregunta
   useEffect(() => {
     async function fetchOptions() {
-      if (!questions[currentIndex]) {
-        setOptions([]);
-        return;
-      }
+      const current = questions[currentIndex];
+      if (!current) return;
 
-      const questionId = questions[currentIndex].id;
       setLoadingOptions(true);
       try {
         const res = await fetch(
-          `/api/exam/question/elections?question_id=${questionId}`
+          `/api/exam/question/elections?question_id=${current.id}`
         );
-        if (!res.ok) throw new Error("Error al obtener opciones");
         const data = await res.json();
-        setOptions(data.data || []);
-      } catch (error) {
-        console.error(error);
+        setOptions(data.data ?? []);
+      } catch (err) {
+        console.error("Error al obtener opciones:", err);
         setOptions([]);
       }
       setLoadingOptions(false);
     }
 
     fetchOptions();
-  }, [currentIndex, questions]);
+  }, [questions, currentIndex]);
 
-  const currentQuestion = questions[currentIndex] || {};
-
-  const handleOptionSelect = (optionIndex) => {
-    setSelectedOptions({
-      ...selectedOptions,
+  const handleOptionSelect = (optionIndex: number) => {
+    if (!currentQuestion) return;
+    setSelectedOptions((prev) => ({
+      ...prev,
       [currentQuestion.id]: optionIndex,
-    });
+    }));
   };
 
   const goNext = () => {
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
+    if (currentIndex < questions.length - 1)
+      setCurrentIndex((prev) => prev + 1);
   };
 
   const goBack = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
+    if (currentIndex > 0) setCurrentIndex((prev) => prev - 1);
   };
 
-  const isLastQuestion = currentIndex === questions.length - 1;
+  const isLast = currentIndex === questions.length - 1;
 
-  if (questions.length === 0)
+  if (!questions.length)
     return (
-      <div
-        style={{
-          maxWidth: 900,
-          margin: "40px auto",
-          fontFamily: "Arial, sans-serif",
-        }}
-      >
+      <div style={{ maxWidth: 900, margin: "40px auto", fontFamily: "Arial" }}>
         <h2 style={{ textAlign: "center" }}>{examName}</h2>
         <p style={{ textAlign: "center", marginTop: 30 }}>
           No hay preguntas para mostrar.
@@ -124,20 +126,18 @@ function FormSimulador() {
       style={{
         maxWidth: 900,
         margin: "40px auto",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: "Arial",
         display: "flex",
         flexDirection: "column",
         gap: 20,
       }}
     >
       <h2 style={{ textAlign: "center", marginBottom: 0 }}>{examName}</h2>
-
-      <div style={{ display: "flex", gap: 20, height: 450, minWidth: 720 }}>
-        {/* Preguntas laterales */}
+      <div style={{ display: "flex", gap: 20, height: 450 }}>
+        {/* Navegación lateral */}
         <div
           style={{
             width: 220,
-            height: 450,
             borderRadius: 8,
             boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
             backgroundColor: "#fff",
@@ -147,19 +147,13 @@ function FormSimulador() {
             display: "flex",
             flexDirection: "column",
             gap: 10,
-            userSelect: "none",
           }}
-          aria-label="Navegación preguntas"
         >
           {questions.map((q, idx) => {
             const isCurrent = idx === currentIndex;
             const isAnswered = selectedOptions.hasOwnProperty(q.id);
-
-            // Ahora, preguntas contestadas y la actual tienen azul oscuro
-            let backgroundColor =
-              isCurrent || isAnswered ? "#213763" : "#bbdefb";
-            let color = isCurrent || isAnswered ? "#fff" : "#0d47a1";
-
+            const bgColor = isCurrent || isAnswered ? "#213763" : "#bbdefb";
+            const color = isCurrent || isAnswered ? "#fff" : "#0d47a1";
             return (
               <div
                 key={q.id}
@@ -169,21 +163,11 @@ function FormSimulador() {
                   cursor: "pointer",
                   padding: "12px 16px",
                   borderRadius: 8,
-                  backgroundColor,
+                  backgroundColor: bgColor,
                   color,
                   textAlign: "center",
                   fontWeight: "bold",
                   fontSize: 16,
-                  userSelect: "none",
-                  transition: "background-color 0.3s, color 0.3s",
-                }}
-                title={`Pregunta ${idx + 1}`}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    setCurrentIndex(idx);
-                  }
                 }}
               >
                 Pregunta {idx + 1}
@@ -198,7 +182,7 @@ function FormSimulador() {
             flexGrow: 1,
             minWidth: 480,
             borderRadius: 8,
-            boxShadow: "0 2px 8px rgb(0 0 0 / 0.1)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             border: "1px solid #ddd",
             padding: 20,
             display: "flex",
@@ -207,15 +191,12 @@ function FormSimulador() {
           }}
         >
           <h3 style={{ marginBottom: 20 }}>{currentQuestion.text}</h3>
-
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               gap: 15,
               flexGrow: 1,
-              overflowY: "auto",
-              paddingRight: 10,
             }}
           >
             {loadingOptions ? (
@@ -223,11 +204,11 @@ function FormSimulador() {
             ) : options.length === 0 ? (
               <p>No hay opciones para esta pregunta.</p>
             ) : (
-              options.map((option, i) => {
+              options.map((opt, i) => {
                 const isSelected = selectedOptions[currentQuestion.id] === i;
                 return (
                   <button
-                    key={i}
+                    key={opt.id}
                     onClick={() => handleOptionSelect(i)}
                     style={{
                       padding: "12px 20px",
@@ -236,18 +217,15 @@ function FormSimulador() {
                         ? "2px solid #213763"
                         : "1px solid #ccc",
                       backgroundColor: isSelected ? "#e1e8f7" : "#fff",
-                      cursor: "pointer",
                       textAlign: "left",
                       fontSize: 16,
-                      userSelect: "none",
-                      transition: "all 0.2s",
                       boxShadow: isSelected
                         ? "0 0 8px rgba(33, 55, 99, 0.5)"
                         : "none",
+                      cursor: "pointer",
                     }}
-                    aria-pressed={isSelected}
                   >
-                    {option.content || option.text || `Opción ${i + 1}`}
+                    {opt.content}
                   </button>
                 );
               })
@@ -272,14 +250,11 @@ function FormSimulador() {
                 color: "#fff",
                 cursor: currentIndex === 0 ? "not-allowed" : "pointer",
                 fontWeight: "bold",
-                userSelect: "none",
-                fontSize: 16,
               }}
             >
               Atrás
             </button>
-
-            {isLastQuestion ? (
+            {isLast ? (
               <button
                 onClick={() => alert("Examen enviado! Gracias.")}
                 style={{
@@ -288,10 +263,7 @@ function FormSimulador() {
                   border: "none",
                   backgroundColor: "#d32f2f",
                   color: "#fff",
-                  cursor: "pointer",
                   fontWeight: "bold",
-                  userSelect: "none",
-                  fontSize: 16,
                 }}
               >
                 Enviar examen
@@ -305,10 +277,7 @@ function FormSimulador() {
                   border: "none",
                   backgroundColor: "#213763",
                   color: "#fff",
-                  cursor: "pointer",
                   fontWeight: "bold",
-                  userSelect: "none",
-                  fontSize: 16,
                 }}
               >
                 Siguiente
@@ -320,5 +289,3 @@ function FormSimulador() {
     </div>
   );
 }
-
-export default FormSimulador;

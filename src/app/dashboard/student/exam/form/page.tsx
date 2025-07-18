@@ -1,16 +1,16 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 
 function FormExam() {
-  const searchParams = useSearchParams();
-  const examId = searchParams.get("simulatorId");
+  const params = useParams();
+  const examId = params?.id;
 
   const [examName, setExamName] = useState("Cargando título...");
   const [questions, setQuestions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
-  const [options, setOptions] = useState([]); // Opciones para la pregunta actual
+  const [options, setOptions] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const itemRefs = useRef([]);
 
@@ -23,19 +23,16 @@ function FormExam() {
       }
 
       try {
-        // 1. Fetch exam name
-        const examRes = await fetch(`/api/exam?id=${examId}`);
+        const examRes = await fetch(`/api/exam/${examId}`);
         if (!examRes.ok) throw new Error("Error al obtener examen");
         const examData = await examRes.json();
         setExamName(examData.name_exam || "Sin nombre");
 
-        // 2. Fetch questions
         const questionRes = await fetch(`/api/exam/question?exam_id=${examId}`);
         if (!questionRes.ok) throw new Error("Error al obtener preguntas");
         const questionResponse = await questionRes.json();
 
-        const questionDataArray = questionResponse.data || [];
-        const questionsTransformed = questionDataArray.map((q) => ({
+        const questionsTransformed = (questionResponse.data || []).map((q) => ({
           id: q.id,
           text: q.content,
         }));
@@ -53,7 +50,6 @@ function FormExam() {
     fetchData();
   }, [examId]);
 
-  // Cargar opciones cada vez que cambie la pregunta actual
   useEffect(() => {
     async function fetchOptions() {
       if (!questions[currentIndex]) {
@@ -81,7 +77,6 @@ function FormExam() {
   }, [currentIndex, questions]);
 
   const currentQuestion = questions[currentIndex] || {};
-
   const handleOptionSelect = (optionIndex) => {
     setSelectedOptions({
       ...selectedOptions,
@@ -90,15 +85,11 @@ function FormExam() {
   };
 
   const goNext = () => {
-    if (currentIndex < questions.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
+    if (currentIndex < questions.length - 1) setCurrentIndex(currentIndex + 1);
   };
 
   const goBack = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
+    if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
   };
 
   const isLastQuestion = currentIndex === questions.length - 1;
