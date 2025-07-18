@@ -1,22 +1,24 @@
-import { NextResponse } from "next/server";
-import { getStudentSimulators } from "@/modules/students/simulators/controller";
+import { NextRequest, NextResponse } from "next/server";
+import { getSimulatorsByVoucher } from "@/modules/students/simulators/controller";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const studentId = Number(searchParams.get("student_id"));
+  const voucherId = searchParams.get("voucher_id");
 
-  if (!studentId) {
+  if (!voucherId) {
     return NextResponse.json(
-      { error: "Falta el parámetro student_id" },
+      { error: "voucher_id es requerido" },
       { status: 400 }
     );
   }
 
-  const { data, error } = await getStudentSimulators(studentId);
-
-  if (error) {
-    return NextResponse.json({ error }, { status: 500 });
+  try {
+    const simulators = await getSimulatorsByVoucher(Number(voucherId));
+    return NextResponse.json({ data: simulators });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Error interno" },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ data });
 }

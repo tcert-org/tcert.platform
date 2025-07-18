@@ -10,7 +10,6 @@ type SimulatorStatus = "completed" | "in_progress" | "not_started";
 type SimulatorCard = {
   id: number;
   name: string;
-  certification: string;
   status: SimulatorStatus;
 };
 
@@ -33,29 +32,44 @@ export default function StudentSimulatorsPage() {
   useEffect(() => {
     async function fetchSimulators() {
       setLoading(true);
+
       try {
-        const res = await fetch("/api/exam");
-        const data = await res.json();
+        // ✅ Obtener voucher_id desde la cookie de sesión del estudiante
+        const session = JSON.parse(
+          sessionStorage.getItem("student-data") || "{}"
+        );
+        const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
-        // Filtra solo simuladores usando el campo booleano
-        const simulatorsOnly = Array.isArray(data)
-          ? data.filter((exam: any) => exam.simulator === true)
-          : [];
+        if (!voucherId) {
+          console.warn("voucher_id no disponible en la sesión");
+          setSimulators([]);
+          setLoading(false);
+          return;
+        }
 
-        // Mapea a tu estructura visual, esperando certification_name en la respuesta
-        const mapped = simulatorsOnly.map((exam: any) => ({
-          id: exam.id,
-          name: exam.name_exam,
-          certification: exam.certification_name || "Sin certificar",
-          status: "not_started" as SimulatorStatus,
-        }));
+        const res = await fetch(
+          `/api/students/simulator?voucher_id=${voucherId}`
+        );
+        const result = await res.json();
 
-        setSimulators(mapped);
+        if (!res.ok || !Array.isArray(result.data)) {
+          setSimulators([]);
+        } else {
+          const mapped = result.data.map((exam: any) => ({
+            id: exam.id,
+            name: exam.name_exam || "Sin nombre",
+            status: "not_started" as SimulatorStatus,
+          }));
+          setSimulators(mapped);
+        }
       } catch (err) {
+        console.error("Error al obtener simuladores:", err);
         setSimulators([]);
       }
+
       setLoading(false);
     }
+
     fetchSimulators();
   }, []);
 
@@ -85,10 +99,10 @@ export default function StudentSimulatorsPage() {
                   <div className="text-sm sm:text-base text-[#213763] font-bold">
                     {sim.name}
                   </div>
-                  <div className="text-xs sm:text-sm text-[#4b607b] font-semibold">
+                  <div className="text-sm text-[#4b607b] font-semibold">
                     Certificación: {sim.certification}
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-500 mt-1">
+                  <div className="text-sm text-gray-500 mt-1">
                     Estado:{" "}
                     <span className={statusColor[sim.status]}>
                       {statusLabel[sim.status]}
