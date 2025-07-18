@@ -70,6 +70,7 @@ export function DataTable<TData, TValue>({
     pagination,
     sorting,
   });
+  const totalCountFake = 13;
   console.log("Despues de la peticion", data, totalCount);
   const table = useReactTable({
     data: data || [],
@@ -361,7 +362,12 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => table.setPageIndex(0)}
+            onClick={() => {
+              setPagination((prev) => ({
+                ...prev,
+                pageIndex: 0,
+              }));
+            }}
             className="h-8 w-8"
           >
             <ChevronsLeft className="h-4 w-4" />
@@ -371,7 +377,13 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="icon"
-            onClick={() => table.previousPage()}
+            onClick={() => {
+              setPagination((prev) => ({
+                ...prev,
+                pageIndex:
+                  Number(prev.pageIndex - 1) <= 0 ? 0 : prev.pageIndex - 1,
+              }));
+            }}
             className="h-8 w-8"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -389,7 +401,17 @@ export function DataTable<TData, TValue>({
             onClick={() =>
               setPagination((prev) => ({
                 ...prev,
-                pageIndex: prev.pageIndex + 1,
+                pageIndex:
+                  Number(prev.pageIndex + 1) <=
+                  Math.max(
+                    0,
+                    Math.ceil((totalCountFake || 0) / prev.pageSize) - 1
+                  )
+                    ? prev.pageIndex + 1
+                    : Math.max(
+                        0,
+                        Math.ceil((totalCountFake || 0) / prev.pageSize) - 1
+                      ),
               }))
             }
             className="h-8 w-8"
@@ -401,15 +423,15 @@ export function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="icon"
-            onClick={() =>
+            onClick={() => {
               setPagination((prev) => ({
                 ...prev,
                 pageIndex: Math.max(
                   0,
-                  Math.ceil((totalCount || 0) / prev.pageSize) - 1
+                  Math.ceil((totalCountFake || 0) / prev.pageSize) - 1
                 ),
-              }))
-            }
+              }));
+            }}
             className="h-8 w-8"
             disabled={!totalCount}
           >

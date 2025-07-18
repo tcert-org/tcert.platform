@@ -57,7 +57,7 @@ async function fetchPartners(
     }
 
     const result = await response.json();
-    console.log("Partners recibidos:", result.data);
+    console.log("Partners recibidos:", result);
     return {
       data: result.data,
       totalCount: result.totalCount,
