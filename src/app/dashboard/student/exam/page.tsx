@@ -26,7 +26,7 @@ const statusLabel = {
   not_started: "No realizado",
 };
 
-export default function StudentSimulatorsPage() {
+export default function StudentExamPage() {
   const [simulators, setSimulators] = useState<SimulatorCard[]>([]);
   const [loading, setLoading] = useState(true);
 
