@@ -1,11 +1,11 @@
 "use client";
+import { useState } from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { FetchParams } from "@/lib/types";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Eye } from "lucide-react";
+import { Plus, Eye } from "lucide-react";
 
 export interface ExamDinamicTable {
   id: string;
@@ -20,7 +20,6 @@ export interface ExamDinamicTable {
 async function fetchExam(
   params: FetchParams
 ): Promise<{ data: ExamDinamicTable[]; totalCount: number }> {
-  // ...Tu lógica fetch (igual que tienes)
   const query: Record<string, any> = {
     page: params.page ?? 1,
     limit: params.limit ?? 10,
@@ -41,8 +40,6 @@ async function fetchExam(
     }
   }
 
-  // Puedes usar queryParams si lo necesitas en el endpoint real
-  // const queryParams = new URLSearchParams(query).toString();
   const res = await fetch("/api/exam");
   const data = await res.json();
   return {
@@ -51,7 +48,19 @@ async function fetchExam(
   };
 }
 
+async function toggleExamActive(id: string, current: boolean) {
+  const res = await fetch(`/api/exam/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ active: !current }),
+  });
+  if (!res.ok) throw new Error("No se pudo actualizar el estado.");
+}
+
 export default function ExamPage() {
+  // Usar un estado para forzar refetch
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const columns: ColumnDef<ExamDinamicTable>[] = [
     {
       accessorKey: "id",
@@ -111,22 +120,45 @@ export default function ExamPage() {
     {
       id: "actions",
       header: "Acciones",
-      size: 90,
-      cell: ({ row }) => (
-        <Link
-          href={`/dashboard/admin/exam/details/${row.original.id}`}
-          className="flex items-center"
-        >
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Eye className="w-4 h-4" />
-            Ver detalles
-          </Button>
-        </Link>
-      ),
+      size: 160,
+      cell: ({ row }) => {
+        // No usar un estado local, solo llama la función y refresca la tabla
+        const [loading, setLoading] = useState(false);
+
+        async function handleToggle() {
+          setLoading(true);
+          try {
+            await toggleExamActive(row.original.id, row.original.active);
+            setRefreshKey((prev) => prev + 1); // << Fuerza el refetch de la tabla
+          } catch (e) {
+            alert("No se pudo cambiar el estado");
+          }
+          setLoading(false);
+        }
+
+        return (
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/dashboard/admin/exam/details/${row.original.id}`}
+              className="flex items-center"
+            >
+              <Button size="sm" variant="outline" className="gap-2">
+                <Eye className="w-4 h-4" />
+                Ver detalles
+              </Button>
+            </Link>
+            <Button
+              size="sm"
+              variant={row.original.active ? "destructive" : "success"}
+              className="gap-2"
+              onClick={handleToggle}
+              disabled={loading}
+            >
+              {loading ? "..." : row.original.active ? "Desactivar" : "Activar"}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -141,7 +173,8 @@ export default function ExamPage() {
           </Button>
         </Link>
       </div>
-      <DataTable columns={columns} fetchDataFn={fetchExam} />
+      {/* Pasar refreshKey como key para forzar remount/refetch */}
+      <DataTable key={refreshKey} columns={columns} fetchDataFn={fetchExam} />
     </div>
   );
 }

@@ -31,23 +31,30 @@ export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = (await context.params);
+  const { id } = await context.params;
   try {
     const body = await req.json();
-    const { name_exam } = body;
+    const { name_exam, active } = body;
 
     const examTable = new ExamTable();
-    const { data, error } = await examTable.updateExamName(
-      Number(id),
-      name_exam
-    );
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    let result;
+    if (typeof name_exam !== "undefined") {
+      result = await examTable.updateExamName(Number(id), name_exam);
+    }
+    if (typeof active !== "undefined") {
+      result = await examTable.updateExamActive(Number(id), active);
+    }
+
+    if (result?.error) {
+      return NextResponse.json(
+        { error: result.error.message },
+        { status: 400 }
+      );
     }
 
     return NextResponse.json(
-      { message: "Actualizado correctamente", data },
+      { message: "Actualizado correctamente", data: result?.data },
       { status: 200 }
     );
   } catch (err) {

@@ -60,8 +60,10 @@ export default function StudentSimulatorsPage() {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto py-10 px-4">
-      <h1 className="text-4xl font-bold text-center mb-10">Tus Simuladores</h1>
+    <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      <h1 className="text-3xl sm:text-4xl font-bold text-center mb-10">
+        Tus Simuladores
+      </h1>
       {loading ? (
         <div className="text-center text-lg text-gray-500 py-16">
           Cargando simuladores...
@@ -71,22 +73,22 @@ export default function StudentSimulatorsPage() {
           No tienes simuladores disponibles.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {simulators.map((sim) => (
             <div
               key={sim.id}
-              className="flex flex-col justify-between bg-white shadow-md border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all h-44"
+              className="flex flex-col justify-between bg-white shadow-md border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all min-h-[12rem]"
             >
               <div className="flex items-center gap-3 mb-4">
                 <Lightbulb className={`w-6 h-6 ${statusColor[sim.status]}`} />
                 <div>
-                  <div className="text-base text-[#213763] font-bold">
+                  <div className="text-sm sm:text-base text-[#213763] font-bold">
                     {sim.name}
                   </div>
-                  <div className="text-sm text-[#4b607b] font-semibold">
+                  <div className="text-xs sm:text-sm text-[#4b607b] font-semibold">
                     Certificación: {sim.certification}
                   </div>
-                  <div className="text-sm text-gray-500 mt-1">
+                  <div className="text-xs sm:text-sm text-gray-500 mt-1">
                     Estado:{" "}
                     <span className={statusColor[sim.status]}>
                       {statusLabel[sim.status]}

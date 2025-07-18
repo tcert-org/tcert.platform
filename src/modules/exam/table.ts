@@ -78,11 +78,22 @@ export default class ExamTable extends Table<"exams"> {
   }
 
   //Actualizar nombre examen
-
   async updateExamName(id: number, name_exam: string) {
     const { data, error } = await supabase
       .from("exams")
       .update({ name_exam })
+      .eq("id", id)
+      .select()
+      .single();
+
+    return { data, error };
+  }
+
+  //Actualizar estado activo/inactivo examen
+  async updateExamActive(id: number, active: boolean) {
+    const { data, error } = await supabase
+      .from("exams")
+      .update({ active })
       .eq("id", id)
       .select()
       .single();
