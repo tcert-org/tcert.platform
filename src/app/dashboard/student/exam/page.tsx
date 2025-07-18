@@ -39,7 +39,7 @@ export default function StudentExamPage() {
 
         // Filtra solo examenes usando el campo booleano
         const simulatorsOnly = Array.isArray(data)
-          ? data.filter((exam: any) => exam.simulator === false)
+          ? data.filter((exam: any) => exam.simulator === true)
           : [];
 
         // Mapea a tu estructura visual, esperando mostrar el nombre del examen

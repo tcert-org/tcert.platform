@@ -17,7 +17,7 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       title: "Examen",
       path: "/exam",
       iconName: "FileText",
-      showModuleName: true,
+      showModuleName: false,
     },
   ],
   partner: [
