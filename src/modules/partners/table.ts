@@ -7,7 +7,7 @@ import { PartnerDinamicTable } from "@/app/dashboard/admin/partners/page";
 export type PartnerRowType = Database["public"]["Tables"]["users"]["Row"];
 export type PartnerInsertType = Database["public"]["Tables"]["users"]["Insert"];
 export type PartnerUpdateType = Database["public"]["Tables"]["users"]["Update"];
-
+type PartnerRowWithCount = PartnerDinamicTable & { total_count: number };
 export type PartnerForDetail = {
   id: number;
   email: string;
@@ -70,9 +70,11 @@ export default class PartnerTable extends Table<"users"> {
 
       if (error) throw new Error(`Error getting partners: ${error.message}`);
 
+      const rows = data as PartnerRowWithCount[];
+
       return {
-        data: data as PartnerDinamicTable[],
-        totalCount: data?.length ?? 0,
+        data: rows.map(({ total_count, ...rest }) => rest),
+        totalCount: rows[0]?.total_count ?? 0,
       };
     } catch (error: any) {
       console.error("Error in getPartnersForTable:", error.message);

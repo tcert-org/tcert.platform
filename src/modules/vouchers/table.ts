@@ -5,7 +5,8 @@ import { nanoid } from "nanoid";
 import { Database } from "@/lib/database/database.types";
 
 export type VoucherRowType = Database["public"]["Tables"]["vouchers"]["Row"];
-export type VoucherInsertType = Database["public"]["Tables"]["vouchers"]["Insert"];
+export type VoucherInsertType =
+  Database["public"]["Tables"]["vouchers"]["Insert"];
 
 export default class VoucherTable extends Table<"vouchers"> {
   constructor() {
@@ -27,7 +28,9 @@ export default class VoucherTable extends Table<"vouchers"> {
     return data as ResponseVoucherTable;
   }
 
-  async createVoucher(data: Omit<VoucherInsertType, "code">): Promise<VoucherRowType> {
+  async createVoucher(
+    data: Omit<VoucherInsertType, "code">
+  ): Promise<VoucherRowType> {
     const uniqueCode = `VCHR-${nanoid(10).toUpperCase()}`;
 
     const { data: inserted, error } = await supabase

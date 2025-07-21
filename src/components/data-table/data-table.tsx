@@ -342,7 +342,6 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">
           Mostrando{" "}
@@ -357,8 +356,9 @@ export function DataTable<TData, TValue>({
           )}{" "}
           de {totalCount || 0} registros
         </div>
+
         <div className="flex items-center space-x-2">
-          {/* Este es el boton para devolverse a la primera paginacion */}
+          {/* Primera página */}
           <Button
             variant="outline"
             size="icon"
@@ -369,22 +369,23 @@ export function DataTable<TData, TValue>({
               }));
             }}
             className="h-8 w-8"
+            disabled={table.getState().pagination.pageIndex === 0}
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
 
-          {/* Este es el boton para devolverse a la pagina previa */}
+          {/* Página anterior */}
           <Button
             variant="outline"
             size="icon"
             onClick={() => {
               setPagination((prev) => ({
                 ...prev,
-                pageIndex:
-                  Number(prev.pageIndex - 1) <= 0 ? 0 : prev.pageIndex - 1,
+                pageIndex: prev.pageIndex > 0 ? prev.pageIndex - 1 : 0,
               }));
             }}
             className="h-8 w-8"
+            disabled={table.getState().pagination.pageIndex === 0}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -394,46 +395,55 @@ export function DataTable<TData, TValue>({
             {table.getPageCount() || 1}
           </span>
 
-          {/* Este es el boton para ir a la siguiente pagina  */}
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() =>
-              setPagination((prev) => ({
-                ...prev,
-                pageIndex:
-                  Number(prev.pageIndex + 1) <=
-                  Math.max(
-                    0,
-                    Math.ceil((totalCountFake || 0) / prev.pageSize) - 1
-                  )
-                    ? prev.pageIndex + 1
-                    : Math.max(
-                        0,
-                        Math.ceil((totalCountFake || 0) / prev.pageSize) - 1
-                      ),
-              }))
-            }
-            className="h-8 w-8"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-
-          {/* Este es el boton para ir a la ultima pagina */}
+          {/* Página siguiente */}
           <Button
             variant="outline"
             size="icon"
             onClick={() => {
+              const maxPage = Math.max(
+                0,
+                Math.ceil((totalCount || 0) / pagination.pageSize) - 1
+              );
               setPagination((prev) => ({
                 ...prev,
-                pageIndex: Math.max(
-                  0,
-                  Math.ceil((totalCountFake || 0) / prev.pageSize) - 1
-                ),
+                pageIndex:
+                  prev.pageIndex + 1 <= maxPage ? prev.pageIndex + 1 : maxPage,
               }));
             }}
             className="h-8 w-8"
-            disabled={!totalCount}
+            disabled={
+              table.getState().pagination.pageIndex >=
+              Math.max(
+                0,
+                Math.ceil((totalCount || 0) / pagination.pageSize) - 1
+              )
+            }
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+
+          {/* Última página */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              const maxPage = Math.max(
+                0,
+                Math.ceil((totalCount || 0) / pagination.pageSize) - 1
+              );
+              setPagination((prev) => ({
+                ...prev,
+                pageIndex: maxPage,
+              }));
+            }}
+            className="h-8 w-8"
+            disabled={
+              table.getState().pagination.pageIndex >=
+              Math.max(
+                0,
+                Math.ceil((totalCount || 0) / pagination.pageSize) - 1
+              )
+            }
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>
