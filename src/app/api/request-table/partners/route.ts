@@ -23,11 +23,13 @@ export async function GET(req: NextRequest) {
     const params: FilterParamsPartner = {
       filter_company_name: searchParams.get("filter_company_name") || undefined,
       filter_email: searchParams.get("filter_email") || undefined,
-      filter_total_vouchers_op: searchParams.get("filter_total_vouchers_op") || "=",
+      filter_total_vouchers_op:
+        searchParams.get("filter_total_vouchers_op") || "=",
       filter_total_vouchers: searchParams.get("filter_total_vouchers")
         ? parseInt(searchParams.get("filter_total_vouchers")!)
         : undefined,
-      filter_used_vouchers_op: searchParams.get("filter_used_vouchers_op") || "=",
+      filter_used_vouchers_op:
+        searchParams.get("filter_used_vouchers_op") || "=",
       filter_used_vouchers: searchParams.get("filter_used_vouchers")
         ? parseInt(searchParams.get("filter_used_vouchers")!)
         : undefined,
@@ -42,7 +44,7 @@ export async function GET(req: NextRequest) {
       order_by: searchParams.get("order_by") || "created_at",
       order_dir: (searchParams.get("order_dir") as "asc" | "desc") || "desc",
     };
-
+    console.log("Datos recibidos", params);
     const partnerTable = new PartnerTable();
     const result = await partnerTable.getPartnersForTable(params);
 

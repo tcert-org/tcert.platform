@@ -6,12 +6,11 @@ import type {
   SortingState,
   PaginationState,
 } from "@tanstack/react-table";
-import { FetchParams } from "@/lib/types";
 import { format } from "date-fns";
 
 interface UseDataFetchProps<TData> {
   fetchFn: (
-    params: FetchParams
+    params: Record<string, any>
   ) => Promise<{ data: TData[]; totalCount: number }>;
   filters: ColumnFiltersState;
   pagination: PaginationState;
@@ -42,7 +41,7 @@ export function useDataFetch<TData>({
     setError(null);
 
     try {
-      const filterParams: FetchParams = {
+      const filterParams: Record<string, any> = {
         page: pagination.pageIndex + 1,
         limit: pagination.pageSize,
         order_by: sorting[0]?.id ?? "created_at",

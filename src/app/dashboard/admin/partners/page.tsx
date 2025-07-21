@@ -20,7 +20,7 @@ export interface PartnerDinamicTable {
 }
 
 async function fetchPartners(
-  params: FetchParams
+  params: Record<string, any>
 ): Promise<{ data: PartnerDinamicTable[]; totalCount: number }> {
   try {
     const query: Record<string, any> = {
@@ -30,20 +30,15 @@ async function fetchPartners(
       order_dir: params.order_dir ?? "desc",
     };
 
-    if (params.filters) {
-      for (const filter of params.filters) {
-        const val = filter.value;
-        if (typeof val === "string" && val.includes(":")) {
-          const [op, rawValue] = val.split(":");
-          query[`filter_${filter.id}_op`] = op;
-          query[`filter_${filter.id}`] = rawValue;
-        } else {
-          query[`filter_${filter.id}`] = val;
-        }
+    // Agrega dinámicamente los filtros planos: filter_company_name, etc.
+    for (const key in params) {
+      if (key.startsWith("filter_")) {
+        query[key] = params[key];
       }
     }
 
     const queryParams = new URLSearchParams(query).toString();
+    console.log("🔍 queryParams:", queryParams);
 
     const response = await fetch(
       `/api/request-table/partners/?${queryParams}`,

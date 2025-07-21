@@ -100,6 +100,7 @@ export function DataTable<TData, TValue>({
 
   // Refetch data when filters, pagination, or sorting changes
   useEffect(() => {
+    console.log("🔍 ColumnFilters que se envían:", columnFilters);
     refetch();
   }, [columnFilters, pagination.pageIndex, sorting, refetch]);
 
