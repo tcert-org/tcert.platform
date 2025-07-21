@@ -6,8 +6,7 @@ import {
   type ActionItem,
 } from "@/components/data-table/action-menu";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CloudCog, Edit, Eye } from "lucide-react";
-import { FetchParams } from "@/lib/types";
+import { Edit, Eye } from "lucide-react";
 
 export interface PartnerDinamicTable {
   id: string;

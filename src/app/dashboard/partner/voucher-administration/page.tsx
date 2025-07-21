@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/user-store";
 import { UserRowType } from "@/modules/auth/table";
@@ -20,123 +21,99 @@ import { Button } from "@/components/ui/button";
 
 export default function VoucherAdministrationPage() {
   const { getUser } = useUserStore();
-  const [user, setUser] = useState<UserRowType | null>(null);
   const [partnerData, setPartnerData] = useState<any | null>(null);
   const [voucherAvailable, setVoucherAvailable] = useState<number | null>(null);
-
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const userData = await getUser();
-      setUser(userData || null);
+    const loadPartner = async () => {
+      const user: UserRowType | null = await getUser();
+      if (!user?.id) return;
+
+      const resPartner = await fetch(`/api/partners?id=${user.id}`);
+      const jsonPartner = await resPartner.json();
+      setPartnerData(jsonPartner?.data || null);
+
+      const resQty = await fetch(
+        `/api/vouchers/quantity?partner_id=${user.id}`
+      );
+      const jsonQty = await resQty.json();
+      setVoucherAvailable(jsonQty?.data?.voucher_available ?? 0);
     };
-    fetchUser();
+
+    loadPartner();
   }, [getUser]);
 
-  useEffect(() => {
-    if (user?.id) {
-      const fetchPartnerData = async () => {
-        try {
-          const response = await fetch(`/api/partners?id=${user.id}`);
-          if (!response.ok) {
-            throw new Error("Failed to fetch partner data");
-          }
-          const data = await response.json();
-          const partner = data?.data || null;
-          setPartnerData(partner);
+  const fetchVouchers = useCallback(
+    async (
+      params: Record<string, any>
+    ): Promise<{ data: DataVoucherTable[]; totalCount: number }> => {
+      if (!partnerData?.id) return { data: [], totalCount: 0 };
 
-          // voucher counts
-          if (partner?.id) {
-            const res = await fetch(
-              `/api/vouchers/quantity?partner_id=${partner.id}`
-            );
-            const json = await res.json();
-            if (res.ok && json?.data) {
-              setVoucherAvailable(json.data.voucher_available);
-            } else {
-              setVoucherAvailable(0); // fallback en caso de error
-            }
+      try {
+        const query: Record<string, any> = {
+          page: params.page ?? 1,
+          limit: params.limit ?? 10,
+          order_by: params.order_by ?? "created_at",
+          order_dir: params.order_dir ?? "desc",
+          filter_partner_id: partnerData.id,
+        };
+
+        for (const key in params) {
+          if (key.startsWith("filter_")) {
+            query[key] = params[key];
           }
-        } catch (error) {
-          console.error("Error fetching partner or voucher data:", error);
         }
-      };
 
-      fetchPartnerData();
-    }
-  }, [user]);
+        const response = await fetch(`/api/request-table/vouchers/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(query),
+        });
 
-  const fetchVouchers = async (params: any): Promise<ResponseVoucherTable> => {
-    try {
-      const response = await fetch(`/api/request-table/vouchers/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...params,
-          filter_partner_id: String(user?.id),
-        }),
-      });
+        const result = await response.json();
 
-      const result: {
-        statusCode: number;
-        data: ResponseVoucherTable | null;
-        error?: string;
-      } = await response.json();
+        if (!response.ok || result.statusCode !== 200 || !result.data) {
+          throw new Error(result.error || response.statusText);
+        }
 
-      if (!response.ok || result.statusCode !== 200 || !result.data) {
-        console.error(
-          "Error getting vouchers:",
-          result.error || response.statusText
-        );
+        return {
+          data: result.data.data,
+          totalCount: result.data.totalCount,
+        };
+      } catch (error) {
+        console.error("Error fetching vouchers:", error);
         return { data: [], totalCount: 0 };
       }
-
-      return {
-        data: result.data.data,
-        totalCount: result.data.totalCount,
-      };
-    } catch (error) {
-      console.error("Error inesperado al obtener vouchers:", error);
-      return { data: [], totalCount: 0 };
-    }
-  };
+    },
+    [partnerData?.id]
+  );
 
   const voucherActions: ActionItem<DataVoucherTable>[] = [
     {
       label: "Ver detalles",
       icon: Eye,
-      action: (voucher: DataVoucherTable) => {
-        console.log({
-          title: "Ver voucher",
-          description: `Viendo detalles del voucher ${voucher.code}`,
-        });
+      action: (voucher) => {
+        console.log("Detalles del voucher:", voucher.code);
       },
     },
   ];
 
   const columns: ColumnDef<DataVoucherTable>[] = [
     createActionsColumn(voucherActions),
-
     {
       accessorKey: "code",
       header: "Código único",
       size: 150,
-      enableSorting: false,
     },
     {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 250,
-      enableSorting: false,
       cell: ({ row }) => {
         const value = row.getValue("certification_name");
-        return value ? (
-          value
-        ) : (
-          <span className="text-gray-400 italic">Campo vacío</span>
+        return (
+          value || <span className="text-gray-400 italic">Campo vacío</span>
         );
       },
     },
@@ -154,13 +131,13 @@ export default function VoucherAdministrationPage() {
       cell: ({ row }) => {
         const isAvailable = row.getValue("used");
         return (
-          <div
+          <span
             className={`font-medium ${
               isAvailable ? "text-green-600" : "text-red-600"
             }`}
           >
             {isAvailable ? "Disponible" : "No disponible"}
-          </div>
+          </span>
         );
       },
     },
@@ -169,32 +146,24 @@ export default function VoucherAdministrationPage() {
       header: "Fecha de compra",
       size: 180,
       meta: { filterType: "date" },
-      cell: ({ row }) => {
-        return new Date(row.getValue("purchase_date")).toLocaleDateString(
-          "es-ES",
-          {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          }
-        );
-      },
+      cell: ({ row }) =>
+        new Date(row.getValue("purchase_date")).toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }),
     },
     {
       accessorKey: "expiration_date",
       header: "Fecha de vencimiento",
       size: 180,
       meta: { filterType: "date" },
-      cell: ({ row }) => {
-        return new Date(row.getValue("expiration_date")).toLocaleDateString(
-          "es-ES",
-          {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          }
-        );
-      },
+      cell: ({ row }) =>
+        new Date(row.getValue("expiration_date")).toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        }),
     },
   ];
 

@@ -70,7 +70,6 @@ export function DataTable<TData, TValue>({
     pagination,
     sorting,
   });
-  const totalCountFake = 13;
   console.log("Despues de la peticion", data, totalCount);
   const table = useReactTable({
     data: data || [],
