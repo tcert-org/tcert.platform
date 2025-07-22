@@ -50,97 +50,98 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 --------------Funcion para los filtros del partner--------------------------------------------------
-CREATE OR REPLACE FUNCTION get_partners_with_filters(
+CREATE OR REPLACE FUNCTION public.get_partners_with_filters(
     filter_company_name TEXT DEFAULT NULL,
-    filter_created_at DATE DEFAULT NULL,
-    filter_created_at_op TEXT DEFAULT '>='::text,
     filter_email TEXT DEFAULT NULL,
+    filter_created_at DATE DEFAULT NULL,
+    filter_created_at_op TEXT DEFAULT '>=',
     filter_total_vouchers INTEGER DEFAULT NULL,
-    filter_total_vouchers_op TEXT DEFAULT '='::text,
+    filter_total_vouchers_op TEXT DEFAULT '=',
     filter_used_vouchers INTEGER DEFAULT NULL,
-    filter_used_vouchers_op TEXT DEFAULT '='::text,
-    order_by TEXT DEFAULT 'created_at'::text,
-    order_dir TEXT DEFAULT 'desc'::text,
+    filter_used_vouchers_op TEXT DEFAULT '=',
+    order_by TEXT DEFAULT 'created_at',
+    order_dir TEXT DEFAULT 'DESC',
     page INTEGER DEFAULT 1,
     limit_value INTEGER DEFAULT 10
 )
-RETURNS TABLE(
+RETURNS TABLE (
     id BIGINT,
     company_name TEXT,
     email TEXT,
     total_vouchers BIGINT,
     used_vouchers BIGINT,
     unused_vouchers BIGINT,
-    created_at TIMESTAMPTZ
-) AS $$
+    created_at TIMESTAMPTZ,
+    total_count BIGINT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
-    sql_query TEXT;
     offset_val INT := (page - 1) * limit_value;
+    safe_order_by TEXT;
+    safe_order_dir TEXT;
 BEGIN
-    sql_query := '
-        SELECT * FROM (
+    -- Validación
+    safe_order_by := CASE
+        WHEN order_by IN ('company_name', 'email', 'total_vouchers', 'used_vouchers', 'unused_vouchers', 'created_at')
+        THEN order_by
+        ELSE 'created_at'
+    END;
+
+    safe_order_dir := CASE
+        WHEN upper(order_dir) IN ('ASC', 'DESC')
+        THEN upper(order_dir)
+        ELSE 'DESC'
+    END;
+
+    RETURN QUERY EXECUTE format($f$
+        WITH partner_data AS (
             SELECT
                 u.id,
                 u.company_name,
                 u.email,
-                COUNT(v.id) FILTER (WHERE v.partner_id = u.id) AS total_vouchers,
-                COUNT(v.id) FILTER (WHERE v.partner_id = u.id AND v.used) AS used_vouchers,
-                COUNT(v.id) FILTER (WHERE v.partner_id = u.id AND NOT v.used) AS unused_vouchers,
+                COUNT(v.id) AS total_vouchers,
+                COUNT(v.id) FILTER (WHERE v.used) AS used_vouchers,
+                COUNT(v.id) FILTER (WHERE NOT v.used) AS unused_vouchers,
                 u.created_at
             FROM users u
             LEFT JOIN vouchers v ON v.partner_id = u.id
-            WHERE u.role_id = (SELECT id FROM roles WHERE name = ''partner'')';
+            WHERE u.role_id = (SELECT id FROM roles WHERE name = 'partner')
+                %s -- filtro company_name
+                %s -- filtro email
+                %s -- filtro created_at
+            GROUP BY u.id
+        ),
+        filtered AS (
+            SELECT *,
+                COUNT(*) OVER() AS total_count
+            FROM partner_data
+            WHERE 1=1
+                %s -- filtro total_vouchers
+                %s -- filtro used_vouchers
+        )
+        SELECT id, company_name, email, total_vouchers, used_vouchers, unused_vouchers, created_at, total_count
+        FROM filtered
+        ORDER BY %I %s
+        OFFSET %s LIMIT %s
+    $f$,
 
-    IF filter_company_name IS NOT NULL THEN
-        sql_query := sql_query || ' AND u.company_name ILIKE ' || quote_literal('%' || filter_company_name || '%');
-    END IF;
+        -- WHERE conditions (dinámicamente agregadas si los filtros no son NULL)
+        CASE WHEN filter_company_name IS NOT NULL THEN format('AND u.company_name ILIKE %L', '%' || filter_company_name || '%') ELSE '' END,
+        CASE WHEN filter_email IS NOT NULL THEN format('AND u.email ILIKE %L', '%' || filter_email || '%') ELSE '' END,
+        CASE WHEN filter_created_at IS NOT NULL THEN format('AND u.created_at::date %s %L', filter_created_at_op, filter_created_at) ELSE '' END,
+        CASE WHEN filter_total_vouchers IS NOT NULL THEN format('AND total_vouchers %s %s', filter_total_vouchers_op, filter_total_vouchers) ELSE '' END,
+        CASE WHEN filter_used_vouchers IS NOT NULL THEN format('AND used_vouchers %s %s', filter_used_vouchers_op, filter_used_vouchers) ELSE '' END,
 
-    IF filter_email IS NOT NULL THEN
-        sql_query := sql_query || ' AND u.email ILIKE ' || quote_literal('%' || filter_email || '%');
-    END IF;
-
-    IF filter_created_at IS NOT NULL THEN
-        sql_query := sql_query || ' AND u.created_at::date ' || filter_created_at_op || ' ' || quote_literal(filter_created_at);
-    END IF;
-
-    IF filter_total_vouchers IS NOT NULL THEN
-        sql_query := sql_query || ' AND (
-            SELECT COUNT(*) FROM vouchers v2 WHERE v2.partner_id = u.id
-        ) ' || filter_total_vouchers_op || ' ' || filter_total_vouchers;
-    END IF;
-
-    IF filter_used_vouchers IS NOT NULL THEN
-        sql_query := sql_query || ' AND (
-            SELECT COUNT(*) FROM vouchers v3 WHERE v3.partner_id = u.id AND v3.used
-        ) ' || filter_used_vouchers_op || ' ' || filter_used_vouchers;
-    END IF;
-
-    sql_query := sql_query || '
-                GROUP BY u.id, u.company_name, u.email, u.created_at
-            ) AS subquery
-            ORDER BY ';
-
-    -- Mapeo seguro de columnas para ordenar
-    IF order_by = 'company_name' THEN
-        sql_query := sql_query || 'company_name';
-    ELSIF order_by = 'email' THEN
-        sql_query := sql_query || 'email';
-    ELSIF order_by = 'total_vouchers' THEN
-        sql_query := sql_query || 'total_vouchers';
-    ELSIF order_by = 'used_vouchers' THEN
-        sql_query := sql_query || 'used_vouchers';
-    ELSIF order_by = 'unused_vouchers' THEN
-        sql_query := sql_query || 'unused_vouchers';
-    ELSE
-        sql_query := sql_query || 'created_at';
-    END IF;
-
-    sql_query := sql_query || ' ' || upper(order_dir);
-    sql_query := sql_query || ' LIMIT ' || limit_value || ' OFFSET ' || offset_val;
-
-    RETURN QUERY EXECUTE sql_query;
+        safe_order_by,
+        safe_order_dir,
+        offset_val,
+        limit_value
+    );
 END;
-$$ LANGUAGE plpgsql;
+$$;
+
 -------------funcion para hacer el conteo de vouchers de cada partner------------------------------
 CREATE OR REPLACE FUNCTION get_voucher_counts(p_id bigint)
 RETURNS TABLE(voucher_purchased integer, voucher_asigned integer, voucher_available integer) AS $$
