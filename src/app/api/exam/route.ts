@@ -3,47 +3,53 @@ import ExamTable from "@/modules/exam/table";
 import ExamController from "@/modules/exam/controller";
 import ExamMiddleware from "@/modules/exam/middleware";
 
+// Crear examen (POST igual)
 export async function POST(req: NextRequest) {
   return ExamMiddleware.validateCreate(req, ExamController.createExam);
 }
 
+// Listar examenes o devolver uno por ID (GET)
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const idParam = url.searchParams.get("id");
     const examTable = new ExamTable();
 
-    if (!idParam) {
-      // Si no viene id, devolvemos todos los exámenes
-      const { data, error } = await examTable.getAllExams();
-
-      if (error) {
-        return NextResponse.json({ message: error.message }, { status: 500 });
+    if (idParam) {
+      // Buscar por ID
+      const id = parseInt(idParam);
+      if (isNaN(id)) {
+        return NextResponse.json(
+          { message: "El parámetro 'id' debe ser un número válido" },
+          { status: 400 }
+        );
       }
-
+      const { data, error } = await examTable.getExamById(id);
+      if (error || !data) {
+        return NextResponse.json(
+          { message: error?.message || "Examen no encontrado" },
+          { status: 404 }
+        );
+      }
       return NextResponse.json(data, { status: 200 });
     }
 
-    // Si viene id, validamos y buscamos uno solo
-    const id = parseInt(idParam);
+    // Si no hay id, usamos paginación y filtros dinámicos:
+    // Extrae todos los query params
+    const params = Object.fromEntries(url.searchParams.entries());
 
-    if (isNaN(id)) {
+    // Llama el método de paginación (filtros dinámicos)
+    const result = await examTable.getExamsForTable(params);
+
+    if (!result) {
       return NextResponse.json(
-        { message: "El parámetro 'id' debe ser un número válido" },
-        { status: 400 }
+        { message: "Error obteniendo exámenes" },
+        { status: 500 }
       );
     }
 
-    const { data, error } = await examTable.getExamById(id);
-
-    if (error || !data) {
-      return NextResponse.json(
-        { message: error?.message || "Examen no encontrado" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(data, { status: 200 });
+    // El frontend espera { data, totalCount }
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

@@ -1,15 +1,69 @@
 import Table from "@/lib/database/table";
 import { supabase } from "@/lib/database/conection";
 import { Database } from "@/lib/database/database.types";
-
+import { FilterParamsExam } from "./types";
 export type ExamRowType = Database["public"]["Tables"]["exams"]["Row"];
 export type ExamInsertType = Database["public"]["Tables"]["exams"]["Insert"];
-
+type ExamRowWithCount = ExamRowType & { total_count: number };
 export default class ExamTable extends Table<"exams"> {
   constructor() {
     super("exams");
   }
+  async getExamsForTable(
+    filters: FilterParamsExam
+  ): Promise<{ data: ExamRowType[]; totalCount: number } | null> {
+    try {
+      const {
+        filter_name_exam,
+        filter_certification_id,
+        filter_simulator,
+        filter_active,
+        filter_created_at,
+        filter_created_at_op,
+        order_by = "created_at",
+        order_dir = "desc",
+        page = 1,
+        limit_value = 10,
+      } = filters;
 
+      if (!["asc", "desc"].includes(order_dir.toLowerCase())) {
+        throw new Error("Invalid order_dir. Must be 'asc' or 'desc'.");
+      }
+
+      if (page <= 0 || limit_value <= 0) {
+        throw new Error("Pagination values must be greater than 0.");
+      }
+
+      const { data, error } = await supabase.rpc("get_exams_with_filters", {
+        filter_name_exam: filter_name_exam ?? null,
+        filter_certification_id: filter_certification_id ?? null,
+        filter_simulator:
+          typeof filter_simulator === "boolean" ? filter_simulator : null,
+        filter_active:
+          typeof filter_active === "boolean" ? filter_active : null,
+        filter_created_at: filter_created_at
+          ? new Date(filter_created_at).toISOString().split("T")[0]
+          : null,
+        filter_created_at_op: filter_created_at_op ?? ">=",
+        order_by: order_by ?? "created_at",
+        order_dir: order_dir ?? "desc",
+        page: page ?? 1,
+        limit_value: limit_value ?? 10,
+      });
+
+      if (error) throw new Error(`Error getting exams: ${error.message}`);
+
+      const rows = data as ExamRowWithCount[];
+
+      return {
+        data: rows.map(({ total_count, ...rest }) => rest),
+        totalCount: rows[0]?.total_count ?? 0,
+      };
+    } catch (error: any) {
+      console.error("Error in getExamsForTable:", error.message);
+      return null;
+    }
+  }
   //Crear examen
   async createExam(data: ExamInsertType): Promise<ExamRowType> {
     const { data: inserted, error } = await supabase

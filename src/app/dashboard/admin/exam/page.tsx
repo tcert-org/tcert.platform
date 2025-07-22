@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus, Eye } from "lucide-react";
 
+// ¡Asegúrate que estos nombres coincidan con los campos que retorna tu función SQL!
 export interface ExamDinamicTable {
   id: string;
   name_exam: string;
@@ -17,12 +18,13 @@ export interface ExamDinamicTable {
   active: boolean;
 }
 
+// NUEVO: Función fetch con paginación y filtros
 async function fetchExam(
   params: FetchParams
 ): Promise<{ data: ExamDinamicTable[]; totalCount: number }> {
   const query: Record<string, any> = {
     page: params.page ?? 1,
-    limit: params.limit ?? 10,
+    limit_value: params.limit ?? 10, // Debe ser limit_value!
     order_by: params.order_by ?? "created_at",
     order_dir: params.order_dir ?? "desc",
   };
@@ -40,14 +42,26 @@ async function fetchExam(
     }
   }
 
-  const res = await fetch("/api/exam");
-  const data = await res.json();
+  // Construye la query string
+  const search = new URLSearchParams(
+    Object.entries(query).reduce(
+      (acc, [k, v]) =>
+        v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
+      {}
+    )
+  ).toString();
+
+  const res = await fetch(`/api/exam?${search}`);
+  if (!res.ok) throw new Error("No se pudieron cargar los exámenes");
+  const { data, totalCount } = await res.json();
+
   return {
     data,
-    totalCount: data.length,
+    totalCount,
   };
 }
 
+// Toggle activo/inactivo (solo para el botón)
 async function toggleExamActive(id: string, current: boolean) {
   const res = await fetch(`/api/exam/${id}`, {
     method: "PUT",
@@ -58,7 +72,6 @@ async function toggleExamActive(id: string, current: boolean) {
 }
 
 export default function ExamPage() {
-  // Usar un estado para forzar refetch
   const [refreshKey, setRefreshKey] = useState(0);
 
   const columns: ColumnDef<ExamDinamicTable>[] = [
@@ -72,6 +85,8 @@ export default function ExamPage() {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 200,
+      // Si quieres filtro de texto por certificación:
+      meta: { filterType: "text" },
     },
     {
       accessorKey: "name_exam",
@@ -97,6 +112,7 @@ export default function ExamPage() {
           </span>
         );
       },
+      meta: { filterType: "boolean" }, // Si quieres filtrar por tipo
     },
     {
       accessorKey: "active",
@@ -116,20 +132,20 @@ export default function ExamPage() {
           </span>
         );
       },
+      meta: { filterType: "boolean" }, // Si quieres filtro activo/inactivo
     },
     {
       id: "actions",
       header: "Acciones",
       size: 160,
       cell: ({ row }) => {
-        // No usar un estado local, solo llama la función y refresca la tabla
         const [loading, setLoading] = useState(false);
 
         async function handleToggle() {
           setLoading(true);
           try {
             await toggleExamActive(row.original.id, row.original.active);
-            setRefreshKey((prev) => prev + 1); // << Fuerza el refetch de la tabla
+            setRefreshKey((prev) => prev + 1);
           } catch (e) {
             alert("No se pudo cambiar el estado");
           }
@@ -173,7 +189,6 @@ export default function ExamPage() {
           </Button>
         </Link>
       </div>
-      {/* Pasar refreshKey como key para forzar remount/refetch */}
       <DataTable key={refreshKey} columns={columns} fetchDataFn={fetchExam} />
     </div>
   );
