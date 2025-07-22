@@ -1,19 +1,21 @@
-// params from the fetch function
+// ==== Filtros usados en la tabla y para la función SQL (estándar) ====
 export type FilterParamsVoucher = {
   filter_code?: string;
   filter_certification_name?: string;
   filter_email?: string;
-  filter_available?: boolean;
+  filter_available?: boolean; // <--- CORRECTO
   filter_purchase_date?: string;
   filter_expiration_date?: string;
   filter_partner_id?: string;
   order_by?: string;
   order_dir?: "asc" | "desc";
   page?: number;
-  limit?: number;
+  limit_value?: number;
+  filter_token?: string; // Solo si lo usas de verdad
 };
-//params to create vouchers
-export type createParamsVoucher = {
+
+// ==== Para crear vouchers ====
+export type CreateParamsVoucher = {
   partner_id: string;
   certification_id?: string | null;
   status_id?: string;
@@ -21,23 +23,8 @@ export type createParamsVoucher = {
   used?: boolean;
   expiration_dates?: string;
 };
-// params for the RPC vouchers_with_filters function
-export type RpcParamsVoucher = {
-  filter_code?: string | null;
-  filter_certification_name?: string | null;
-  filter_email?: string | null;
-  filter_available?: boolean | null;
-  filter_purchase_date?: string | null;
-  filter_expiration_date?: string | null;
-  filter_partner_id?: number | null;
-  filter_status_id?: number | null;
-  order_by?: string;
-  order_dir?: "asc" | "desc";
-  page?: number;
-};
 
-// response from the RPC vouchers_with_filters function
-// response of the table fetch function
+// ==== Respuesta estándar de tabla ====
 export type ResponseVoucherTable = {
   data: DataVoucherTable[];
   totalCount: number;
@@ -51,3 +38,12 @@ export interface DataVoucherTable {
   purchase_date: string;
   expiration_date: string;
 }
+
+export type VoucherType = {
+  partner_id: number;
+  certification_id: number | null;
+  status_id?: number | null;
+  email: string;
+  expiration_date: string;
+  used: boolean;
+};

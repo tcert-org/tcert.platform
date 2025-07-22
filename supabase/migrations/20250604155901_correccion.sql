@@ -165,46 +165,66 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 -------------funcion para los filtros de los vouchers---------------------------------------------
-CREATE OR REPLACE FUNCTION get_vouchers_with_filters(
+CREATE OR REPLACE FUNCTION public.get_vouchers_with_filters(
     filter_available BOOLEAN DEFAULT NULL,
     filter_certification_name TEXT DEFAULT NULL,
     filter_code TEXT DEFAULT NULL,
     filter_email TEXT DEFAULT NULL,
     filter_expiration_date TIMESTAMPTZ DEFAULT NULL,
     filter_partner_id BIGINT DEFAULT NULL,
-    filter_purchase_date DATE DEFAULT NULL,
+    filter_purchase_date TIMESTAMPTZ DEFAULT NULL,
     filter_status_id BIGINT DEFAULT NULL,
-    order_by TEXT DEFAULT 'created_at'::text,
-    order_dir TEXT DEFAULT 'desc'::text,
-    page INTEGER DEFAULT 1
+    order_by TEXT DEFAULT 'created_at',
+    order_dir TEXT DEFAULT 'desc',
+    page INTEGER DEFAULT 1,
+    limit_value INTEGER DEFAULT 20
 )
-RETURNS SETOF voucher_result AS $$
+RETURNS TABLE (
+    id BIGINT,
+    code TEXT,
+    partner_id BIGINT,
+    certification_id BIGINT,
+    certification_name TEXT,
+    status_name TEXT,
+    purchase_date TIMESTAMPTZ,
+    status_id BIGINT,
+    expiration_date TIMESTAMPTZ,
+    email TEXT,
+    used BOOLEAN,
+    created_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ,
+    total_count BIGINT
+)
+LANGUAGE plpgsql
+AS $$
 DECLARE
     sql_query TEXT;
-    offset_val INT := (page - 1) * 20;
+    offset_val INT := (page - 1) * limit_value;
 BEGIN
     sql_query := '
-        SELECT
-            v.id,
-            v.code,
-            v.partner_id,
-            v.certification_id,
-            c.name AS certification_name,
-            vs.name AS status_name,
-            v.purchase_date,
-            v.status_id,
-            v.expiration_date,
-            v.email,
-            v.used,
-            v.created_at,
-            v.updated_at
-        FROM vouchers v
-        LEFT JOIN certifications c ON v.certification_id = c.id
-        LEFT JOIN voucher_statuses vs ON v.status_id = vs.id
-        WHERE 1 = 1';
+        WITH filtered_vouchers AS (
+            SELECT
+                v.id,
+                v.code,
+                v.partner_id,
+                v.certification_id,
+                c.name AS certification_name,
+                vs.name AS status_name,
+                v.purchase_date,
+                v.status_id,
+                v.expiration_date,
+                v.email,
+                v.used,
+                v.created_at,
+                v.updated_at
+            FROM vouchers v
+            LEFT JOIN certifications c ON v.certification_id = c.id
+            LEFT JOIN voucher_statuses vs ON v.status_id = vs.id
+            WHERE 1=1';
 
+    -- Cambiado aquí, ya NO usa NOT
     IF filter_available IS NOT NULL THEN
-        sql_query := sql_query || ' AND v.used = ' || quote_literal(NOT filter_available);
+        sql_query := sql_query || ' AND v.used = ' || quote_literal(filter_available);
     END IF;
 
     IF filter_certification_name IS NOT NULL THEN
@@ -228,19 +248,27 @@ BEGIN
     END IF;
 
     IF filter_purchase_date IS NOT NULL THEN
-        sql_query := sql_query || ' AND v.purchase_date::date = ' || quote_literal(filter_purchase_date);
+        sql_query := sql_query || ' AND v.purchase_date::date = ' || quote_literal(filter_purchase_date::date);
     END IF;
 
     IF filter_status_id IS NOT NULL THEN
         sql_query := sql_query || ' AND v.status_id = ' || filter_status_id;
     END IF;
 
-    sql_query := sql_query || ' ORDER BY v.' || quote_ident(order_by) || ' ' || UPPER(order_dir);
-    sql_query := sql_query || ' LIMIT 20 OFFSET ' || offset_val;
+    sql_query := sql_query || '
+        )
+        SELECT *,
+            (SELECT COUNT(*) FROM filtered_vouchers) AS total_count
+        FROM filtered_vouchers
+        ORDER BY ' || quote_ident(order_by) || ' ' || UPPER(order_dir) || '
+        OFFSET ' || offset_val || ' LIMIT ' || limit_value;
 
     RETURN QUERY EXECUTE sql_query;
 END;
-$$ LANGUAGE plpgsql;
+$$;
+
+
+
 -----------------Funcion para validar partner-------------------------------------------------
 CREATE OR REPLACE FUNCTION validate_partner_role()
 RETURNS trigger AS $$

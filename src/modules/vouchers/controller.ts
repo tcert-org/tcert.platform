@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import VoucherService from "./service";
-import { createParamsVoucher, FilterParamsVoucher } from "./types";
+import { CreateParamsVoucher, FilterParamsVoucher } from "./types";
 import { ApiResponse } from "@/lib/types";
 
 export default class VoucherController {
+  // (Puedes omitir este método si llamas directo a Table en la route)
   static async getVouchers(
     filters: FilterParamsVoucher
   ): Promise<NextResponse<ApiResponse<{ data: any[]; totalCount: number }>>> {
     try {
       const result = await VoucherService.getVouchersWithFilters(filters);
-
       return NextResponse.json({
         statusCode: 200,
         data: result,
@@ -19,7 +19,7 @@ export default class VoucherController {
         {
           statusCode: 500,
           data: null,
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: error instanceof Error ? error.message : "Error desconocido",
         },
         { status: 500 }
       );
@@ -27,7 +27,7 @@ export default class VoucherController {
   }
 
   static async createVoucher(
-    data: createParamsVoucher
+    data: CreateParamsVoucher
   ): Promise<NextResponse<ApiResponse<any>>> {
     try {
       const result = await VoucherService.createVoucher(data);

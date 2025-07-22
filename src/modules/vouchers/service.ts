@@ -1,14 +1,15 @@
 import VoucherTable from "./table";
-import { RpcParamsVoucher, createParamsVoucher } from "./types";
+import { FilterParamsVoucher, CreateParamsVoucher } from "./types";
 import { addMonths } from "date-fns";
 
 export default class VoucherService {
-  static async getVouchersWithFilters(params: RpcParamsVoucher) {
+  static async getVouchersWithFilters(params: FilterParamsVoucher) {
     const voucherTable = new VoucherTable();
-    return await voucherTable.getVouchersWithFilters(params);
+    // Usa el método correcto
+    return await voucherTable.getVouchersForTable(params);
   }
 
-  static async createVoucher(data: createParamsVoucher) {
+  static async createVoucher(data: CreateParamsVoucher) {
     const {
       partner_id,
       certification_id = null,
