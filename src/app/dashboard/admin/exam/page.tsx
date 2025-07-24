@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus, Eye } from "lucide-react";
 
-// ¡Asegúrate que estos nombres coincidan con los campos que retorna tu función SQL!
+// Asegúrate que estos nombres coincidan con los campos que retorna tu función SQL
 export interface ExamDinamicTable {
   id: string;
   name_exam: string;
@@ -18,21 +18,29 @@ export interface ExamDinamicTable {
   active: boolean;
 }
 
-// NUEVO: Función fetch con paginación y filtros
 async function fetchExam(
   params: FetchParams
 ): Promise<{ data: ExamDinamicTable[]; totalCount: number }> {
   const query: Record<string, any> = {
     page: params.page ?? 1,
-    limit_value: params.limit ?? 10, // Debe ser limit_value!
+    limit_value: params.limit ?? 10,
     order_by: params.order_by ?? "created_at",
     order_dir: params.order_dir ?? "desc",
   };
 
   if (params.filters) {
+    console.log("📥 Filtros recibidos desde DataTable:", params.filters);
     for (const filter of params.filters) {
       const val = filter.value;
-      if (typeof val === "string" && val.includes(":")) {
+
+      if (filter.id === "active" || filter.id === "simulator") {
+        query[`filter_${filter.id}`] =
+          val === true || val === "true"
+            ? true
+            : val === false || val === "false"
+            ? false
+            : undefined;
+      } else if (typeof val === "string" && val.includes(":")) {
         const [op, rawValue] = val.split(":");
         query[`filter_${filter.id}_op`] = op;
         query[`filter_${filter.id}`] = rawValue;
@@ -42,7 +50,6 @@ async function fetchExam(
     }
   }
 
-  // Construye la query string
   const search = new URLSearchParams(
     Object.entries(query).reduce(
       (acc, [k, v]) =>
@@ -61,7 +68,6 @@ async function fetchExam(
   };
 }
 
-// Toggle activo/inactivo (solo para el botón)
 async function toggleExamActive(id: string, current: boolean) {
   const res = await fetch(`/api/exam/${id}`, {
     method: "PUT",
@@ -85,7 +91,6 @@ export default function ExamPage() {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 200,
-      // Si quieres filtro de texto por certificación:
       meta: { filterType: "text" },
     },
     {
@@ -98,6 +103,13 @@ export default function ExamPage() {
       accessorKey: "simulator",
       header: "Tipo",
       size: 200,
+      meta: {
+        filterType: "boolean",
+        booleanOptions: {
+          trueLabel: "Simulador",
+          falseLabel: "Examen",
+        },
+      },
       cell: ({ row }) => {
         const isSimulator = row.getValue("simulator") as boolean;
         return (
@@ -112,12 +124,18 @@ export default function ExamPage() {
           </span>
         );
       },
-      meta: { filterType: "boolean" }, // Si quieres filtrar por tipo
     },
     {
       accessorKey: "active",
       header: "Estado",
       size: 200,
+      meta: {
+        filterType: "boolean",
+        booleanOptions: {
+          trueLabel: "Activo",
+          falseLabel: "Inactivo",
+        },
+      },
       cell: ({ row }) => {
         const isActive = row.getValue("active") as boolean;
         return (
@@ -132,7 +150,6 @@ export default function ExamPage() {
           </span>
         );
       },
-      meta: { filterType: "boolean" }, // Si quieres filtro activo/inactivo
     },
     {
       id: "actions",

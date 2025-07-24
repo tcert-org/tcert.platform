@@ -38,9 +38,19 @@ export default class ExamTable extends Table<"exams"> {
         filter_name_exam: filter_name_exam ?? null,
         filter_certification_id: filter_certification_id ?? null,
         filter_simulator:
-          typeof filter_simulator === "boolean" ? filter_simulator : null,
+          String(filter_simulator) === "true"
+            ? true
+            : String(filter_simulator) === "false"
+            ? false
+            : null,
+
         filter_active:
-          typeof filter_active === "boolean" ? filter_active : null,
+          String(filter_active) === "true"
+            ? true
+            : String(filter_active) === "false"
+            ? false
+            : null,
+
         filter_created_at: filter_created_at
           ? new Date(filter_created_at).toISOString().split("T")[0]
           : null,
@@ -49,6 +59,11 @@ export default class ExamTable extends Table<"exams"> {
         order_dir: order_dir ?? "desc",
         page: page ?? 1,
         limit_value: limit_value ?? 10,
+      });
+      console.log("🧪 Filtros recibidos:", {
+        filter_simulator,
+        filter_active,
+        filter_name_exam,
       });
 
       if (error) throw new Error(`Error getting exams: ${error.message}`);

@@ -63,14 +63,12 @@ export function DataTable<TData, TValue>({
     pageSize: 10,
   });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  console.log("Antes de la peticion", columnFilters, pagination, sorting);
   const { data, totalCount, isLoading, error, refetch } = useDataFetch<TData>({
     fetchFn: fetchDataFn,
     filters: columnFilters,
     pagination,
     sorting,
   });
-  console.log("Despues de la peticion", data, totalCount);
   const table = useReactTable({
     data: data || [],
     columns,

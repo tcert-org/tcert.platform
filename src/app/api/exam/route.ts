@@ -3,7 +3,6 @@ import ExamTable from "@/modules/exam/table";
 import ExamController from "@/modules/exam/controller";
 import ExamMiddleware from "@/modules/exam/middleware";
 
-// Crear examen (POST igual)
 export async function POST(req: NextRequest) {
   return ExamMiddleware.validateCreate(req, ExamController.createExam);
 }
@@ -33,12 +32,8 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json(data, { status: 200 });
     }
-
-    // Si no hay id, usamos paginación y filtros dinámicos:
-    // Extrae todos los query params
     const params = Object.fromEntries(url.searchParams.entries());
 
-    // Llama el método de paginación (filtros dinámicos)
     const result = await examTable.getExamsForTable(params);
 
     if (!result) {
@@ -47,8 +42,6 @@ export async function GET(req: NextRequest) {
         { status: 500 }
       );
     }
-
-    // El frontend espera { data, totalCount }
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error(error);

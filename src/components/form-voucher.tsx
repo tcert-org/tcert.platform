@@ -29,7 +29,12 @@ type OptionType = {
 function getDatePlusTwoYears() {
   const date = new Date();
   date.setFullYear(date.getFullYear() + 2);
-  return date.toISOString().split("T")[0];
+
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const day = date.getDate().toString().padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 export default function VoucherForm() {
@@ -45,7 +50,6 @@ export default function VoucherForm() {
   });
 
   const router = useRouter();
-  //Constantes de estados en react
   const { decryptedUser, getUser } = useUserStore();
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -56,7 +60,7 @@ export default function VoucherForm() {
   const [availableVouchers, setAvailableVouchers] = useState<number>(0);
 
   const selectRef = useRef<any>(null);
-  //Agrega la fecha de compra y de expiracion del voucher
+
   useEffect(() => {
     const init = async () => {
       await getUser();
@@ -66,7 +70,6 @@ export default function VoucherForm() {
     init();
   }, [setValue, getUser]);
 
-  //Busca la certificacion para asignarla
   useEffect(() => {
     fetch("/api/vouchers/certifications")
       .then((r) => r.json())
@@ -77,7 +80,6 @@ export default function VoucherForm() {
       );
   }, []);
 
-  //Agrega un status default
   useEffect(() => {
     fetch("/api/vouchers/statutes")
       .then((r) => r.json())
@@ -103,7 +105,6 @@ export default function VoucherForm() {
       });
   }, [setValue]);
 
-  //Se hace la consulta de la cantidad de Vouchers, los usados y disponibles
   useEffect(() => {
     if (!decryptedUser?.id) return;
 
@@ -126,19 +127,16 @@ export default function VoucherForm() {
     fetchVouchers();
   }, [decryptedUser?.id, voucherStatsKey]);
 
-  //Funcion onSbumit, contiene la logica para mandar alertas, resetear form y resetear el contador de vouchers
   const onSubmit = async (data: VoucherFormData) => {
     setLoading(true);
     setErrorMessage(null);
 
-    //Valida que los vouchers disponibles no sean menores a cero
     if (availableVouchers < 1) {
       toast.error("Vouchers agotados", {
         position: "top-center",
         theme: "colored",
       });
 
-      // Si los vouchers son menores a uno entonces redirige a la pagina de administracion
       setTimeout(() => {
         router.push("/dashboard/partner/voucher-administration");
       }, 2500);
@@ -174,16 +172,12 @@ export default function VoucherForm() {
         theme: "colored",
       });
 
-      //Cuando el voucher se crea con exito se resetean los valores por defecto
       reset();
-
-      //Deberia reiniciar el campo certificacion
       setValue("certification_id", "", {
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true,
       });
-
       setVoucherStatsKey((prev) => prev + 1);
 
       setTimeout(() => {
@@ -202,7 +196,6 @@ export default function VoucherForm() {
   return (
     <section className="flex flex-col items-center px-6 pt-6">
       <ToastContainer />
-
       <div className="w-full max-w-xl mb-8">
         <VoucherStats key={voucherStatsKey} partnerId={decryptedUser.id} />
       </div>

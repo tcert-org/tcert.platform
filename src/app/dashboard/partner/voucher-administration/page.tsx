@@ -16,6 +16,19 @@ import { DataVoucherTable } from "@/modules/vouchers/types";
 import PartnerDetail from "@/components/partner-detail";
 import { Button } from "@/components/ui/button";
 
+const formatLocalDate = (iso: string) => {
+  const [year, month, day] = iso.split("T")[0].split("-");
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day)
+  ).toLocaleDateString("es-CO", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
 export default function VoucherAdministrationPage() {
   const { getUser } = useUserStore();
   const [partnerData, setPartnerData] = useState<any | null>(null);
@@ -41,57 +54,60 @@ export default function VoucherAdministrationPage() {
     loadPartner();
   }, [getUser]);
 
-  // --------- FETCH VOUCHERS (corregido) -------------
   const fetchVouchers = useCallback(
     async (
       params: Record<string, any>
     ): Promise<{ data: DataVoucherTable[]; totalCount: number }> => {
-      if (!partnerData?.id) return { data: [], totalCount: 0 };
+      try {
+        if (!partnerData?.id) return { data: [], totalCount: 0 };
 
-      const query: Record<string, any> = {
-        page: params.page ?? 1,
-        limit_value: params.limit ?? 10,
-        order_by: params.order_by ?? "created_at",
-        order_dir: params.order_dir ?? "desc",
-        filter_partner_id: partnerData.id,
-      };
+        const query: Record<string, any> = {
+          page: params.page ?? 1,
+          limit_value: params.limit ?? 10,
+          order_by: params.order_by ?? "created_at",
+          order_dir: params.order_dir ?? "desc",
+          filter_partner_id: partnerData.id,
+        };
 
-      if (params.filters) {
-        for (const filter of params.filters) {
-          const val = filter.value;
-          if (filter.id === "used") {
-            // El usuario ve "Disponible" cuando used === true
-            // Enviamos el filtro correctamente al backend:
-            // - Disponible (true) => filter_available: true (used=true)
-            // - No disponible (false) => filter_available: false (used=false)
-            query["filter_available"] = val;
-          } else if (typeof val === "string" && val.includes(":")) {
-            const [op, rawValue] = val.split(":");
-            query[`filter_${filter.id}_op`] = op;
-            query[`filter_${filter.id}`] = rawValue;
-          } else {
-            query[`filter_${filter.id}`] = val;
+        // Agrega dinámicamente los filtros que empiecen con filter_
+        for (const key in params) {
+          if (key.startsWith("filter_")) {
+            const value = params[key];
+
+            // Si detectas _op como operador adicional
+            if (key.endsWith("_op")) {
+              query[key] = value; // Ej: filter_total_vouchers_op: ">="
+            } else if (
+              !isNaN(value) &&
+              key !== "filter_email" &&
+              key !== "filter_company_name"
+            ) {
+              query[key] = Number(value);
+            } else {
+              query[key] = value;
+            }
           }
         }
+
+        const queryParams = new URLSearchParams(query).toString();
+        const response = await fetch(`/api/vouchers?${queryParams}`, {
+          method: "GET",
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `"request /api/vouchers?${queryParams}" failed: ${response.statusText}`
+          );
+        }
+
+        const result = await response.json();
+        const { data, totalCount } = result.data || { data: [], totalCount: 0 };
+
+        return { data, totalCount };
+      } catch (error) {
+        console.error("Error fetching vouchers:", error);
+        return { data: [], totalCount: 0 };
       }
-
-      const search = new URLSearchParams(
-        Object.entries(query).reduce(
-          (acc, [k, v]) =>
-            v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
-          {}
-        )
-      ).toString();
-
-      const response = await fetch(`/api/vouchers?${search}`);
-      if (!response.ok) throw new Error("No se pudieron cargar los vouchers");
-      const result = await response.json();
-      const { data, totalCount } = result.data || { data: [], totalCount: 0 };
-
-      return {
-        data,
-        totalCount,
-      };
     },
     [partnerData?.id]
   );
@@ -101,7 +117,14 @@ export default function VoucherAdministrationPage() {
       label: "Ver detalles",
       icon: Eye,
       action: (voucher) => {
-        console.log("Detalles del voucher:", voucher.code);
+        console.log(
+          "Detalles del voucher:",
+          voucher.certification_name,
+          voucher.code,
+          voucher.email,
+          voucher.expiration_date,
+          voucher.purchase_date
+        );
       },
     },
   ];
@@ -117,6 +140,7 @@ export default function VoucherAdministrationPage() {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 250,
+      meta: { filterType: "text" },
       cell: ({ row }) => {
         const value = row.getValue("certification_name");
         return (
@@ -136,8 +160,6 @@ export default function VoucherAdministrationPage() {
         },
       },
       cell: ({ row }) => {
-        // Si used = true -> Disponible
-        // Si used = false -> No disponible
         const used = row.getValue("used");
         const isAvailable = used === true;
         return (
@@ -156,24 +178,14 @@ export default function VoucherAdministrationPage() {
       header: "Fecha de compra",
       size: 180,
       meta: { filterType: "date" },
-      cell: ({ row }) =>
-        new Date(row.getValue("purchase_date")).toLocaleDateString("es-ES", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        }),
+      cell: ({ row }) => formatLocalDate(row.getValue("purchase_date")),
     },
     {
       accessorKey: "expiration_date",
       header: "Fecha de vencimiento",
       size: 180,
       meta: { filterType: "date" },
-      cell: ({ row }) =>
-        new Date(row.getValue("expiration_date")).toLocaleDateString("es-ES", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        }),
+      cell: ({ row }) => formatLocalDate(row.getValue("expiration_date")),
     },
   ];
 
