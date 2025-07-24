@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Lightbulb } from "lucide-react";
-import Link from "next/link";
 
 type SimulatorStatus = "completed" | "in_progress" | "not_started";
 
@@ -28,13 +28,13 @@ const statusLabel = {
 export default function StudentSimulatorsPage() {
   const [simulators, setSimulators] = useState<SimulatorCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     async function fetchSimulators() {
       setLoading(true);
 
       try {
-        // ✅ Obtener voucher_id desde la cookie de sesión del estudiante
         const session = JSON.parse(
           sessionStorage.getItem("student-data") || "{}"
         );
@@ -43,7 +43,6 @@ export default function StudentSimulatorsPage() {
         if (!voucherId) {
           console.warn("voucher_id no disponible en la sesión");
           setSimulators([]);
-          setLoading(false);
           return;
         }
 
@@ -65,19 +64,58 @@ export default function StudentSimulatorsPage() {
       } catch (err) {
         console.error("Error al obtener simuladores:", err);
         setSimulators([]);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     fetchSimulators();
   }, []);
+
+  async function handleStartSimulator(simId: number) {
+    const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
+    const voucherId = session?.state?.decryptedStudent?.voucher_id;
+
+    if (!voucherId) {
+      console.warn("voucher_id no disponible en la sesión", session);
+      alert("No se pudo obtener tu voucher.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/attempts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          exam_id: simId,
+          voucher_id: voucherId,
+        }),
+      });
+
+      const result = await response.json();
+      console.log("Resultado del intento:", result);
+
+      if (!response.ok) {
+        alert(result?.error || "Error al crear intento.");
+        return;
+      }
+
+      // Redirige usando Next.js router
+      router.push(`/dashboard/student/simulators/form?simulatorId=${simId}`);
+    } catch (err) {
+      console.error("Error al crear intento:", err);
+      alert("Error inesperado.");
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl sm:text-4xl font-bold text-center mb-10">
         Tus Simuladores
       </h1>
+
       {loading ? (
         <div className="text-center text-lg text-gray-500 py-16">
           Cargando simuladores...
@@ -108,11 +146,12 @@ export default function StudentSimulatorsPage() {
                 </div>
               </div>
               <div className="mt-auto">
-                <Link
-                  href={`/dashboard/student/simulators/form?simulatorId=${sim.id}`}
+                <Button
+                  className="w-full"
+                  onClick={() => handleStartSimulator(sim.id)}
                 >
-                  <Button className="w-full">Ir</Button>
-                </Link>
+                  Ir
+                </Button>
               </div>
             </div>
           ))}

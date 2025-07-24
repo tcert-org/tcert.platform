@@ -15,7 +15,7 @@ export default class AttemptsTable extends Table<"exam_attempts"> {
   async insertAttempt(data: AttemptsInsertType): Promise<AttemptsRowType> {
     const { data: inserted, error } = await supabase
       .from("exam_attempts")
-      .insert(data)
+      .insert([data])
       .select()
       .single();
     if (error) {
@@ -33,6 +33,33 @@ export default class AttemptsTable extends Table<"exam_attempts"> {
       .single();
 
     return { data, error };
+  }
+
+  async getByExamAndStudent(exam_id: number, student_id: number) {
+    const { data, error } = await supabase
+      .from("exam_attempts")
+      .select("*")
+      .eq("exam_id", exam_id)
+      .eq("student_id", student_id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data;
+  }
+
+  async getByExamAndVoucher(
+    exam_id: number,
+    voucher_id: number
+  ): Promise<AttemptsRowType | null> {
+    const { data, error } = await supabase
+      .from("exam_attempts")
+      .select("*")
+      .eq("exam_id", exam_id)
+      .eq("voucher_id", voucher_id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+    return data;
   }
 
   async updateExamAttemptById(id: number) {
