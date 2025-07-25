@@ -1,6 +1,8 @@
 "use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import ConfirmModal from "./Modal_Confirmacion_Simulador";
 
 interface Question {
   id: number;
@@ -18,17 +20,23 @@ export default function FormSimulador() {
 
   const [examName, setExamName] = useState("Cargando título...");
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [options, setOptions] = useState<Option[]>([]);
+  const [allOptions, setAllOptions] = useState<Record<number, Option[]>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<
-    Record<number, number>
+    Record<number, number | null>
   >({});
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const currentQuestion = questions[currentIndex];
+  const currentOptions = currentQuestion
+    ? allOptions[currentQuestion.id] ?? []
+    : [];
+  const unansweredCount = questions.filter(
+    (q) => !(q.id in selectedOptions)
+  ).length;
 
-  // Traer nombre + preguntas
   useEffect(() => {
     async function fetchExamData() {
       if (!examId) {
@@ -59,6 +67,16 @@ export default function FormSimulador() {
         setQuestions(parsedQuestions);
         setCurrentIndex(0);
         setSelectedOptions({});
+
+        const optionsMap: Record<number, Option[]> = {};
+        for (const question of parsedQuestions) {
+          const res = await fetch(
+            `/api/exam/question/elections?question_id=${question.id}`
+          );
+          const data = await res.json();
+          optionsMap[question.id] = data.data ?? [];
+        }
+        setAllOptions(optionsMap);
       } catch (error) {
         setExamName("Error al cargar el examen");
         setQuestions([]);
@@ -69,34 +87,11 @@ export default function FormSimulador() {
     fetchExamData();
   }, [examId]);
 
-  // Traer opciones por pregunta
-  useEffect(() => {
-    async function fetchOptions() {
-      const current = questions[currentIndex];
-      if (!current) return;
-
-      setLoadingOptions(true);
-      try {
-        const res = await fetch(
-          `/api/exam/question/elections?question_id=${current.id}`
-        );
-        const data = await res.json();
-        setOptions(data.data ?? []);
-      } catch (err) {
-        console.error("Error al obtener opciones:", err);
-        setOptions([]);
-      }
-      setLoadingOptions(false);
-    }
-
-    fetchOptions();
-  }, [questions, currentIndex]);
-
-  const handleOptionSelect = (optionIndex: number) => {
+  const handleOptionSelect = (optionId: number) => {
     if (!currentQuestion) return;
     setSelectedOptions((prev) => ({
       ...prev,
-      [currentQuestion.id]: optionIndex,
+      [currentQuestion.id]: optionId,
     }));
   };
 
@@ -111,64 +106,99 @@ export default function FormSimulador() {
 
   const isLast = currentIndex === questions.length - 1;
 
+  const handleConfirm = async () => {
+    try {
+      setModalOpen(false);
+
+      const attemptRes = await fetch("/api/attempts/current", {
+        method: "GET",
+        credentials: "include",
+      });
+      const attemptResult = await attemptRes.json();
+      const attemptId = attemptResult?.data?.id;
+
+      if (!attemptId) {
+        alert("No se encontró el intento activo.");
+        return;
+      }
+
+      if (Object.keys(selectedOptions).length === 0) {
+        alert("No seleccionaste ninguna respuesta.");
+        return;
+      }
+
+      const payload = Object.entries(selectedOptions).map(
+        ([questionId, selectedOptionId]) => ({
+          exam_attempt_id: Number(attemptId),
+          question_id: Number(questionId),
+          selected_option_id: Number(selectedOptionId),
+        })
+      );
+
+      const response = await fetch("/api/answers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: payload }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(error?.error || "Error al guardar respuestas.");
+        return;
+      }
+
+      // ✅ Calificar intento ahora que las respuestas están insertadas
+      const gradeRes = await fetch("/api/attempts/grade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attempt_id: attemptId }),
+      });
+
+      if (!gradeRes.ok) {
+        const error = await gradeRes.json();
+        console.error("❌ Error al calificar intento:", error);
+        alert("Respuestas enviadas, pero hubo un error al calificar.");
+        return;
+      }
+
+      const gradeData = await gradeRes.json();
+      console.log("✅ Intento calificado:", gradeData);
+
+      window.onbeforeunload = null;
+      alert("¡Examen enviado y calificado con éxito!");
+      window.location.href = "/dashboard/student/simulators";
+    } catch (err) {
+      console.error("❌ Error en handleConfirm:", err);
+      alert("Hubo un error inesperado.");
+    }
+  };
+
   if (!questions.length)
     return (
-      <div style={{ maxWidth: 900, margin: "40px auto", fontFamily: "Arial" }}>
-        <h2 style={{ textAlign: "center" }}>{examName}</h2>
-        <p style={{ textAlign: "center", marginTop: 30 }}>
-          No hay preguntas para mostrar.
-        </p>
+      <div className="max-w-3xl mx-auto mt-10 font-sans text-center">
+        <h2>{examName}</h2>
+        <p className="mt-8">No hay preguntas para mostrar.</p>
       </div>
     );
 
   return (
-    <div
-      style={{
-        maxWidth: 900,
-        margin: "40px auto",
-        fontFamily: "Arial",
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
-      }}
-    >
-      <h2 style={{ textAlign: "center", marginBottom: 0 }}>{examName}</h2>
-      <div style={{ display: "flex", gap: 20, height: 450 }}>
-        {/* Navegación lateral */}
-        <div
-          style={{
-            width: 220,
-            borderRadius: 8,
-            boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-            backgroundColor: "#fff",
-            overflowY: "auto",
-            border: "1px solid #ccc",
-            padding: 15,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
+    <div className="max-w-5xl mx-auto mt-10 font-sans flex flex-col gap-5">
+      <h2 className="text-center mb-0">{examName}</h2>
+      <div className="flex gap-5 min-h-[450px]">
+        <div className="w-56 rounded-md shadow-md bg-white overflow-y-auto border border-gray-300 p-4 flex flex-col gap-3">
           {questions.map((q, idx) => {
             const isCurrent = idx === currentIndex;
-            const isAnswered = selectedOptions.hasOwnProperty(q.id);
-            const bgColor = isCurrent || isAnswered ? "#213763" : "#bbdefb";
-            const color = isCurrent || isAnswered ? "#fff" : "#0d47a1";
+            const isAnswered = selectedOptions[q.id] !== undefined;
+            const bgColor =
+              isCurrent || isAnswered
+                ? "bg-blue-900 text-white"
+                : "bg-blue-100 text-blue-900";
             return (
               <div
                 key={q.id}
                 ref={(el) => (itemRefs.current[idx] = el)}
                 onClick={() => setCurrentIndex(idx)}
-                style={{
-                  cursor: "pointer",
-                  padding: "12px 16px",
-                  borderRadius: 8,
-                  backgroundColor: bgColor,
-                  color,
-                  textAlign: "center",
-                  fontWeight: "bold",
-                  fontSize: 16,
-                }}
+                className={`cursor-pointer px-4 py-3 rounded-md text-center font-bold text-base ${bgColor}`}
               >
                 Pregunta {idx + 1}
               </div>
@@ -176,54 +206,26 @@ export default function FormSimulador() {
           })}
         </div>
 
-        {/* Pregunta actual */}
-        <div
-          style={{
-            flexGrow: 1,
-            minWidth: 480,
-            borderRadius: 8,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            border: "1px solid #ddd",
-            padding: 20,
-            display: "flex",
-            flexDirection: "column",
-            minHeight: 350,
-          }}
-        >
-          <h3 style={{ marginBottom: 20 }}>{currentQuestion.text}</h3>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 15,
-              flexGrow: 1,
-            }}
-          >
+        <div className="flex-grow min-w-[480px] rounded-md shadow-md border border-gray-200 p-5 flex flex-col min-h-[350px]">
+          <h3 className="mb-5">{currentQuestion.text}</h3>
+          <div className="flex flex-col gap-4 flex-grow">
             {loadingOptions ? (
               <p>Cargando opciones...</p>
-            ) : options.length === 0 ? (
+            ) : currentOptions.length === 0 ? (
               <p>No hay opciones para esta pregunta.</p>
             ) : (
-              options.map((opt, i) => {
-                const isSelected = selectedOptions[currentQuestion.id] === i;
+              currentOptions.map((opt) => {
+                const isSelected =
+                  selectedOptions[currentQuestion.id] === opt.id;
                 return (
                   <button
                     key={opt.id}
-                    onClick={() => handleOptionSelect(i)}
-                    style={{
-                      padding: "12px 20px",
-                      borderRadius: 8,
-                      border: isSelected
-                        ? "2px solid #213763"
-                        : "1px solid #ccc",
-                      backgroundColor: isSelected ? "#e1e8f7" : "#fff",
-                      textAlign: "left",
-                      fontSize: 16,
-                      boxShadow: isSelected
-                        ? "0 0 8px rgba(33, 55, 99, 0.5)"
-                        : "none",
-                      cursor: "pointer",
-                    }}
+                    onClick={() => handleOptionSelect(opt.id)}
+                    className={`px-5 py-3 rounded-md text-left text-base cursor-pointer transition-all border ${
+                      isSelected
+                        ? "border-blue-900 bg-blue-100 shadow-md"
+                        : "border-gray-300 bg-white"
+                    }`}
                   >
                     {opt.content}
                   </button>
@@ -232,53 +234,30 @@ export default function FormSimulador() {
             )}
           </div>
 
-          <div
-            style={{
-              marginTop: 20,
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
+          <div className="mt-5 flex justify-between">
             <button
               onClick={goBack}
               disabled={currentIndex === 0}
-              style={{
-                padding: "12px 24px",
-                borderRadius: 8,
-                border: "none",
-                backgroundColor: currentIndex === 0 ? "#ccc" : "#213763",
-                color: "#fff",
-                cursor: currentIndex === 0 ? "not-allowed" : "pointer",
-                fontWeight: "bold",
-              }}
+              className={`px-6 py-3 rounded-md font-bold text-white ${
+                currentIndex === 0
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-900 hover:bg-blue-950"
+              }`}
             >
               Atrás
             </button>
+
             {isLast ? (
               <button
-                onClick={() => alert("Examen enviado! Gracias.")}
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: 8,
-                  border: "none",
-                  backgroundColor: "#d32f2f",
-                  color: "#fff",
-                  fontWeight: "bold",
-                }}
+                onClick={() => setModalOpen(true)}
+                className="px-6 py-3 rounded-md bg-red-600 text-white font-bold hover:bg-red-700"
               >
                 Enviar examen
               </button>
             ) : (
               <button
                 onClick={goNext}
-                style={{
-                  padding: "12px 24px",
-                  borderRadius: 8,
-                  border: "none",
-                  backgroundColor: "#213763",
-                  color: "#fff",
-                  fontWeight: "bold",
-                }}
+                className="px-6 py-3 rounded-md bg-blue-900 text-white font-bold hover:bg-blue-950"
               >
                 Siguiente
               </button>
@@ -286,6 +265,13 @@ export default function FormSimulador() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={modalOpen}
+        unansweredCount={unansweredCount}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirm}
+      />
     </div>
   );
 }
