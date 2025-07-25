@@ -111,8 +111,6 @@ export default function VoucherAdministrationPage() {
         total_price: 0,
         file_url: "",
       });
-
-      // ⏱ Redirección después de 3 segundos
       setTimeout(() => {
         router.push("/dashboard/admin/partners");
       }, 3000);

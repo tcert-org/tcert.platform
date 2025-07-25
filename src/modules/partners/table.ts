@@ -50,7 +50,6 @@ export default class PartnerTable extends Table<"users"> {
       if (page <= 0 || limit_value <= 0) {
         throw new Error("Pagination values must be greater than 0.");
       }
-
       const { data, error } = await supabase.rpc("get_partners_with_filters", {
         filter_company_name: filter_company_name ?? null,
         filter_created_at: filter_created_at

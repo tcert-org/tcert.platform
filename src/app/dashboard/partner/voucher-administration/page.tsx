@@ -17,16 +17,20 @@ import PartnerDetail from "@/components/partner-detail";
 import { Button } from "@/components/ui/button";
 
 const formatLocalDate = (iso: string) => {
-  const [year, month, day] = iso.split("T")[0].split("-");
-  return new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day)
-  ).toLocaleDateString("es-CO", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  if (iso) {
+    const [year, month, day] = iso.split("T")[0].split("-");
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day)
+    ).toLocaleDateString("es-CO", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } else {
+    return "No hay fecha";
+  }
 };
 
 export default function VoucherAdministrationPage() {
@@ -69,14 +73,12 @@ export default function VoucherAdministrationPage() {
           filter_partner_id: partnerData.id,
         };
 
-        // Agrega dinámicamente los filtros que empiecen con filter_
         for (const key in params) {
           if (key.startsWith("filter_")) {
             const value = params[key];
 
-            // Si detectas _op como operador adicional
             if (key.endsWith("_op")) {
-              query[key] = value; // Ej: filter_total_vouchers_op: ">="
+              query[key] = value;
             } else if (
               !isNaN(value) &&
               key !== "filter_email" &&

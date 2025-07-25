@@ -66,7 +66,8 @@ export default function PartnersPage() {
     {
       label: "Ver detalles",
       icon: Eye,
-      navigateTo: (partner) => `/dashboard/admin/partners/${partner.id}`,
+      navigateTo: (partner) =>
+        `/dashboard/partner/voucher-administration?partner_id=${partner.id}`,
     },
     {
       label: "Editar",

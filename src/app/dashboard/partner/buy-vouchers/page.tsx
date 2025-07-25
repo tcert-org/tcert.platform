@@ -21,63 +21,72 @@ export default function AssignVoucherForm() {
   const [loading, setLoading] = useState(false);
   const { getUser } = useUserStore();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false); // ⛔ Modal de error
   const total = useMemo(() => quantity * UNIT_PRICE, [quantity]);
   const searchParams = useSearchParams();
-  const hasRegistered = useRef(false); // ✅ Flag para evitar ejecución múltiple
+  const hasRegistered = useRef(false);
 
   useEffect(() => {
     const registerVouchers = async () => {
       const success = searchParams.get("success");
+      const canceled = searchParams.get("canceled");
       const alreadyRegistered = sessionStorage.getItem("vouchers_registered");
 
-      // ✅ Evita doble ejecución por efecto múltiple o re-render
+      // ✅ Registro exitoso
       if (
-        success !== "true" ||
-        alreadyRegistered === "true" ||
-        hasRegistered.current
-      )
-        return;
+        success === "true" &&
+        alreadyRegistered !== "true" &&
+        !hasRegistered.current
+      ) {
+        hasRegistered.current = true;
 
-      hasRegistered.current = true;
+        const quantityFromStorage = Number(
+          sessionStorage.getItem("last_quantity") || "1"
+        );
 
-      const quantityFromStorage = Number(
-        sessionStorage.getItem("last_quantity") || "1"
-      );
+        const user = await getUser();
+        const partnerId = String(user?.id);
 
-      const user = await getUser();
-      const partnerId = String(user?.id);
+        if (!partnerId) {
+          console.error("No se encontró el partner ID");
+          return;
+        }
 
-      if (!partnerId) {
-        console.error("No se encontró el partner ID");
+        try {
+          const res = await fetch("/api/payments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              partner_id: partnerId,
+              admin_id: null,
+              voucher_quantity: quantityFromStorage,
+              unit_price: UNIT_PRICE,
+              total_price: quantityFromStorage * UNIT_PRICE,
+              files: "stripe_payment",
+            }),
+          });
+
+          if (!res.ok) {
+            const error = await res.json();
+            console.error("Respuesta del backend:", error);
+            throw new Error("Error al registrar los vouchers");
+          }
+
+          sessionStorage.setItem("vouchers_registered", "true");
+          setShowSuccessModal(true);
+          toast.success("Vouchers asignados exitosamente.");
+        } catch (error) {
+          console.error("❌ Error al registrar en /api/payments:", error);
+          toast.error("Error al asignar los vouchers.");
+        }
+
         return;
       }
 
-      try {
-        const res = await fetch("/api/payments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            partner_id: partnerId,
-            admin_id: null,
-            voucher_quantity: quantityFromStorage,
-            unit_price: UNIT_PRICE,
-            total_price: quantityFromStorage * UNIT_PRICE,
-            files: "stripe_payment",
-          }),
-        });
-
-        if (!res.ok) {
-          const error = await res.json();
-          console.error("Respuesta del backend:", error);
-          throw new Error("Error al registrar los vouchers");
-        }
-
-        sessionStorage.setItem("vouchers_registered", "true");
-        setShowSuccessModal(true);
-        toast.success("Vouchers asignados exitosamente.");
-      } catch (error) {
-        console.error("❌ Error al registrar en /api/payments:", error);
-        toast.error("Error al asignar los vouchers.");
+      // ❌ Cancelación del pago
+      if (canceled === "true") {
+        toast.error("El pago fue cancelado.");
+        setShowErrorModal(true);
       }
     };
 
@@ -122,7 +131,7 @@ export default function AssignVoucherForm() {
 
   return (
     <>
-      {/* Modal de éxito */}
+      {/* ✅ Modal de éxito */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -138,7 +147,22 @@ export default function AssignVoucherForm() {
         </DialogContent>
       </Dialog>
 
-      {/* Formulario */}
+      {/* ❌ Modal de cancelación */}
+      <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>❌ Pago cancelado</DialogTitle>
+          </DialogHeader>
+          <div className="text-gray-800">
+            <p>El proceso de pago fue cancelado.</p>
+            <p className="mt-2">
+              No se generaron vouchers. Puedes intentarlo nuevamente.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Formulario de compra */}
       <div className="flex justify-center px-4 pt-12 pb-24 bg-white h-auto">
         <form
           onSubmit={(e) => e.preventDefault()}
