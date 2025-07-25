@@ -5,6 +5,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 interface ConfirmModalProps {
   open: boolean;
@@ -30,9 +31,11 @@ export default function ConfirmModal({
           </h3>
         </DialogHeader>
         <div className="py-4 text-sm text-gray-700">
-          {unansweredCount > 0
-            ? `Aún tienes ${unansweredCount} preguntas sin responder. ¿Estás seguro de que deseas enviar el examen?`
-            : "¿Estás seguro de que deseas enviar el examen y finalizar el intento?"}
+          <DialogTitle>
+            {unansweredCount > 0
+              ? `Aún tienes ${unansweredCount} preguntas sin responder. ¿Estás seguro de que deseas enviar el examen?`
+              : "¿Estás seguro de que deseas enviar el examen y finalizar el intento?"}
+          </DialogTitle>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>

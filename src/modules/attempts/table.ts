@@ -62,14 +62,22 @@ export default class AttemptsTable extends Table<"exam_attempts"> {
     return data;
   }
 
-  async updateExamAttemptById(id: number) {
+  async updateExamAttemptById(
+    id: number,
+    updateData: Partial<AttemptsInsertType>
+  ) {
     const { data, error } = await supabase
       .from("exam_attempts")
-      .update({ id })
+      .update(updateData)
       .eq("id", id)
       .select()
       .single();
 
-    return { data, error };
+    if (error) {
+      console.error("[UPDATE_EXAM_ATTEMPTS_ERROR]", error.message);
+      throw new Error("Error actualizando intento:" + error.message);
+    }
+
+    return data;
   }
 }
