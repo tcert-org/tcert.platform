@@ -3,7 +3,8 @@ import { supabase } from "@/lib/database/conection";
 import { Database } from "@/lib/database/database.types";
 
 export type PaymentRowType = Database["public"]["Tables"]["payments"]["Row"];
-export type PaymentInsertType = Database["public"]["Tables"]["payments"]["Insert"];
+export type PaymentInsertType =
+  Database["public"]["Tables"]["payments"]["Insert"];
 
 export default class PaymentTable extends Table<"payments"> {
   constructor() {

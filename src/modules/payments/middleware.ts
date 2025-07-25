@@ -1,7 +1,7 @@
 // src/modules/payments/middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { PaymentsInsertType } from "./types"; 
+import { PaymentsInsertType } from "./types";
 
 const paymentCreationSchema = z.object({
   partner_id: z.string(),
@@ -19,7 +19,9 @@ export default class PaymentMiddleware {
   ) {
     try {
       const body = await req.json();
-      const validatedData = paymentCreationSchema.parse(body) as PaymentsInsertType;
+      const validatedData = paymentCreationSchema.parse(
+        body
+      ) as PaymentsInsertType;
       return next(validatedData);
     } catch (error) {
       console.error("[PAYMENT_VALIDATION_ERROR]", error);

@@ -37,7 +37,6 @@ async function fetchPartners(
     }
 
     const queryParams = new URLSearchParams(query).toString();
-    console.log("🔍 queryParams:", queryParams);
 
     const response = await fetch(
       `/api/request-table/partners/?${queryParams}`,
@@ -51,7 +50,7 @@ async function fetchPartners(
     }
 
     const result = await response.json();
-    console.log("Partners recibidos:", result);
+
     return {
       data: result.data,
       totalCount: result.totalCount,

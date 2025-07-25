@@ -57,8 +57,6 @@ export default function StudentHomePage() {
         if (response.ok && data.material) {
           setMaterial(data.material);
         } else {
-          console.error("No se encontró el material del estudiante");
-          console.log("MENSAJE DEL SERVIDOR:", data);
           setMaterialLoaded(false);
         }
       } catch (err) {

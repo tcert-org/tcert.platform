@@ -34,22 +34,6 @@ export default class VoucherTable extends Table<"vouchers"> {
       } = filters;
 
       // --- LOG MASTER ---
-      console.log("\n=========== GET VOUCHERS FOR TABLE ==========");
-      console.log("Params enviados a Supabase:", {
-        filter_available,
-        filter_certification_name,
-        filter_code,
-        filter_email,
-        filter_expiration_date,
-        filter_partner_id,
-        filter_purchase_date,
-        filter_status_id: null, // Siempre null si no filtras por estado
-        order_by,
-        order_dir,
-        page,
-        limit_value,
-      });
-      console.log("=============================================\n");
 
       // SIEMPRE manda TODOS los argumentos en orden, aunque vayan en null
       const { data, error } = await supabase.rpc("get_vouchers_with_filters", {
@@ -74,7 +58,6 @@ export default class VoucherTable extends Table<"vouchers"> {
       }
 
       const rows = data as VoucherRowWithCount[];
-      console.log("==> DATA DEVUELTA DE SUPABASE:", rows);
 
       return {
         data: rows.map(({ total_count, ...rest }) => rest),

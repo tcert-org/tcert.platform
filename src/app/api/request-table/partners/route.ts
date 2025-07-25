@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       order_by: searchParams.get("order_by") || "created_at",
       order_dir: (searchParams.get("order_dir") as "asc" | "desc") || "desc",
     };
-    console.log("Datos recibidos", params);
+
     const partnerTable = new PartnerTable();
     const result = await partnerTable.getPartnersForTable(params);
 

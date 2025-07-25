@@ -29,7 +29,6 @@ async function fetchExam(
   };
 
   if (params.filters) {
-    console.log("📥 Filtros recibidos desde DataTable:", params.filters);
     for (const filter of params.filters) {
       const val = filter.value;
 

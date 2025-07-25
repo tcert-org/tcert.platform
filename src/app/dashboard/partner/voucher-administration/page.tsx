@@ -117,14 +117,7 @@ export default function VoucherAdministrationPage() {
       label: "Ver detalles",
       icon: Eye,
       action: (voucher) => {
-        console.log(
-          "Detalles del voucher:",
-          voucher.certification_name,
-          voucher.code,
-          voucher.email,
-          voucher.expiration_date,
-          voucher.purchase_date
-        );
+        router.push(`/dashboard/partner/voucher-administration/${voucher.id}`);
       },
     },
   ];

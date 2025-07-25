@@ -11,7 +11,6 @@ import {
 export async function GET(req: NextRequest) {
   try {
     const params = Object.fromEntries(new URL(req.url).searchParams.entries());
-    console.log("QUERY PARAMS LLEGAN:", params);
 
     const filters: FilterParamsVoucher = {
       filter_code: params.filter_code,

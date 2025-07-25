@@ -65,12 +65,7 @@ const PartnerDetailPage = ({ params }: PageProps) => {
     {
       label: "Ver detalles",
       icon: Eye,
-      action: (voucher: DataVoucherTable) => {
-        console.log({
-          title: "Ver voucher",
-          description: `Viendo detalles del voucher ${voucher.code}`,
-        });
-      },
+      action: (voucher: DataVoucherTable) => {},
     },
   ];
 
