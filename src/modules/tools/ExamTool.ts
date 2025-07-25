@@ -44,6 +44,7 @@ export default class ExamTool {
       score: Math.round(score),
       passed,
       correct_count: correct,
+      incorrect_count: incorrect,
       unanswered_count: unanswered,
     };
   }

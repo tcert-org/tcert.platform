@@ -75,6 +75,7 @@ export default class AttemptService {
       score: result.score,
       passed: result.passed,
       correct_count: result.correct_count,
+      incorrect_count: result.incorrect_count,
       unanswered_count: result.unanswered_count,
     };
 

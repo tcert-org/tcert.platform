@@ -87,6 +87,19 @@ export default function FormSimulador() {
     fetchExamData();
   }, [examId]);
 
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ""; // Requerido por algunos navegadores
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
   const handleOptionSelect = (optionId: number) => {
     if (!currentQuestion) return;
     setSelectedOptions((prev) => ({
@@ -127,13 +140,11 @@ export default function FormSimulador() {
         return;
       }
 
-      const payload = Object.entries(selectedOptions).map(
-        ([questionId, selectedOptionId]) => ({
-          exam_attempt_id: Number(attemptId),
-          question_id: Number(questionId),
-          selected_option_id: Number(selectedOptionId),
-        })
-      );
+      const payload = questions.map((question) => ({
+        exam_attempt_id: Number(attemptId),
+        question_id: question.id,
+        selected_option_id: selectedOptions[question.id] ?? null,
+      }));
 
       const response = await fetch("/api/answers", {
         method: "POST",

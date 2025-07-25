@@ -30,6 +30,7 @@ export function NavUser({ user, className }: NavUserProps) {
     } catch {}
 
     sessionStorage.clear();
+
     //localStorage.clear();
     window.location.href = "/sign-in";
   };

@@ -25,10 +25,20 @@ export async function POST(req: NextRequest) {
     const service = new AttemptsService();
     const updatedAttempt = await service.gradeExamAttempt(attempt_id);
 
-    return NextResponse.json({
+    // Crear la respuesta y eliminar la cookie
+    const response = NextResponse.json({
       message: "Intento calificado correctamente",
       data: updatedAttempt,
     });
+
+    // ✅ Eliminar la cookie httpOnly después de calificar
+    response.cookies.set("student_attempt_id", "", {
+      httpOnly: true,
+      path: "/",
+      expires: new Date(0), // eliminar inmediatamente
+    });
+
+    return response;
   } catch (err) {
     console.error("❌ Error en grading POST:", err);
     return NextResponse.json(
