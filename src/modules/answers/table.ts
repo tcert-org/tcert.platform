@@ -10,18 +10,21 @@ export default class AnswersTable extends Table<"answers"> {
   constructor() {
     super("answers");
   }
+
   async insertAnswers(data: AttemptsInsertType[]): Promise<AnswersRowType[]> {
-    const { data: inserted, error } = await supabase
+    const { data: upserted, error } = await supabase
       .from("answers")
-      .insert(data)
+      .upsert(data, {
+        onConflict: "exam_attempt_id,question_id", // ✅ esto debe ser un solo string
+      })
       .select();
 
     if (error) {
-      console.error("[INSERT_MULTIPLE_ANSWERS_ERROR]", error.message);
+      console.error("[UPSERT_ANSWERS_ERROR]", error.message);
       throw new Error("Error insertando respuestas: " + error.message);
     }
 
-    return inserted;
+    return upserted;
   }
 
   async getAnswerById(id: number) {
