@@ -40,6 +40,7 @@ export default function FormSimulador() {
         method: "GET",
         credentials: "include",
       });
+
       const attemptResult = await attemptRes.json();
       const attemptId = attemptResult?.data?.id;
       if (!attemptId) return;
@@ -50,13 +51,22 @@ export default function FormSimulador() {
         selected_option_id: partialAnswers[q.id] ?? null,
       }));
 
+      // 💾 Guardar respuestas parcial
       await fetch("/api/answers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ answers: payload }),
       });
+
+      // ✅ Calificar sin eliminar cookie
+      await fetch("/api/attempts/grade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ attempt_id: attemptId }), // NO incluye final_submit
+      });
     } catch (err) {
-      console.error("Error en autosave:", err);
+      console.error("❌ Error en autosave:", err);
     }
   };
 
@@ -187,11 +197,14 @@ export default function FormSimulador() {
         return;
       }
 
-      // ✅ NUEVO: Calificar intento
+      // ✅ Calificar indicando envío final (elimina la cookie)
       const gradeRes = await fetch("/api/attempts/grade", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
       });
+
       const gradeData = await gradeRes.json();
 
       if (!gradeRes.ok) {

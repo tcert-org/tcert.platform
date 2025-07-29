@@ -45,9 +45,9 @@ export default class AttemptService {
     }
 
     if (!answers || answers.length === 0) {
-      throw new Error("No se encontraron respuestas para este intento");
+      console.warn("⚠️ No hay respuestas aún para calificar.");
+      return attempt; // Evita romper el flujo de autosave
     }
-
     // Obtener opciones correctas desde la tabla 'options'
     const { data: correctOptions, error: errorCorrect } = await supabase
       .from("options")
