@@ -58,22 +58,29 @@ export default class ExamAttempts {
 
         if (existing) {
           return NextResponse.json({
-            statusCode: 400,
-            data: null,
-            error: "Ya existe un intento para este examen y estudiante.",
+            statusCode: 200,
+            data: { id: existing.id },
           });
         }
       }
 
-      // 4️⃣ Insertar nuevo intento sin restricciones si es simulador
+      // 4️⃣ Insertar nuevo intento
       const result = await attemptsTable.insertAttempt({
         exam_id: data.exam_id,
         student_id,
       });
 
+      if (!result?.id) {
+        return NextResponse.json({
+          statusCode: 500,
+          data: null,
+          error: "Error al crear el intento.",
+        });
+      }
+
       return NextResponse.json({
         statusCode: 201,
-        data: result,
+        data: { id: result.id },
       });
     } catch (error) {
       console.error("[INSERT_ATTEMPT_ERROR]", error);

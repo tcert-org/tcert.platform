@@ -1,7 +1,12 @@
 "use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import ConfirmModal from "./Modal_Confirmacion_Simulador";
+import ConfirmModal from "@/modules/tools/Modal_Confirmacion_Simulador";
+import QuestionSidebar from "@/modules/tools/QuestionSidebar";
+import { getShuffledQuestionOrder } from "@/modules/tools/examUtils";
+import { getShuffledOptions } from "@/modules/tools/optionUtils";
+import { autosaveAttempt } from "@/modules/tools/autosaveUtils";
 
 interface Question {
   id: number;
@@ -10,45 +15,6 @@ interface Question {
 interface Option {
   id: number;
   content: string;
-}
-
-function getShuffledQuestionOrder(
-  examId: string,
-  questions: Question[]
-): Question[] {
-  const storageKey = `simulator_${examId}_question_order`;
-
-  const savedOrder = localStorage.getItem(storageKey);
-  if (savedOrder) {
-    const savedIds: number[] = JSON.parse(savedOrder);
-    return savedIds
-      .map((id) => questions.find((q) => q.id === id))
-      .filter(Boolean) as Question[];
-  }
-
-  const shuffled = [...questions].sort(() => Math.random() - 0.5);
-  localStorage.setItem(storageKey, JSON.stringify(shuffled.map((q) => q.id)));
-  return shuffled;
-}
-
-function getShuffledOptions(
-  examId: string,
-  questionId: number,
-  options: Option[]
-): Option[] {
-  const storageKey = `simulator_${examId}_q${questionId}_option_order`;
-
-  const savedOrder = localStorage.getItem(storageKey);
-  if (savedOrder) {
-    const savedIds: number[] = JSON.parse(savedOrder);
-    return savedIds
-      .map((id) => options.find((o) => o.id === id))
-      .filter(Boolean) as Option[];
-  }
-
-  const shuffled = [...options].sort(() => Math.random() - 0.5);
-  localStorage.setItem(storageKey, JSON.stringify(shuffled.map((o) => o.id)));
-  return shuffled;
 }
 
 export default function FormSimulador() {
@@ -73,43 +39,6 @@ export default function FormSimulador() {
   ).length;
 
   const hasSubmittedRef = useRef(false);
-
-  // 🧠 Autosave al responder la primera pregunta
-  const autosaveAttempt = async (partialAnswers: Record<number, number>) => {
-    try {
-      const attemptRes = await fetch("/api/attempts/current", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      const attemptResult = await attemptRes.json();
-      const attemptId = attemptResult?.data?.id;
-      if (!attemptId) return;
-
-      const payload = questions.map((q) => ({
-        exam_attempt_id: Number(attemptId),
-        question_id: q.id,
-        selected_option_id: partialAnswers[q.id] ?? null,
-      }));
-
-      // 💾 Guardar respuestas parcial
-      await fetch("/api/answers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: payload }),
-      });
-
-      // ✅ Calificar sin eliminar cookie
-      await fetch("/api/attempts/grade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ attempt_id: attemptId }), // NO incluye final_submit
-      });
-    } catch (err) {
-      console.error("❌ Error en autosave:", err);
-    }
-  };
 
   useEffect(() => {
     async function fetchExamData() {
@@ -168,7 +97,6 @@ export default function FormSimulador() {
         );
         const data = await res.json();
         const rawOptions: Option[] = data.data ?? [];
-
         const shuffled = getShuffledOptions(
           examId ?? "",
           current.id,
@@ -189,14 +117,11 @@ export default function FormSimulador() {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (hasSubmittedRef.current) return;
       e.preventDefault();
-      e.returnValue = ""; // Necesario para navegadores como Chrome
+      e.returnValue = "";
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
 
   const handleOptionSelect = (optionIndex: number) => {
@@ -206,10 +131,7 @@ export default function FormSimulador() {
 
     setSelectedOptions((prev) => {
       const updated = { ...prev, [currentQuestion.id]: optionId };
-
-      // 💾 Autosave cada vez que se responde una pregunta
-      autosaveAttempt(updated);
-
+      autosaveAttempt(questions, updated);
       return updated;
     });
   };
@@ -218,11 +140,9 @@ export default function FormSimulador() {
     if (currentIndex < questions.length - 1)
       setCurrentIndex((prev) => prev + 1);
   };
-
   const goBack = () => {
     if (currentIndex > 0) setCurrentIndex((prev) => prev - 1);
   };
-
   const isLast = currentIndex === questions.length - 1;
 
   const handleConfirm = async () => {
@@ -230,28 +150,20 @@ export default function FormSimulador() {
     window.onbeforeunload = null;
     try {
       setModalOpen(false);
-
       const attemptRes = await fetch("/api/attempts/current", {
         method: "GET",
         credentials: "include",
       });
       const attemptResult = await attemptRes.json();
       const attemptId = attemptResult?.data?.id;
+      if (!attemptId) return alert("No se encontró el intento activo.");
+      if (Object.keys(selectedOptions).length === 0)
+        return alert("No seleccionaste ninguna respuesta.");
 
-      if (!attemptId) {
-        alert("No se encontró el intento activo.");
-        return;
-      }
-
-      if (Object.keys(selectedOptions).length === 0) {
-        alert("No seleccionaste ninguna respuesta.");
-        return;
-      }
-
-      const payload = questions.map((question) => ({
+      const payload = questions.map((q) => ({
         exam_attempt_id: Number(attemptId),
-        question_id: question.id,
-        selected_option_id: selectedOptions[question.id] ?? null,
+        question_id: q.id,
+        selected_option_id: selectedOptions[q.id] ?? null,
       }));
 
       const response = await fetch("/api/answers", {
@@ -262,34 +174,23 @@ export default function FormSimulador() {
 
       if (!response.ok) {
         const error = await response.json();
-        alert(error?.error || "Error al guardar respuestas.");
-        return;
+        return alert(error?.error || "Error al guardar respuestas.");
       }
 
-      // ✅ Calificar indicando envío final (elimina la cookie)
-      const gradeRes = await fetch("/api/attempts/grade", {
+      await fetch("/api/attempts/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
       });
 
-      const gradeData = await gradeRes.json();
-
-      if (!gradeRes.ok) {
-        console.error("❌ Error al calificar:", gradeData?.error);
-      } else {
-        console.log("✅ Intento calificado:", gradeData);
-      }
-
       localStorage.removeItem(`simulator_${examId}_question_order`);
-      questions.forEach((q) => {
+      questions.forEach((q) =>
         localStorage.removeItem(
           `simulator_${examId}_question_${q.id}_option_order`
-        );
-      });
+        )
+      );
 
-      window.onbeforeunload = null;
       window.location.href = "/dashboard/student/simulators";
     } catch (err) {
       console.error("❌ Error al enviar respuestas:", err);
@@ -309,28 +210,13 @@ export default function FormSimulador() {
     <div className="max-w-5xl mx-auto mt-10 font-sans flex flex-col gap-5">
       <h2 className="text-center mb-0">{examName}</h2>
       <div className="flex gap-5 min-h-[450px]">
-        <div className="w-56 rounded-md shadow-md bg-white overflow-y-auto border border-gray-300 p-4 flex flex-col gap-3">
-          {questions.map((q, idx) => {
-            const isCurrent = idx === currentIndex;
-            const isAnswered = selectedOptions.hasOwnProperty(q.id);
-            const bgColor =
-              isCurrent || isAnswered
-                ? "bg-blue-900 text-white"
-                : "bg-blue-100 text-blue-900";
-            return (
-              <div
-                key={q.id}
-                ref={(el) => {
-                  if (el) itemRefs.current[idx] = el;
-                }}
-                onClick={() => setCurrentIndex(idx)} // 👈 Aquí se agrega la navegación
-                className={`cursor-pointer px-4 py-3 rounded-md text-center font-bold text-base ${bgColor}`}
-              >
-                Pregunta {idx + 1}
-              </div>
-            );
-          })}
-        </div>
+        <QuestionSidebar
+          questions={questions}
+          currentIndex={currentIndex}
+          selectedOptions={selectedOptions}
+          onSelect={setCurrentIndex}
+          itemRefs={itemRefs}
+        />
 
         <div className="flex-grow min-w-[480px] rounded-md shadow-md border border-gray-200 p-5 flex flex-col min-h-[350px]">
           <h3 className="mb-5">{currentQuestion.text}</h3>

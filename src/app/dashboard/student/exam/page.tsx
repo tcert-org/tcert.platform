@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Lightbulb } from "lucide-react";
-import Link from "next/link";
 
-type SimulatorStatus = "completed" | "in_progress" | "not_started";
+// Tipo de estado de intento
+type ExamStatus = "completed" | "in_progress" | "not_started";
 
+// Representación visual del examen
 type ExamCard = {
   id: number;
   name: string;
-  status: SimulatorStatus;
+  status: ExamStatus;
 };
 
 const statusColor = {
@@ -25,16 +27,15 @@ const statusLabel = {
   not_started: "No realizado",
 };
 
-export default function StudentSimulatorsPage() {
+export default function StudentExamPage() {
   const [exams, setExams] = useState<ExamCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    async function fetchSimulators() {
+    async function fetchExams() {
       setLoading(true);
-
       try {
-        // ✅ Obtener voucher_id desde la cookie de sesión del estudiante
         const session = JSON.parse(
           sessionStorage.getItem("student-data") || "{}"
         );
@@ -43,7 +44,6 @@ export default function StudentSimulatorsPage() {
         if (!voucherId) {
           console.warn("voucher_id no disponible en la sesión");
           setExams([]);
-          setLoading(false);
           return;
         }
 
@@ -56,26 +56,59 @@ export default function StudentSimulatorsPage() {
           const mapped = result.data.map((exam: any) => ({
             id: exam.id,
             name: exam.name_exam || "Sin nombre",
-            status: "not_started" as SimulatorStatus,
+            status: "not_started" as ExamStatus,
           }));
           setExams(mapped);
         }
       } catch (err) {
-        console.error("Error al obtener simuladores:", err);
+        console.error("Error al obtener examen:", err);
         setExams([]);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
-    fetchSimulators();
+    fetchExams();
   }, []);
+
+  async function handleStartExam(examId: number) {
+    const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
+    const voucherId = session?.state?.decryptedStudent?.voucher_id;
+
+    if (!voucherId) {
+      console.warn("voucher_id no disponible en la sesión");
+      alert("No se pudo obtener tu voucher.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/attempts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ exam_id: examId, voucher_id: voucherId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        alert(result?.error || "Error al crear intento.");
+        return;
+      }
+
+      // Redirige con el ID del examen
+      router.push(`/dashboard/student/exam/form?id=${examId}`);
+    } catch (err) {
+      console.error("Error al iniciar examen:", err);
+      alert("Error inesperado.");
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl sm:text-4xl font-bold text-center mb-10">
         Tu examen
       </h1>
+
       {loading ? (
         <div className="text-center text-lg text-gray-500 py-16">
           Cargando examen...
@@ -86,31 +119,32 @@ export default function StudentSimulatorsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {exams.map((sim) => (
+          {exams.map((exam) => (
             <div
-              key={sim.id}
+              key={exam.id}
               className="flex flex-col justify-between bg-white shadow-md border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all min-h-[12rem]"
             >
               <div className="flex items-center gap-3 mb-4">
-                <Lightbulb className={`w-6 h-6 ${statusColor[sim.status]}`} />
+                <Lightbulb className={`w-6 h-6 ${statusColor[exam.status]}`} />
                 <div>
                   <div className="text-sm sm:text-base text-[#213763] font-bold">
-                    {sim.name}
+                    {exam.name}
                   </div>
                   <div className="text-sm text-gray-500 mt-1">
                     Estado:{" "}
-                    <span className={statusColor[sim.status]}>
-                      {statusLabel[sim.status]}
+                    <span className={statusColor[exam.status]}>
+                      {statusLabel[exam.status]}
                     </span>
                   </div>
                 </div>
               </div>
               <div className="mt-auto">
-                <Link
-                  href={`/dashboard/student/exam/form?simulatorId=${sim.id}`}
+                <Button
+                  className="w-full"
+                  onClick={() => handleStartExam(exam.id)}
                 >
-                  <Button className="w-full">Ir</Button>
-                </Link>
+                  Ir
+                </Button>
               </div>
             </div>
           ))}
