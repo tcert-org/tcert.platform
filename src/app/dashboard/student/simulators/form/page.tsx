@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import ConfirmModal from "./Modal_Confirmacion_Simulador";
@@ -8,7 +7,6 @@ interface Question {
   id: number;
   text: string;
 }
-
 interface Option {
   id: number;
   content: string;
@@ -20,22 +18,47 @@ export default function FormSimulador() {
 
   const [examName, setExamName] = useState("Cargando título...");
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [allOptions, setAllOptions] = useState<Record<number, Option[]>>({});
+  const [options, setOptions] = useState<Option[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<
-    Record<number, number | null>
+    Record<number, number>
   >({});
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
   const currentQuestion = questions[currentIndex];
-  const currentOptions = currentQuestion
-    ? allOptions[currentQuestion.id] ?? []
-    : [];
   const unansweredCount = questions.filter(
     (q) => !(q.id in selectedOptions)
   ).length;
+
+  // 🧠 Autosave al responder la primera pregunta
+  const autosaveAttempt = async (partialAnswers: Record<number, number>) => {
+    try {
+      const attemptRes = await fetch("/api/attempts/current", {
+        method: "GET",
+        credentials: "include",
+      });
+      const attemptResult = await attemptRes.json();
+      const attemptId = attemptResult?.data?.id;
+      if (!attemptId) return;
+
+      const payload = questions.map((q) => ({
+        exam_attempt_id: Number(attemptId),
+        question_id: q.id,
+        selected_option_id: partialAnswers[q.id] ?? null,
+      }));
+
+      await fetch("/api/answers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: payload }),
+      });
+    } catch (err) {
+      console.error("Error en autosave:", err);
+    }
+  };
 
   useEffect(() => {
     async function fetchExamData() {
@@ -67,16 +90,6 @@ export default function FormSimulador() {
         setQuestions(parsedQuestions);
         setCurrentIndex(0);
         setSelectedOptions({});
-
-        const optionsMap: Record<number, Option[]> = {};
-        for (const question of parsedQuestions) {
-          const res = await fetch(
-            `/api/exam/question/elections?question_id=${question.id}`
-          );
-          const data = await res.json();
-          optionsMap[question.id] = data.data ?? [];
-        }
-        setAllOptions(optionsMap);
       } catch (error) {
         setExamName("Error al cargar el examen");
         setQuestions([]);
@@ -88,24 +101,40 @@ export default function FormSimulador() {
   }, [examId]);
 
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = ""; // Requerido por algunos navegadores
-    };
+    async function fetchOptions() {
+      const current = questions[currentIndex];
+      if (!current) return;
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
+      setLoadingOptions(true);
+      try {
+        const res = await fetch(
+          `/api/exam/question/elections?question_id=${current.id}`
+        );
+        const data = await res.json();
+        setOptions(data.data ?? []);
+      } catch (err) {
+        console.error("Error al obtener opciones:", err);
+        setOptions([]);
+      }
+      setLoadingOptions(false);
+    }
 
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
-  }, []);
+    fetchOptions();
+  }, [questions, currentIndex]);
 
-  const handleOptionSelect = (optionId: number) => {
+  const handleOptionSelect = (optionIndex: number) => {
     if (!currentQuestion) return;
-    setSelectedOptions((prev) => ({
-      ...prev,
-      [currentQuestion.id]: optionId,
-    }));
+    const optionId = options[optionIndex]?.id;
+    if (!optionId) return;
+
+    setSelectedOptions((prev) => {
+      const updated = { ...prev, [currentQuestion.id]: optionId };
+
+      // 💾 Autosave cada vez que se responde una pregunta
+      autosaveAttempt(updated);
+
+      return updated;
+    });
   };
 
   const goNext = () => {
@@ -158,28 +187,24 @@ export default function FormSimulador() {
         return;
       }
 
-      // ✅ Calificar intento ahora que las respuestas están insertadas
+      // ✅ NUEVO: Calificar intento
       const gradeRes = await fetch("/api/attempts/grade", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attempt_id: attemptId }),
+        credentials: "include",
       });
+      const gradeData = await gradeRes.json();
 
       if (!gradeRes.ok) {
-        const error = await gradeRes.json();
-        console.error("❌ Error al calificar intento:", error);
-        alert("Respuestas enviadas, pero hubo un error al calificar.");
-        return;
+        console.error("❌ Error al calificar:", gradeData?.error);
+      } else {
+        console.log("✅ Intento calificado:", gradeData);
       }
 
-      const gradeData = await gradeRes.json();
-      console.log("✅ Intento calificado:", gradeData);
-
       window.onbeforeunload = null;
-      alert("¡Examen enviado y calificado con éxito!");
+      alert("¡Examen enviado con éxito!");
       window.location.href = "/dashboard/student/simulators";
     } catch (err) {
-      console.error("❌ Error en handleConfirm:", err);
+      console.error("❌ Error al enviar respuestas:", err);
       alert("Hubo un error inesperado.");
     }
   };
@@ -199,7 +224,7 @@ export default function FormSimulador() {
         <div className="w-56 rounded-md shadow-md bg-white overflow-y-auto border border-gray-300 p-4 flex flex-col gap-3">
           {questions.map((q, idx) => {
             const isCurrent = idx === currentIndex;
-            const isAnswered = selectedOptions[q.id] !== undefined;
+            const isAnswered = selectedOptions.hasOwnProperty(q.id);
             const bgColor =
               isCurrent || isAnswered
                 ? "bg-blue-900 text-white"
@@ -207,8 +232,9 @@ export default function FormSimulador() {
             return (
               <div
                 key={q.id}
-                ref={(el) => (itemRefs.current[idx] = el)}
-                onClick={() => setCurrentIndex(idx)}
+                ref={(el) => {
+                  if (el) itemRefs.current[idx] = el;
+                }}
                 className={`cursor-pointer px-4 py-3 rounded-md text-center font-bold text-base ${bgColor}`}
               >
                 Pregunta {idx + 1}
@@ -222,16 +248,16 @@ export default function FormSimulador() {
           <div className="flex flex-col gap-4 flex-grow">
             {loadingOptions ? (
               <p>Cargando opciones...</p>
-            ) : currentOptions.length === 0 ? (
+            ) : options.length === 0 ? (
               <p>No hay opciones para esta pregunta.</p>
             ) : (
-              currentOptions.map((opt) => {
+              options.map((opt, i) => {
                 const isSelected =
                   selectedOptions[currentQuestion.id] === opt.id;
                 return (
                   <button
                     key={opt.id}
-                    onClick={() => handleOptionSelect(opt.id)}
+                    onClick={() => handleOptionSelect(i)}
                     className={`px-5 py-3 rounded-md text-left text-base cursor-pointer transition-all border ${
                       isSelected
                         ? "border-blue-900 bg-blue-100 shadow-md"
