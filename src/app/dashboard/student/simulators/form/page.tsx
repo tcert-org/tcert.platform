@@ -12,6 +12,45 @@ interface Option {
   content: string;
 }
 
+function getShuffledQuestionOrder(
+  examId: string,
+  questions: Question[]
+): Question[] {
+  const storageKey = `simulator_${examId}_question_order`;
+
+  const savedOrder = localStorage.getItem(storageKey);
+  if (savedOrder) {
+    const savedIds: number[] = JSON.parse(savedOrder);
+    return savedIds
+      .map((id) => questions.find((q) => q.id === id))
+      .filter(Boolean) as Question[];
+  }
+
+  const shuffled = [...questions].sort(() => Math.random() - 0.5);
+  localStorage.setItem(storageKey, JSON.stringify(shuffled.map((q) => q.id)));
+  return shuffled;
+}
+
+function getShuffledOptions(
+  examId: string,
+  questionId: number,
+  options: Option[]
+): Option[] {
+  const storageKey = `simulator_${examId}_q${questionId}_option_order`;
+
+  const savedOrder = localStorage.getItem(storageKey);
+  if (savedOrder) {
+    const savedIds: number[] = JSON.parse(savedOrder);
+    return savedIds
+      .map((id) => options.find((o) => o.id === id))
+      .filter(Boolean) as Option[];
+  }
+
+  const shuffled = [...options].sort(() => Math.random() - 0.5);
+  localStorage.setItem(storageKey, JSON.stringify(shuffled.map((o) => o.id)));
+  return shuffled;
+}
+
 export default function FormSimulador() {
   const searchParams = useSearchParams();
   const examId = searchParams.get("simulatorId");
@@ -32,6 +71,8 @@ export default function FormSimulador() {
   const unansweredCount = questions.filter(
     (q) => !(q.id in selectedOptions)
   ).length;
+
+  const hasSubmittedRef = useRef(false);
 
   // 🧠 Autosave al responder la primera pregunta
   const autosaveAttempt = async (partialAnswers: Record<number, number>) => {
@@ -97,7 +138,12 @@ export default function FormSimulador() {
           })
         );
 
-        setQuestions(parsedQuestions);
+        const shuffledQuestions = getShuffledQuestionOrder(
+          examId,
+          parsedQuestions
+        );
+
+        setQuestions(shuffledQuestions);
         setCurrentIndex(0);
         setSelectedOptions({});
       } catch (error) {
@@ -121,7 +167,14 @@ export default function FormSimulador() {
           `/api/exam/question/elections?question_id=${current.id}`
         );
         const data = await res.json();
-        setOptions(data.data ?? []);
+        const rawOptions: Option[] = data.data ?? [];
+
+        const shuffled = getShuffledOptions(
+          examId ?? "",
+          current.id,
+          rawOptions
+        );
+        setOptions(shuffled);
       } catch (err) {
         console.error("Error al obtener opciones:", err);
         setOptions([]);
@@ -130,7 +183,21 @@ export default function FormSimulador() {
     }
 
     fetchOptions();
-  }, [questions, currentIndex]);
+  }, [questions, currentIndex, examId]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasSubmittedRef.current) return;
+      e.preventDefault();
+      e.returnValue = ""; // Necesario para navegadores como Chrome
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   const handleOptionSelect = (optionIndex: number) => {
     if (!currentQuestion) return;
@@ -159,6 +226,8 @@ export default function FormSimulador() {
   const isLast = currentIndex === questions.length - 1;
 
   const handleConfirm = async () => {
+    hasSubmittedRef.current = true;
+    window.onbeforeunload = null;
     try {
       setModalOpen(false);
 
@@ -213,8 +282,14 @@ export default function FormSimulador() {
         console.log("✅ Intento calificado:", gradeData);
       }
 
+      localStorage.removeItem(`simulator_${examId}_question_order`);
+      questions.forEach((q) => {
+        localStorage.removeItem(
+          `simulator_${examId}_question_${q.id}_option_order`
+        );
+      });
+
       window.onbeforeunload = null;
-      alert("¡Examen enviado con éxito!");
       window.location.href = "/dashboard/student/simulators";
     } catch (err) {
       console.error("❌ Error al enviar respuestas:", err);
@@ -248,6 +323,7 @@ export default function FormSimulador() {
                 ref={(el) => {
                   if (el) itemRefs.current[idx] = el;
                 }}
+                onClick={() => setCurrentIndex(idx)} // 👈 Aquí se agrega la navegación
                 className={`cursor-pointer px-4 py-3 rounded-md text-center font-bold text-base ${bgColor}`}
               >
                 Pregunta {idx + 1}
