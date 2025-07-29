@@ -35,6 +35,7 @@ export function NavUser({ user, className }: NavUserProps) {
     window.location.href = "/sign-in";
   };
 
+
   return (
     <div className={className}>
       <div className="mb-1 px-2 py-2">
@@ -55,7 +56,7 @@ export function NavUser({ user, className }: NavUserProps) {
       <div className="ml-3 border-l border-sidebar-border pl-2 mb-4">
         <div className="flex flex-col gap-1">
           <Link
-            href="/not-found"
+            href="/dashboard/admin/settings"
             className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           >
             <Settings className="h-4 w-4 stroke-[1.5px]" />

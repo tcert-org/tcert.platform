@@ -61,10 +61,32 @@ export default function PartnerDetail({ partner }: PartnerDetailProps) {
     }
   );
 
+  // 🎨 Colores definidos por membresía
+  const colorBar: Record<string, string> = {
+    Bronce: "bg-yellow-700",
+    Plata: "bg-gray-500",
+    Oro: "bg-amber-500",
+    Diamante: "bg-blue-500",
+  };
+
+  const badgeColor =
+    partner.membership_name && colorBar[partner.membership_name]
+      ? colorBar[partner.membership_name]
+      : "bg-muted text-muted-foreground";
+
   return (
     <section className="w-[70%] mx-auto">
       <div>
-        <Card>
+        <Card className="relative">
+          {/* Badge de membresía en la parte superior derecha */}
+          {partner.membership_name && (
+            <div
+              className={`absolute top-4 right-4 px-3 py-1 text-xs font-semibold rounded-full shadow-sm text-white ${badgeColor}`}
+            >
+              {partner.membership_name}
+            </div>
+          )}
+
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">
               {partner.company_name}
@@ -74,6 +96,7 @@ export default function PartnerDetail({ partner }: PartnerDetailProps) {
               <span>{partner.email}</span>
             </CardDescription>
           </CardHeader>
+
           <CardContent>
             <div className="space-y-6">
               <div>

@@ -79,6 +79,7 @@ export default function VoucherAdministrationPage() {
     setError(null);
 
     try {
+      // 1. Enviar asignación de vouchers
       const res = await fetch("/api/payments", {
         method: "POST",
         headers: {
@@ -95,14 +96,20 @@ export default function VoucherAdministrationPage() {
       });
 
       const result = await res.json();
-
       if (!res.ok) throw new Error(result.error || "Error al generar");
 
-      toast.success("La asignación de vouchers fue exitosa", {
+      // 2. Actualizar membresía automáticamente
+      const resMembership = await fetch("/api/membership", { method: "POST" });
+      const jsonMembership = await resMembership.json();
+      if (!resMembership.ok)
+        throw new Error(jsonMembership.message || "Error al actualizar membresía");
+
+      toast.success("Vouchers asignados y membresía actualizada correctamente", {
         position: "top-center",
         theme: "colored",
       });
 
+      // 3. Reset y redirección
       setFormData({
         partner_id: "",
         admin_id: formData.admin_id,
@@ -111,6 +118,7 @@ export default function VoucherAdministrationPage() {
         total_price: 0,
         file_url: "",
       });
+
       setTimeout(() => {
         router.push("/dashboard/admin/partners");
       }, 3000);

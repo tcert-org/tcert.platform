@@ -72,3 +72,6 @@ export const OptionRegisterSchema = z.object({
       "Es obligatorio seleccionar si la opcion es falsa o correcta.",
   }),
 });
+
+//esquema para validacion de membresias
+

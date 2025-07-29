@@ -305,6 +305,32 @@ export type Database = {
           }
         ];
       };
+      membership: {
+        Row:{
+          name: string;
+          count_from : number;
+          count_up:number
+          price:number;
+          id:number;
+          created_at?: string | null;
+        };
+        Insert:{
+          name: string;
+          count_from : number;
+          count_up:number
+          price:number;
+          id:number;
+          created_at?: string | null;
+        };
+        Update:{
+          name: string;
+          count_from : number;
+          count_up:number
+          price:number;
+          id:number;
+          created_at?: string | null;
+        }
+      }
       feedback: {
         Row: {
           correct_count: number;
@@ -511,6 +537,7 @@ export type Database = {
           role_id: number;
           updated_at: string | null;
           user_uuid: string | null;
+          membership_id: number;
         };
         Insert: {
           company_address?: string | null;

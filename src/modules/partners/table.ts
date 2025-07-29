@@ -8,6 +8,7 @@ export type PartnerRowType = Database["public"]["Tables"]["users"]["Row"];
 export type PartnerInsertType = Database["public"]["Tables"]["users"]["Insert"];
 export type PartnerUpdateType = Database["public"]["Tables"]["users"]["Update"];
 type PartnerRowWithCount = PartnerDinamicTable & { total_count: number };
+
 export type PartnerForDetail = {
   id: number;
   email: string;
@@ -17,6 +18,7 @@ export type PartnerForDetail = {
   used_vouchers: number;
   unused_vouchers: number;
   total_vouchers: number;
+  membership_name?: string;
 };
 
 export default class PartnerTable extends Table<"users"> {
@@ -50,6 +52,7 @@ export default class PartnerTable extends Table<"users"> {
       if (page <= 0 || limit_value <= 0) {
         throw new Error("Pagination values must be greater than 0.");
       }
+
       const { data, error } = await supabase.rpc("get_partners_with_filters", {
         filter_company_name: filter_company_name ?? null,
         filter_created_at: filter_created_at
@@ -85,7 +88,14 @@ export default class PartnerTable extends Table<"users"> {
     try {
       const { data: userData, error: userError } = await supabase
         .from("users")
-        .select("id, email, created_at, company_name, contact_number")
+        .select(`
+          id,
+          email,
+          created_at,
+          company_name,
+          contact_number,
+          membership:membership_id ( name )
+        `)
         .eq("id", id)
         .single();
 
@@ -111,6 +121,11 @@ export default class PartnerTable extends Table<"users"> {
         total_vouchers = 0,
       } = voucherData || {};
 
+      // Aseguramos que userData.membership sea un objeto, no un array
+      const membership = Array.isArray(userData.membership)
+        ? userData.membership[0]
+        : userData.membership;
+
       return {
         id: userData.id,
         email: userData.email,
@@ -120,6 +135,7 @@ export default class PartnerTable extends Table<"users"> {
         used_vouchers,
         unused_vouchers,
         total_vouchers,
+        membership_name: membership?.name ?? "Sin asignar",
       };
     } catch (error) {
       console.error(error);
