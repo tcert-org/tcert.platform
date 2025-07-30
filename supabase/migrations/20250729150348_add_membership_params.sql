@@ -26,3 +26,7 @@ ALTER TABLE users
 ADD CONSTRAINT fk_users_membership
 FOREIGN KEY (membership_id) REFERENCES membership(id)
 ON DELETE SET NULL;
+
+ALTER TABLE payments
+ADD COLUMN purchase_date TIMESTAMPTZ DEFAULT now(),
+ADD COLUMN expiration_date TIMESTAMPTZ DEFAULT NULL;

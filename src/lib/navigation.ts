@@ -33,13 +33,12 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       iconName: "ShoppingBag",
       showModuleName: false,
     },
-    /*{
+    {
       title: "Pagos",
-      path: "/buy-vouchers",
-      iconName: "ShoppingBag",
-      showModuleName: false,
-    }*/
-    // { title: "Reportes", path: "/reports", iconName: "BarChart" },
+      path: "/reports",
+      iconName: "BarChart",
+      showModuleName: true,
+    }
   ],
   admin: [
     {
@@ -60,6 +59,12 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       iconName: "BookOpen",
       showModuleName: true,
     },
+    {
+      title: "Pagos",
+      path: "/reports",
+      iconName: "BarChart",
+      showModuleName: false,
+    }
   ],
   unknown: [],
 };

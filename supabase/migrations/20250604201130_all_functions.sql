@@ -285,3 +285,90 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 -------------------------------------------------------------------------------------------
+----------------------------------Filtros de pagos-----------------------------------------
+create or replace function public.get_payments_with_filters(
+  filter_partner_name text default null,
+  filter_created_at date default null,
+  filter_created_at_op text default '>=',
+  filter_total_price numeric default null,
+  filter_total_price_op text default '=',
+  order_by text default 'created_at',
+  order_dir text default 'desc',
+  page integer default 1,
+  limit_value integer default 10
+)
+returns table (
+  id bigint,
+  partner_name text,
+  voucher_quantity integer,
+  unit_price numeric,
+  total_price numeric,
+  created_at timestamptz,
+  expiration_date timestamptz,
+  total_count bigint
+)
+language plpgsql
+security definer
+as $$
+declare
+  offset_val int := (page - 1) * limit_value;
+  safe_order_by text;
+  safe_order_dir text;
+begin
+  -- Validaciones de ordenamiento
+  safe_order_by := case
+    when order_by in ('partner_name', 'voucher_quantity', 'unit_price', 'total_price', 'created_at', 'expiration_date') then order_by
+    else 'created_at'
+  end;
+
+  safe_order_dir := case
+    when upper(order_dir) in ('ASC', 'DESC') then upper(order_dir)
+    else 'DESC'
+  end;
+
+  return query execute format($f$
+    with payment_data as (
+      select
+        p.id,
+        u.company_name as partner_name,
+        p.voucher_quantity,
+        p.unit_price,
+        p.total_price,
+        p.created_at,
+        p.expiration_date
+      from payments p
+      left join users u on u.id = p.partner_id
+      where u.role_id = 5
+        %s -- filtro partner_name
+        %s -- filtro created_at
+    ),
+    filtered as (
+      select * ,
+        count(*) over() as total_count
+      from payment_data
+      where 1=1
+        %s -- filtro total_price
+    )
+    select
+      f.id::bigint,
+      f.partner_name::text,
+      f.voucher_quantity::integer,
+      f.unit_price::numeric,
+      f.total_price::numeric,
+      f.created_at::timestamptz,
+      f.expiration_date::timestamptz,
+      f.total_count::bigint
+    from filtered f
+    order by %I %s
+    offset %s limit %s
+  $f$,
+    case when filter_partner_name is not null then format('and u.company_name ILIKE %L', '%%' || filter_partner_name || '%%') else '' end,
+    case when filter_created_at is not null then format('and p.created_at::date %s %L', filter_created_at_op, filter_created_at) else '' end,
+    case when filter_total_price is not null then format('and p.total_price %s %s', filter_total_price_op, filter_total_price) else '' end,
+    safe_order_by,
+    safe_order_dir,
+    offset_val,
+    limit_value
+  );
+end;
+$$;
