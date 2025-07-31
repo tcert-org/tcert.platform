@@ -71,7 +71,8 @@ export default function StudentExamPage() {
     fetchExams();
   }, []);
 
-  async function handleStartExam(examId: number) {
+  const handleStartExam = async (examId: number) => {
+    // Obtener voucher_id desde sessionStorage
     const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
     const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
@@ -82,10 +83,66 @@ export default function StudentExamPage() {
     }
 
     try {
+      // Primero, obtener el estado actual del voucher usando GET
+      const voucherRes = await fetch(
+        `/api/voucher-state?voucher_id=${voucherId}`,
+        {
+          method: "GET", // Usamos GET para consultar el estado
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const voucherData = await voucherRes.json();
+
+      // Verificamos si la respuesta tiene status_id
+      if (!voucherRes.ok || !voucherData?.data?.status_id) {
+        console.error("Error al obtener el estado del voucher", voucherData);
+        alert("No se pudo obtener el estado del voucher.");
+        return;
+      }
+
+      let newStatusId = 0; // Estado por defecto
+
+      // Determinar el estado a asignar según el número de intentos
+      if (voucherData.data.status_id === 3) {
+        // Si está en "Sin Presentar"
+        newStatusId = 6; // Cambiar a "re-take-1"
+      } else if (voucherData.data.status_id === 6) {
+        // Si está en "re-take-1"
+        newStatusId = 7; // Cambiar a "re-take-2"
+      } else if (voucherData.data.status_id === 7) {
+        // Si está en "re-take-2"
+        newStatusId = 4; // Cambiar a "reprobado"
+      }
+
+      // Llamamos al API para cambiar el estado del voucher según los intentos
+      const res = await fetch("/api/voucher-state", {
+        method: "PATCH", // Mantener PATCH para actualizar el estado
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voucher_id: voucherId,
+          new_status_id: newStatusId, // Cambiar según el flujo
+          is_used: false, // Marcamos como no usado en ese momento
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        console.error("Error al actualizar el estado del voucher", error);
+        alert("Error al actualizar el estado del voucher");
+        return;
+      }
+
+      // Llamamos al API para crear un nuevo intento del examen
       const response = await fetch("/api/attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exam_id: examId, voucher_id: voucherId }),
+        body: JSON.stringify({
+          exam_id: examId,
+          voucher_id: voucherId,
+        }),
       });
 
       const result = await response.json();
@@ -95,13 +152,13 @@ export default function StudentExamPage() {
         return;
       }
 
-      // Redirige con el ID del examen
+      // Redirige al formulario de examen con el ID del examen
       router.push(`/dashboard/student/exam/form?id=${examId}`);
     } catch (err) {
       console.error("Error al iniciar examen:", err);
       alert("Error inesperado.");
     }
-  }
+  };
 
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">

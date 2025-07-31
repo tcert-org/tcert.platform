@@ -32,10 +32,10 @@ export default class ExamAttempts {
 
       const student_id = studentData.id;
 
-      // 2️⃣ Obtener el examen y verificar si es simulador
+      // 2️⃣ Obtener el examen
       const { data: examData, error: examError } = await supabase
         .from("exams")
-        .select("simulator")
+        .select("id")
         .eq("id", data.exam_id)
         .maybeSingle();
 
@@ -47,27 +47,10 @@ export default class ExamAttempts {
         });
       }
 
-      const isSimulator = examData.simulator === true;
-
-      // 3️⃣ Si NO es simulador, validar que no exista intento previo
-      if (!isSimulator) {
-        const existing = await attemptsTable.getByExamAndStudent(
-          data.exam_id,
-          student_id
-        );
-
-        if (existing) {
-          return NextResponse.json({
-            statusCode: 200,
-            data: { id: existing.id },
-          });
-        }
-      }
-
-      // 4️⃣ Insertar nuevo intento
+      // 3️⃣ Insertar siempre un nuevo intento
       const result = await attemptsTable.insertAttempt({
         exam_id: data.exam_id,
-        student_id,
+        student_id, // Asociar el intento al student_id
       });
 
       if (!result?.id) {
@@ -78,16 +61,17 @@ export default class ExamAttempts {
         });
       }
 
+      // 4️⃣ Retornar el ID del nuevo intento
       return NextResponse.json({
         statusCode: 201,
-        data: { id: result.id },
+        data: { id: result.id }, // Retornamos el ID del nuevo intento
       });
     } catch (error) {
       console.error("[INSERT_ATTEMPT_ERROR]", error);
       return NextResponse.json({
         statusCode: 500,
         data: null,
-        error: error instanceof Error ? error.message : "Error desconocido",
+        error: "Error desconocido al iniciar el intento de examen.",
       });
     }
   }

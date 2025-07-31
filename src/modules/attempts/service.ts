@@ -69,7 +69,7 @@ export default class AttemptService {
       studentAnswers: answers,
       correctAnswers: formattedCorrectAnswers,
     });
-    console.log("INFORMACUIN DEL GRADE ATTEMPT", result);
+    //console.log("INFORMACUIN DEL GRADE ATTEMPT", result);
 
     // Actualizar intento
     const updatePayload = {
@@ -79,7 +79,10 @@ export default class AttemptService {
       incorrect_count: result.incorrect_count,
       unanswered_count: result.unanswered_count,
     };
-    console.log("INFORMACUIN DEL GRADE ATTEMPT V2", result);
+
+    console.log("Resultado de la calificación:", result);
+    console.log("Aprobado:", result.passed);
+    //console.log("INFORMACUIN DEL GRADE ATTEMPT V2", result);
 
     const { data: updatedAttempt, error: updateError } =
       await this.table.updateExamAttemptById(attemptId, updatePayload);
