@@ -1,5 +1,7 @@
+// C:\code\tcert.platform\src\app\api\attempts\grade\route.ts
 import { NextRequest, NextResponse } from "next/server";
 import AttemptsService from "@/modules/attempts/service";
+import VoucherStateController from "@/modules/voucher-state/controller"; // Asegúrate de tener la importación correcta
 
 export async function POST(req: NextRequest) {
   try {
@@ -42,11 +44,14 @@ export async function POST(req: NextRequest) {
     const service = new AttemptsService();
     const updatedAttempt = await service.gradeExamAttempt(attempt_id);
 
+    console.log("Intento calificado: v1", updatedAttempt);
+
     const response = NextResponse.json({
       message: "Intento calificado correctamente",
-      data: updatedAttempt,
+      data: updatedAttempt, // Asegúrate de que esto esté devolviendo el objeto con 'passed'
     });
 
+    console.log("Intento calificado: v2", updatedAttempt);
     // 🔐 Eliminar cookie solo si viene `final_submit: true`
     const shouldClearCookie = body?.final_submit === true;
     if (shouldClearCookie && cookieStore.get("student_attempt_id")?.value) {
@@ -62,6 +67,43 @@ export async function POST(req: NextRequest) {
     console.error("❌ Error en grading POST:", err);
     return NextResponse.json(
       { error: "Error interno al calificar intento" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    // Obtener voucher_id de los parámetros de la URL
+    const voucherIdStr = req.nextUrl.searchParams.get("voucher_id");
+
+    // Verificar si voucher_id está presente
+    if (!voucherIdStr) {
+      return NextResponse.json(
+        { error: "Falta el voucher_id en la consulta." },
+        { status: 400 }
+      );
+    }
+
+    // Convertir voucherId a número
+    const voucherId = parseInt(voucherIdStr, 10);
+
+    // Verificar si la conversión fue exitosa
+    if (isNaN(voucherId)) {
+      return NextResponse.json(
+        { error: "El voucher_id debe ser un número válido." },
+        { status: 400 }
+      );
+    }
+
+    // Llamar al método del controlador con voucherId como número
+    const response = await VoucherStateController.getVoucherState(voucherId);
+
+    return response;
+  } catch (error) {
+    console.error("Error al obtener el estado del voucher:", error);
+    return NextResponse.json(
+      { error: "Error al obtener el estado del voucher." },
       { status: 500 }
     );
   }

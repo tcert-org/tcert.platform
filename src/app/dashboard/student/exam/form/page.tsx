@@ -142,15 +142,28 @@ export default function FormExam() {
   const handleSubmit = async () => {
     hasSubmittedRef.current = true;
     window.onbeforeunload = null;
+
     try {
       const attemptRes = await fetch("/api/attempts/current", {
         method: "GET",
         credentials: "include",
       });
+
+      if (!attemptRes.ok) {
+        console.error("Error al obtener intento activo", attemptRes);
+        alert("Error al obtener el intento activo");
+        return;
+      }
+
       const attemptResult = await attemptRes.json();
       const attemptId = attemptResult?.data?.id;
-      if (!attemptId) return alert("No se encontró intento activo");
 
+      if (!attemptId) {
+        alert("No se encontró intento activo");
+        return;
+      }
+
+      // Paso 1: Obtener las respuestas
       const payload = questions.map((q) => ({
         exam_attempt_id: Number(attemptId),
         question_id: q.id,
@@ -165,23 +178,68 @@ export default function FormExam() {
 
       if (!res.ok) {
         const error = await res.json();
-        return alert(error?.error || "Error al guardar respuestas");
+        console.error("Error al guardar respuestas:", error);
+        alert(error?.error || "Error al guardar respuestas");
+        return;
       }
 
-      await fetch("/api/attempts/grade", {
+      // Paso 2: Calificar el examen
+      const gradeRes = await fetch("/api/attempts/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
       });
 
+      if (!gradeRes.ok) {
+        const error = await gradeRes.json();
+        console.error("Error al calificar examen:", error);
+        alert("Error al calificar examen");
+        return;
+      }
+
+      const gradeData = await gradeRes.json();
+
+      // Verifica qué datos estamos recibiendo
+      console.log("gradeRes data:", gradeData); // Esto nos da la respuesta completa
+
+      // Ahora verificamos si 'passed' está presente
+      const passed = gradeData?.passed;
+      console.log("passed value:", passed); // Verificar si 'passed' es verdadero o falso
+
+      // Si passed es true, actualizamos el estado del voucher
+      if (passed) {
+        const session = JSON.parse(
+          sessionStorage.getItem("student-data") || "{}"
+        );
+        const voucherId = session?.state?.decryptedStudent?.voucher_id;
+
+        if (voucherId) {
+          const updateVoucherRes = await fetch("/api/voucher-state", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              voucher_id: voucherId,
+              new_status_id: 5, // Aprobado (ID para Aprobado)
+              is_used: true,
+            }),
+          });
+
+          if (!updateVoucherRes.ok) {
+            const error = await updateVoucherRes.json();
+            console.error("Error al actualizar el estado del voucher", error);
+          }
+        }
+      }
+
+      // Limpiar los datos locales después de enviar el examen
       localStorage.removeItem(`simulator_${examId}_question_order`);
       questions.forEach((q) => {
         localStorage.removeItem(
           `simulator_${examId}_question_${q.id}_option_order`
         );
       });
-
+      alert("freno");
       window.location.href = "/dashboard/student/exam";
     } catch (err) {
       console.error("Error al enviar examen:", err);
