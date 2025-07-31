@@ -1,5 +1,3 @@
-// src/app/dashboard/partner/reports/page.tsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,6 +12,20 @@ export interface PaymentDynamicTable {
   total_price: number;
   created_at: string;
   expiration_date: string | null;
+}
+
+// Función robusta para sumar meses y evitar errores con días desbordados
+function addMonthsToDate(date: Date, months: number): Date {
+  const result = new Date(date);
+  const currentMonth = result.getMonth();
+  result.setMonth(currentMonth + months);
+
+  // Si el mes desbordó, ajustar al último día del mes anterior
+  if (result.getMonth() !== ((currentMonth + months) % 12)) {
+    result.setDate(0);
+  }
+
+  return result;
 }
 
 export default function PartnerReportsPage() {
@@ -40,7 +52,6 @@ export default function PartnerReportsPage() {
     if (params.filters) {
       for (const filter of params.filters) {
         const val = filter.value;
-
         if (typeof val === "string" && val.includes(":")) {
           const [op, rawValue] = val.split(":");
           query[`filter_${filter.id}_op`] = op;
@@ -63,13 +74,37 @@ export default function PartnerReportsPage() {
       )
     ).toString();
 
-    const res = await fetch(`/api/payments/details-partner?${search}`);
-    if (!res.ok) throw new Error("No se pudieron cargar los pagos");
+    const [resPayments, resParams] = await Promise.all([
+      fetch(`/api/payments/details-partner?${search}`),
+      fetch("/api/params"),
+    ]);
 
-    const { data, meta } = await res.json();
+    if (!resPayments.ok || !resParams.ok) {
+      throw new Error("Error al cargar los pagos o parámetros");
+    }
+
+    const { data, meta } = await resPayments.json();
+    const { data: paramsData } = await resParams.json();
+
+    const expirationMonths = parseInt(
+      paramsData.find((p: any) => p.id === 1)?.value ?? "0",
+      10
+    );
+
+    const processedData = data.map((item: any) => {
+      if (!item.expiration_date && expirationMonths > 0) {
+        const createdDate = new Date(item.created_at);
+        const expiration = addMonthsToDate(createdDate, expirationMonths);
+        return {
+          ...item,
+          expiration_date: expiration.toISOString(),
+        };
+      }
+      return item;
+    });
 
     return {
-      data,
+      data: processedData,
       totalCount: meta?.totalCount ?? 0,
     };
   }

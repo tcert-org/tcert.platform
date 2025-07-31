@@ -5,4 +5,5 @@ export type PaymentsInsertType = {
   unit_price: number;
   total_price: number;
   files: string;
+  expiration_date?: string;
 };

@@ -55,13 +55,21 @@ export function NavUser({ user, className }: NavUserProps) {
 
       <div className="ml-3 border-l border-sidebar-border pl-2 mb-4">
         <div className="flex flex-col gap-1">
-          <Link
-            href="/dashboard/admin/settings"
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-          >
-            <Settings className="h-4 w-4 stroke-[1.5px]" />
-            <span>Configuración</span>
-          </Link>
+        {user && (
+  <Link
+    href={
+      user.nameRol === "admin"
+        ? "/dashboard/admin/settings"
+        : user.nameRol === "partner"
+        ? "/dashboard/partner/settings"
+        : "/dashboard/settings"
+    }
+    className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+  >
+    <Settings className="h-4 w-4 stroke-[1.5px]" />
+    <span>Configuración</span>
+  </Link>
+)}
           <Button
             variant="ghost"
             className="flex h-auto items-center justify-start gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"

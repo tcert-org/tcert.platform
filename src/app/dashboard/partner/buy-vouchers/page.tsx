@@ -22,7 +22,6 @@ type MembershipRow = {
   count_up: number;
 };
 
-// Colores para el badge (mismos que estás usando en el proyecto)
 const membershipColor: Record<string, string> = {
   Bronce: "bg-yellow-700 text-white",
   Plata: "bg-gray-500 text-white",
@@ -33,71 +32,57 @@ const membershipColor: Record<string, string> = {
 export default function AssignVoucherForm() {
   const [quantity, setQuantity] = useState<number>(1);
   const [loading, setLoading] = useState(false);
-  const { getUser } = useUserStore();
+  const { getUser, refreshUser } = useUserStore();
 
-  // ✨ Nuevo: estado para mostrar nombre de la membresía
   const [membershipName, setMembershipName] = useState<string | null>(null);
-
-  // Precio unitario dinámico (sin valor por defecto)
   const [unitPrice, setUnitPrice] = useState<number | null>(null);
-
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const searchParams = useSearchParams();
   const hasRegistered = useRef(false);
 
-  // 1) Traer nombre de la membresía del partner (usando membership_id del usuario)
+  const fetchMembershipName = async (membership_id: number | null) => {
+    if (!membership_id) {
+      setMembershipName(null);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/membership");
+      const json = await res.json();
+      const list: MembershipRow[] = Array.isArray(json.data) ? json.data : [];
+      const found = list.find((m) => m.id === Number(membership_id));
+      setMembershipName(found?.name ?? null);
+    } catch (err) {
+      console.error("❌ Error al obtener la membresía:", err);
+      setMembershipName(null);
+    }
+  };
+
+  // Mostrar membresía al cargar
   useEffect(() => {
-    const fetchMembershipName = async () => {
-      const user = await getUser();
-      const membership_id = user?.membership_id;
-      if (!membership_id) {
-        setMembershipName(null);
-        return;
-      }
+    getUser().then((user) => {
+      fetchMembershipName(user?.membership_id ?? null);
+    });
+  }, []);
 
-      try {
-        // Obtiene todas y encuentra la del usuario (4 filas, poco costo)
-        const res = await fetch("/api/membership", { method: "GET" });
-        const json = await res.json();
-        const list: MembershipRow[] = Array.isArray(json.data) ? json.data : [];
-        const found = list.find((m) => m.id === Number(membership_id));
-        setMembershipName(found?.name ?? null);
-      } catch (err) {
-        console.error("No se pudo obtener la membresía:", err);
-        setMembershipName(null);
-      }
-    };
-
-    fetchMembershipName();
-  }, [getUser]);
-
-  // 2) Obtener precio desde el backend apenas entra o cambia cantidad
   useEffect(() => {
     const fetchPrice = async () => {
       const user = await getUser();
       const membership_id = user?.membership_id;
-
       if (!membership_id || quantity < 1) return;
 
       try {
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            quantity,
-            membership_id,
-            onlyPrice: true, // backend responde { unit_price }
-          }),
+          body: JSON.stringify({ quantity, membership_id, onlyPrice: true }),
         });
 
         const data = await res.json();
         if (typeof data.unit_price === "number") {
           setUnitPrice(data.unit_price);
           sessionStorage.setItem("unit_price", String(data.unit_price));
-        } else {
-          // Si no vino unit_price, mantiene el valor actual (o null)
-          console.warn("No llegó unit_price desde /api/checkout");
         }
       } catch (error) {
         console.error("Error al obtener precio:", error);
@@ -105,9 +90,8 @@ export default function AssignVoucherForm() {
     };
 
     fetchPrice();
-  }, [quantity, getUser]);
+  }, [quantity]);
 
-  // 3) Al volver de Stripe, registrar los vouchers
   useEffect(() => {
     const registerVouchers = async () => {
       const success = searchParams.get("success");
@@ -121,15 +105,10 @@ export default function AssignVoucherForm() {
       ) {
         hasRegistered.current = true;
 
-        const quantityFromStorage = Number(
-          sessionStorage.getItem("last_quantity") || "1"
-        );
-        
+        const quantityFromStorage = Number(sessionStorage.getItem("last_quantity") || "1");
         setQuantity(quantityFromStorage);
-        const membershipIdFromStorage = sessionStorage.getItem("membership_id");
-        const storedUnitPrice = Number(
-          sessionStorage.getItem("unit_price") || "0"
-        );
+
+        const storedUnitPrice = Number(sessionStorage.getItem("unit_price") || "0");
 
         const user = await getUser();
         const partnerId = String(user?.id);
@@ -146,15 +125,27 @@ export default function AssignVoucherForm() {
               unit_price: storedUnitPrice,
               total_price: quantityFromStorage * storedUnitPrice,
               files: "stripe_payment",
-              membership_id: membershipIdFromStorage,
+              membership_id: null, // ❌ no usamos el viejo ID
             }),
           });
 
           if (!res.ok) throw new Error("Error al registrar los vouchers");
 
+          const json = await res.json();
+          const newMembershipId = json?.data?.new_membership_id;
+
+          await refreshUser(); // 🔁 actualiza el usuario cacheado
+          await fetchMembershipName(Number(newMembershipId) || null);
+
           sessionStorage.setItem("vouchers_registered", "true");
+          sessionStorage.removeItem("last_quantity");
+          sessionStorage.removeItem("unit_price");
           setShowSuccessModal(true);
           toast.success("Vouchers asignados exitosamente.");
+
+          setTimeout(() => {
+            window.location.href = "/dashboard/partner/buy-vouchers";
+          }, 2000);
         } catch (error) {
           console.error("❌ Error en /api/payments:", error);
           toast.error("Error al asignar los vouchers.");
@@ -169,9 +160,8 @@ export default function AssignVoucherForm() {
     };
 
     registerVouchers();
-  }, [searchParams, getUser]);
+  }, [searchParams]);
 
-  // 4) Ir a Stripe
   const handlePay = async () => {
     if (quantity < 1) {
       toast.error("La cantidad debe ser mayor a cero.");
@@ -188,7 +178,6 @@ export default function AssignVoucherForm() {
 
       setLoading(true);
       sessionStorage.setItem("last_quantity", String(quantity));
-      sessionStorage.setItem("membership_id", String(membership_id));
       sessionStorage.removeItem("vouchers_registered");
 
       const res = await fetch("/api/checkout", {
@@ -201,7 +190,7 @@ export default function AssignVoucherForm() {
       if (data.url) {
         if (typeof data.unit_price === "number") {
           sessionStorage.setItem("unit_price", String(data.unit_price));
-          setUnitPrice(data.unit_price); // refleja inmediatamente
+          setUnitPrice(data.unit_price);
         }
         window.location.href = data.url;
       } else {
@@ -215,13 +204,11 @@ export default function AssignVoucherForm() {
     }
   };
 
-  // 5) Totales
   const total = useMemo(() => {
     if (unitPrice == null) return 0;
     return quantity * unitPrice;
   }, [quantity, unitPrice]);
 
-  // Badge de membresía (color por nombre o color neutro si no coincide)
   const badgeClass =
     membershipName && membershipColor[membershipName]
       ? membershipColor[membershipName]
@@ -229,7 +216,6 @@ export default function AssignVoucherForm() {
 
   return (
     <>
-      {/* Éxito */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -244,7 +230,6 @@ export default function AssignVoucherForm() {
         </DialogContent>
       </Dialog>
 
-      {/* Cancelación */}
       <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -256,26 +241,22 @@ export default function AssignVoucherForm() {
         </DialogContent>
       </Dialog>
 
-      {/* Formulario */}
       <div className="flex justify-center px-4 pt-12 pb-24 bg-white h-auto">
         <form
           onSubmit={(e) => e.preventDefault()}
           className="w-full max-w-xl bg-white border shadow-md rounded-lg p-8 space-y-6"
         >
-          {/* Encabezado + badge de membresía */}
           <div className="flex items-start justify-between">
-            <h2 className="text-2xl font-bold text-blue-900">
-              Comprar Vouchers
-            </h2>
-
+            <h2 className="text-2xl font-bold text-blue-900">Comprar Vouchers</h2>
             {membershipName && (
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${badgeClass}`}>
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium ${badgeClass}`}
+              >
                 {membershipName}
               </span>
             )}
           </div>
 
-          {/* Mensaje explicativo corto */}
           <p className="text-sm text-gray-600">
             El precio por unidad se calcula según tu membresía actual
             {membershipName ? ` (${membershipName})` : ""}. Si tu membresía cambia,

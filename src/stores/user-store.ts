@@ -9,6 +9,7 @@ interface UserState {
   decryptedUser: User | null;
   updateUser: (encryptedUser: string) => void;
   getUser: () => Promise<User | null>;
+  refreshUser: () => Promise<User | null>; // 🔹 Nueva función
 }
 
 export const useUserStore = create(
@@ -35,6 +36,28 @@ export const useUserStore = create(
 
         if (!response.ok) {
           console.error("Failed to decrypt user");
+          return null;
+        }
+
+        const data = await response.json();
+        const userData = data.user as User;
+        set({ decryptedUser: userData });
+        return userData;
+      },
+      refreshUser: async () => {
+        const { user } = get();
+        if (!user) return null;
+
+        const response = await fetch("/api/decrypt-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ encryptedUser: user }),
+        });
+
+        if (!response.ok) {
+          console.error("Failed to refresh user");
           return null;
         }
 

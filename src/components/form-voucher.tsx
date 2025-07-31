@@ -26,16 +26,34 @@ type OptionType = {
   label: string;
 };
 
-function getDatePlusTwoYears() {
-  const date = new Date();
-  date.setFullYear(date.getFullYear() + 2);
+export async function getVoucherExpirationDate(): Promise<string> {
+  const res = await fetch("/api/params?id=6");
+  const json = await res.json();
 
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const day = date.getDate().toString().padStart(2, "0");
+  const valueFromId6 = json?.data?.value ?? json?.data?.[0]?.value;
+
+  const monthsToAdd = Number(valueFromId6);
+
+  if (isNaN(monthsToAdd) || monthsToAdd <= 0) {
+    throw new Error(
+      `El valor del parámetro de vencimiento no es válido: "${valueFromId6}"`
+    );
+  }
+
+  const now = new Date();
+  const targetDate = new Date(
+    now.getFullYear(),
+    now.getMonth() + monthsToAdd + 1,
+    0
+  );
+
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, "0");
+  const day = String(targetDate.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
+
 
 export default function VoucherForm() {
   const {
@@ -44,6 +62,7 @@ export default function VoucherForm() {
     control,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<VoucherFormData>({
     defaultValues: { used: false },
@@ -64,8 +83,9 @@ export default function VoucherForm() {
   useEffect(() => {
     const init = async () => {
       await getUser();
+      const expiration = await getVoucherExpirationDate();
+      setValue("expiration_dates", expiration);
       setReady(true);
-      setValue("expiration_dates", getDatePlusTwoYears());
     };
     init();
   }, [setValue, getUser]);
@@ -202,13 +222,9 @@ export default function VoucherForm() {
 
       <div className="w-full max-w-xl">
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
-          <input
-            type="hidden"
-            {...register("partner_id")}
-            value={decryptedUser.id}
-          />
+          <input type="hidden" {...register("partner_id")} value={decryptedUser.id} />
           <input type="hidden" {...register("status_id")} />
-          <input type="hidden" {...register("expiration_dates")} />
+          <input type="hidden" {...register("expiration_dates")} value={watch("expiration_dates") || ""} />
           <input type="hidden" {...register("used")} value="false" />
 
           <div>
@@ -224,7 +240,7 @@ export default function VoucherForm() {
                     options={certifications}
                     placeholder="Seleccione una certificación"
                     isSearchable
-                    value={certifications.find((o) => o.value === field.value)}
+                    value={certifications.find((o) => o.value === field.value) || null}
                     onChange={(o) => field.onChange(o?.value || "")}
                   />
                   {errors.certification_id && (
@@ -247,9 +263,7 @@ export default function VoucherForm() {
               })}
             />
             {errors.email && (
-              <p className="text-red-600 text-sm mt-1">
-                {errors.email.message}
-              </p>
+              <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>
             )}
           </div>
 

@@ -162,6 +162,20 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
           No se encontró un estudiante asociado a este voucher.
         </p>
       )}
+      <div className="mt-12 flex justify-center gap-4">
+        <a
+          href="/dashboard/student/simulators"
+          className="px-5 py-2 border border-blue-600 text-blue-700 font-medium rounded-md bg-white hover:bg-blue-50 transition"
+        >
+          Ir a Simuladores
+        </a>
+        <a
+          href="/dashboard/student/exam"
+          className="px-5 py-2 border border-green-600 text-green-700 font-medium rounded-md bg-white hover:bg-green-50 transition"
+        >
+          Ir a Exámenes
+        </a>
+      </div>
     </main>
   );
 }

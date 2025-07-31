@@ -1,9 +1,11 @@
 "use client";
 import React, { useState } from "react";
 import MembershipForm from "./membership/membership";
+import ParamsPage from "./params/params";
 
 function SettingsAdmin() {
   const [showMembershipForm, setShowMembershipForm] = useState(false);
+  const [showParamsForm, setShowParamsForm] = useState(false);
 
   return (
     <div className="settings-container w-full max-w-6xl px-6 mx-auto">
@@ -41,10 +43,19 @@ function SettingsAdmin() {
             Configura los parámetros del sistema.
           </p>
         </div>
-        <button className="banner-button bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800 transition">
-          Ver
+        <button
+          onClick={() => setShowParamsForm(!showParamsForm)}
+          className="banner-button bg-green-700 text-white px-4 py-2 rounded hover:bg-green-800 transition"
+        >
+          {showParamsForm ? "Ocultar" : "Ver"}
         </button>
       </div>
+
+      {showParamsForm && (
+        <div className="mb-8">
+          <ParamsPage />
+        </div>
+      )}
     </div>
   );
 }

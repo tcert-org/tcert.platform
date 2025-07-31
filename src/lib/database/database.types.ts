@@ -226,6 +226,7 @@ export type Database = {
           total_price: number | null;
           file_url: string | null;
           created_at: string;
+          expiration_date : string
         };
         Insert: {
           partner_id: string;
@@ -235,6 +236,7 @@ export type Database = {
           total_price?: number | null;
           file_url?: string | null;
           created_at?: string;
+          expiration_date ?: string
         };
         Update: {
           partner_id?: string;
@@ -244,6 +246,7 @@ export type Database = {
           total_price?: number | null;
           file_url?: string | null;
           created_at?: string;
+          expiration_date ?: string
         };
         Relationships: [
           {
@@ -328,6 +331,23 @@ export type Database = {
           count_up:number
           price:number;
           id:number;
+          created_at?: string | null;
+        }
+      }
+      params: {
+        Row:{
+          name: string;
+          value: number;
+          created_at?: string | null;
+        };
+        Insert:{
+          name: string;
+          value: number;
+          created_at?: string | null;
+        };
+        Update:{
+          name: string;
+          value: number;
           created_at?: string | null;
         }
       }
