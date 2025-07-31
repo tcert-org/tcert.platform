@@ -1,9 +1,12 @@
+// C:\code\tcert.platform\src\app\dashboard\student\exam\page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Lightbulb } from "lucide-react";
+import { Modal } from "@/modules/tools/ModalScore"; // Modal de calificación
 
 // Tipo de estado de intento
 type ExamStatus = "completed" | "in_progress" | "not_started";
@@ -30,6 +33,8 @@ const statusLabel = {
 export default function StudentExamPage() {
   const [exams, setExams] = useState<ExamCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [examDetails, setExamDetails] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -72,7 +77,6 @@ export default function StudentExamPage() {
   }, []);
 
   const handleStartExam = async (examId: number) => {
-    // Obtener voucher_id desde sessionStorage
     const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
     const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
@@ -83,11 +87,10 @@ export default function StudentExamPage() {
     }
 
     try {
-      // Primero, obtener el estado actual del voucher usando GET
       const voucherRes = await fetch(
         `/api/voucher-state?voucher_id=${voucherId}`,
         {
-          method: "GET", // Usamos GET para consultar el estado
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
@@ -96,35 +99,29 @@ export default function StudentExamPage() {
 
       const voucherData = await voucherRes.json();
 
-      // Verificamos si la respuesta tiene status_id
       if (!voucherRes.ok || !voucherData?.data?.status_id) {
         console.error("Error al obtener el estado del voucher", voucherData);
         alert("No se pudo obtener el estado del voucher.");
         return;
       }
 
-      let newStatusId = 0; // Estado por defecto
+      let newStatusId = 0;
 
-      // Determinar el estado a asignar según el número de intentos
       if (voucherData.data.status_id === 3) {
-        // Si está en "Sin Presentar"
-        newStatusId = 6; // Cambiar a "re-take-1"
+        newStatusId = 6; // "re-take-1"
       } else if (voucherData.data.status_id === 6) {
-        // Si está en "re-take-1"
-        newStatusId = 7; // Cambiar a "re-take-2"
+        newStatusId = 7; // "re-take-2"
       } else if (voucherData.data.status_id === 7) {
-        // Si está en "re-take-2"
-        newStatusId = 4; // Cambiar a "reprobado"
+        newStatusId = 4; // "reprobado"
       }
 
-      // Llamamos al API para cambiar el estado del voucher según los intentos
       const res = await fetch("/api/voucher-state", {
-        method: "PATCH", // Mantener PATCH para actualizar el estado
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           voucher_id: voucherId,
-          new_status_id: newStatusId, // Cambiar según el flujo
-          is_used: false, // Marcamos como no usado en ese momento
+          new_status_id: newStatusId,
+          is_used: false,
         }),
       });
 
@@ -135,7 +132,6 @@ export default function StudentExamPage() {
         return;
       }
 
-      // Llamamos al API para crear un nuevo intento del examen
       const response = await fetch("/api/attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,11 +148,62 @@ export default function StudentExamPage() {
         return;
       }
 
-      // Redirige al formulario de examen con el ID del examen
       router.push(`/dashboard/student/exam/form?id=${examId}`);
     } catch (err) {
       console.error("Error al iniciar examen:", err);
       alert("Error inesperado.");
+    }
+  };
+
+  const handleViewResults = async (examId: number) => {
+    // Obtener el voucher_id desde sessionStorage
+    const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
+    const voucherId = session?.state?.decryptedStudent?.voucher_id;
+
+    if (!voucherId) {
+      alert("No se pudo obtener el voucher ID.");
+      return;
+    }
+
+    try {
+      // Llamamos al endpoint para obtener el student_id basado en el voucher_id
+      const response = await fetch(
+        `/api/students/by-voucher?voucher_id=${voucherId}`
+      );
+      const studentData = await response.json();
+
+      if (!response.ok || !studentData?.data?.id) {
+        alert("No se pudo obtener el ID del estudiante.");
+        return;
+      }
+
+      const studentId = studentData.data.id; // Usamos el student_id obtenido
+
+      console.log("Este es el ID del examen:", examId);
+      console.log("Este es el ID del estudiante:", studentId);
+
+      // Ahora hacemos la solicitud para obtener los resultados del examen
+      const res = await fetch(
+        `/api/results?exam_id=${examId}&student_id=${studentId}`
+      );
+      const result = await res.json();
+
+      console.log("Data de los resultados del examen result:", result);
+      console.log(
+        "Data de los resultados del examen result.data:",
+        result.data
+      );
+      console.log("Datos de examDatails:", examDetails);
+      if (res.ok && result) {
+        setExamDetails(result.data); // Guardamos los detalles de la calificación
+        setIsModalOpen(true); // Abrimos el modal para mostrar los resultados
+      } else {
+        console.error("Error al obtener los resultados del examen", result);
+        alert("No has presentado este examen aún.");
+      }
+    } catch (err) {
+      console.error("Error al obtener los resultados del examen", err);
+      alert("Error inesperado al obtener los resultados");
     }
   };
 
@@ -202,10 +249,25 @@ export default function StudentExamPage() {
                 >
                   Ir
                 </Button>
+                <Button
+                  className="w-full mt-3"
+                  onClick={() => handleViewResults(exam.id)}
+                >
+                  Ver Calificación
+                </Button>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Modal de calificación */}
+      {isModalOpen && examDetails && (
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          examDetails={examDetails}
+        />
       )}
     </div>
   );

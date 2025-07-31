@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Lightbulb } from "lucide-react";
+import { Modal } from "@/modules/tools/ModalScore"; // Modal de calificación
 
 type SimulatorStatus = "completed" | "in_progress" | "not_started";
 
@@ -28,6 +29,8 @@ const statusLabel = {
 export default function StudentSimulatorsPage() {
   const [simulators, setSimulators] = useState<SimulatorCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [examDetails, setExamDetails] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -110,6 +113,59 @@ export default function StudentSimulatorsPage() {
     }
   }
 
+  const handleViewResults = async (simulatorId: number) => {
+    // Obtener el voucher_id desde sessionStorage
+    const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
+    const voucherId = session?.state?.decryptedStudent?.voucher_id;
+
+    if (!voucherId) {
+      alert("No se pudo obtener el voucher ID.");
+      return;
+    }
+
+    try {
+      // Llamamos al endpoint para obtener el student_id basado en el voucher_id
+      const response = await fetch(
+        `/api/students/by-voucher?voucher_id=${voucherId}`
+      );
+      const studentData = await response.json();
+
+      if (!response.ok || !studentData?.data?.id) {
+        alert("No se pudo obtener el ID del estudiante.");
+        return;
+      }
+
+      const studentId = studentData.data.id; // Usamos el student_id obtenido
+
+      console.log("Este es el ID del simulador:", simulatorId);
+      console.log("Este es el ID del estudiante:", studentId);
+
+      // Ahora hacemos la solicitud para obtener los resultados del simulador
+      const res = await fetch(
+        `/api/results?exam_id=${simulatorId}&student_id=${studentId}`
+      );
+      const result = await res.json();
+
+      console.log("Data de los resultados del simulador result:", result);
+      console.log(
+        "Data de los resultados del simulador result.data:",
+        result.data
+      );
+
+      // Verificamos si los resultados están bien y mostramos el modal
+      if (res.ok && result) {
+        setExamDetails(result.data); // Guardamos los detalles de la calificación
+        setIsModalOpen(true); // Abrimos el modal para mostrar los resultados
+      } else {
+        console.error("Error al obtener los resultados del simulador", result);
+        alert("No has presentado este simulador aún.");
+      }
+    } catch (err) {
+      console.error("Error al obtener los resultados del simulador", err);
+      alert("Error inesperado al obtener los resultados");
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <h1 className="text-3xl sm:text-4xl font-bold text-center mb-10">
@@ -152,10 +208,24 @@ export default function StudentSimulatorsPage() {
                 >
                   Ir
                 </Button>
+                <Button
+                  className="w-full mt-3"
+                  onClick={() => handleViewResults(sim.id)}
+                >
+                  Ver Calificación
+                </Button>
               </div>
             </div>
           ))}
         </div>
+      )}
+      {/* Modal de calificación */}
+      {isModalOpen && examDetails && (
+        <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          examDetails={examDetails}
+        />
       )}
     </div>
   );

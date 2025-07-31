@@ -1,3 +1,5 @@
+// C:\code\tcert.platform\src\modules\attempts\table.ts
+
 import Table from "@/lib/database/table";
 import { supabase } from "@/lib/database/conection";
 import { Database } from "@/lib/database/database.types";
@@ -79,5 +81,37 @@ export default class AttemptsTable extends Table<"exam_attempts"> {
     }
 
     return data;
+  }
+
+  // Nuevo método para obtener el mejor intento y el último intento
+  async getBestAndLastExamAttempt(examId: number, studentId: number) {
+    const { data: attempts, error } = await supabase
+      .from("exam_attempts")
+      .select("*")
+      .eq("exam_id", examId)
+      .eq("student_id", studentId)
+      .order("attempt_date", { ascending: false }); // Ordenar por fecha descendente
+
+    if (error) {
+      console.error("Error al obtener los intentos del examen:", error);
+      throw new Error("Error al obtener los intentos del examen.");
+    }
+
+    if (!attempts || attempts.length === 0) {
+      return null; // Si no hay intentos, devolvemos null
+    }
+
+    // Obtener el mejor intento (el de mayor puntaje)
+    const bestAttempt = attempts.reduce((prev, current) =>
+      prev.score > current.score ? prev : current
+    );
+
+    // El último intento es el primero en la lista después de ordenar por fecha
+    const lastAttempt = attempts[0];
+
+    return {
+      best_attempt: bestAttempt,
+      last_attempt: lastAttempt,
+    };
   }
 }

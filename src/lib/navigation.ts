@@ -19,6 +19,12 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       iconName: "FileText",
       showModuleName: false,
     },
+    {
+      title: "Obtén tu Certificado",
+      path: "/diploma",
+      iconName: "Award",
+      showModuleName: true,
+    },
   ],
   partner: [
     {
@@ -38,7 +44,7 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       path: "/reports",
       iconName: "BarChart",
       showModuleName: true,
-    }
+    },
   ],
   admin: [
     {
@@ -64,7 +70,7 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       path: "/reports",
       iconName: "BarChart",
       showModuleName: false,
-    }
+    },
   ],
   unknown: [],
 };

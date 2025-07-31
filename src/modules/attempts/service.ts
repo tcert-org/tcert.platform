@@ -1,16 +1,17 @@
-import AttemptsTable from "./table";
-import { supabase } from "@/lib/database/conection";
-import ExamTool from "@/modules/tools/ExamTool";
+import AttemptsTable from "./table"; // Importamos la clase AttemptsTable
+import { supabase } from "@/lib/database/conection"; // Conexión a Supabase
+import ExamTool from "@/modules/tools/ExamTool"; // Herramienta para calificar el examen
 
 export default class AttemptService {
   private table: AttemptsTable;
 
   constructor() {
-    this.table = new AttemptsTable();
+    this.table = new AttemptsTable(); // Instanciamos AttemptsTable
   }
 
+  // Método para calificar el examen
   async gradeExamAttempt(attemptId: number) {
-    // Obtener el intento
+    // Obtener el intento de examen
     const { data: attempt } = await this.table.getExamAttemptById(attemptId);
     if (!attempt) throw new Error("Intento no encontrado");
     console.log("📌 Calificando intento con ID:", attemptId);
@@ -33,8 +34,6 @@ export default class AttemptService {
         throw new Error("Error consultando respuestas del intento");
       }
 
-      console.log(`🔄 Intento ${i + 1} - Respuestas recuperadas:`, data);
-
       if (data && data.length > 0) {
         answers = data;
         break;
@@ -46,8 +45,9 @@ export default class AttemptService {
 
     if (!answers || answers.length === 0) {
       console.warn("⚠️ No hay respuestas aún para calificar.");
-      return attempt; // Evita romper el flujo de autosave
+      return attempt;
     }
+
     // Obtener opciones correctas desde la tabla 'options'
     const { data: correctOptions, error: errorCorrect } = await supabase
       .from("options")
@@ -58,20 +58,16 @@ export default class AttemptService {
       throw new Error("No se pudieron obtener las respuestas correctas.");
     }
 
-    // Reestructurar para el comparador
     const formattedCorrectAnswers = correctOptions.map((opt) => ({
       question_id: opt.question_id,
       correct_option_id: opt.id,
     }));
 
-    // Calificar intento
     const result = ExamTool.gradeAttempt({
       studentAnswers: answers,
       correctAnswers: formattedCorrectAnswers,
     });
-    //console.log("INFORMACUIN DEL GRADE ATTEMPT", result);
 
-    // Actualizar intento
     const updatePayload = {
       score: result.score,
       passed: result.passed,
@@ -81,9 +77,8 @@ export default class AttemptService {
     };
 
     console.log("Resultado de la calificación:", result);
-    console.log("Aprobado:", result.passed);
-    //console.log("INFORMACUIN DEL GRADE ATTEMPT V2", result);
 
+    // Actualizar el intento en la base de datos
     const { data: updatedAttempt, error: updateError } =
       await this.table.updateExamAttemptById(attemptId, updatePayload);
 
@@ -92,5 +87,11 @@ export default class AttemptService {
     }
 
     return updatedAttempt;
+  }
+
+  // Método para obtener el mejor intento y el último intento
+  async getBestAndLastExamAttempt(examId: number, studentId: number) {
+    // Llamamos directamente a getBestAndLastExamAttempt de AttemptsTable
+    return await this.table.getBestAndLastExamAttempt(examId, studentId);
   }
 }
