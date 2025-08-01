@@ -17,7 +17,9 @@ export async function GET(
       used,
       purchase_date,
       expiration_date,
-      certification:certifications ( name )
+      certification_id,
+      certification:certifications ( name, logo_url )
+
     `
     )
     .eq("id", id)
@@ -29,6 +31,10 @@ export async function GET(
     });
   }
 
+  const certification = Array.isArray(data.certification)
+    ? data.certification[0]
+    : data.certification;
+
   const formattedData = {
     id: data.id,
     code: data.code,
@@ -36,7 +42,9 @@ export async function GET(
     used: data.used,
     purchase_date: data.purchase_date,
     expiration_date: data.expiration_date,
-    certification_name: data.certification?.name ?? "N/A",
+    certification_id: data.certification_id,
+    certification_name: certification?.name ?? "N/A",
+    certification_logo_url: certification?.logo_url ?? null,
   };
 
   return new Response(JSON.stringify({ data: formattedData }), { status: 200 });

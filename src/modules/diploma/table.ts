@@ -19,22 +19,23 @@ export default class DiplomaTable extends Table<"diplomas"> {
       .insert([data])
       .select()
       .single();
+
     if (error) {
       console.error("[INSERT_DIPLOMA_ERROR]", error.message);
       throw new Error("Error insertando diploma:" + error.message);
     }
+
     return inserted;
   }
-
   async getByStudentAndCertificate(
     student_id: number,
-    certificate_id: number
+    certification_id: number
   ): Promise<DiplomaRowType | null> {
     const { data, error } = await supabase
       .from("diplomas")
       .select("*")
       .eq("student_id", student_id)
-      .eq("certificate_id", certificate_id)
+      .eq("certification_id", certification_id)
       .maybeSingle();
 
     if (error) {
