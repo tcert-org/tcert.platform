@@ -3,13 +3,21 @@ import PDFTool from "@/modules/tools/PDFTool";
 
 export async function POST(req: NextRequest) {
   try {
-    const { studentName, certificationName, expeditionDate } = await req.json();
+    const {
+      studentName,
+      certificationName,
+      expeditionDate,
+      codigoVoucher,
+      URL_logo,
+    } = await req.json();
 
     // Llamamos al método que genera el PDF
     const { status, pdfBytes } = await PDFTool.CreateCertificate(
       studentName,
       certificationName,
-      expeditionDate
+      expeditionDate,
+      codigoVoucher,
+      URL_logo
     );
 
     if (status) {

@@ -1,20 +1,29 @@
 import { NextResponse } from "next/server";
 import DiplomaTable from "./table"; // Importamos la clase para manejar la tabla de diplomas
 import { ApiResponse } from "@/lib/types";
-import { diplomaType } from "./type"; // El tipo para el diploma
+import { DiplomaInsertType } from "./table"; // Usamos el tipo correcto de Supabase
 //import { certificationsType } from "./type";
 
 export default class DiplomaController {
   static async insertDiploma(
-    data: diplomaType // Ahora solo pasamos un solo objeto en lugar de un array
+    data: DiplomaInsertType // Usamos el tipo correcto de Supabase
   ): Promise<NextResponse<ApiResponse<any>>> {
     try {
       const table = new DiplomaTable();
 
+      // Validamos que los campos requeridos no sean null
+      if (!data.student_id || !data.certification_id) {
+        return NextResponse.json({
+          statusCode: 400,
+          data: null,
+          error: "student_id y certification_id son requeridos.",
+        });
+      }
+
       // Verificamos si ya existe un diploma para ese estudiante y certificado
       const existingDiploma = await table.getByStudentAndCertificate(
         data.student_id,
-        data.certificate_id
+        data.certification_id
       );
 
       if (existingDiploma) {

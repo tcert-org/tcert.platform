@@ -1,9 +1,10 @@
 export type diplomaType = {
+  exam_attempt_id?: number | null;
   student_id: number;
   completion_date: string;
-  certificate_id: number;
-  diploma_url: string;
-  expiration_date: string;
+  certification_id: number;
+  diploma_url?: string | null;
+  expiration_date?: string | null;
 };
 
 export type certificationsType = {
