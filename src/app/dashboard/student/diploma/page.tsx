@@ -133,9 +133,6 @@ export default function CertificatePage() {
 
   return (
     <div className="flex flex-col gap-4 px-4 items-center text-center">
-      <h1 className="text-2xl font-bold text-primary-700 -mt-8">
-        Material de tu Certificación
-      </h1>
       <p className="text-base text-gray-600">
         Felicidades por tu esfuerzo y dedicación. Aquí podrás descargar el
         certificado.
