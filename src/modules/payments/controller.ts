@@ -6,79 +6,100 @@ import { PaymentsInsertType } from "./types";
 import { ApiResponse } from "@/lib/types";
 import { supabase } from "@/lib/database/conection";
 
+function addMonthsSafe(date: Date, monthsToAdd: number) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+
+  const targetMonth = month + monthsToAdd;
+  const newDate = new Date(year, targetMonth, 1);
+
+  // Calcular último día del mes resultante
+  const lastDayOfTargetMonth = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate();
+
+  // Usar el mínimo entre el día original y el último día del mes
+  newDate.setDate(Math.min(day, lastDayOfTargetMonth));
+
+  return newDate;
+}
+
 export default class PaymentController {
   static async createPayment(data: PaymentsInsertType): Promise<NextResponse<ApiResponse<any>>> {
     try {
       const paymentTable = new PaymentTable();
-  
-      // 🔍 Obtener los meses de expiración desde la tabla `params` (id = 1)
-      const { data: param, error: paramError } = await supabase
+
+      // Obtener los valores desde la tabla 'params'
+      const { data: params, error: paramsError } = await supabase
         .from("params")
-        .select("value")
-        .eq("id", 1)
-        .single();
-  
-      if (paramError) throw new Error("Error al obtener meses de expiración desde params");
-  
-      const expirationMonths = parseInt(param?.value ?? "0", 10);
-  
-      // 🧠 Si no se proporcionó expiration_date, calcularla desde created_at
-      if (!("expiration_date" in data) || !data.expiration_date) {
-        const now = new Date();
-        const expiration = new Date(now);
-        expiration.setMonth(now.getMonth() + expirationMonths);
-  
-        data.expiration_date = expiration.toISOString();
+        .select("id, value")
+        .in("id", [1, 3]); // 1: Expiración Vouchers, 3: Tiempo Extensión
+
+      if (paramsError) throw new Error("Error al obtener parámetros del sistema");
+
+      const expirationMonths = Number(params.find(p => p.id === 1)?.value);
+      const extensionMonths = Number(params.find(p => p.id === 3)?.value);
+
+      if (!expirationMonths || !extensionMonths) {
+        throw new Error("Faltan parámetros de expiración o extensión");
       }
-  
-      // 1. Insertar el pago con expiration_date ya calculado
+
+      const now = new Date();
+
+      // Calcular fechas usando lógica segura
+      const expirationDate = addMonthsSafe(now, expirationMonths);
+      const extensionDate = addMonthsSafe(expirationDate, -extensionMonths);
+
+      data.expiration_date = expirationDate.toISOString();
+      (data as any).extension_date = extensionDate.toISOString();
+
+      // 1. Insertar el pago con ambas fechas
       const result = await paymentTable.createPayment(data);
-  
+
       // 2. Calcular total de vouchers del partner
       const { data: allPayments, error: totalError } = await supabase
         .from("payments")
         .select("voucher_quantity")
         .eq("partner_id", data.partner_id);
-  
+
       if (totalError) throw new Error("Error al obtener pagos del partner");
-  
+
       const totalVouchers = allPayments.reduce(
         (sum, row) => sum + (row.voucher_quantity ?? 0),
         0
       );
-  
+
       // 3. Obtener membresía correspondiente
       const { data: memberships, error: membershipError } = await supabase
         .from("membership")
         .select("*");
-  
+
       if (membershipError) throw new Error("Error al obtener membresías");
-  
+
       const newMembership = memberships.find(
         (m) => totalVouchers >= m.count_from && totalVouchers <= m.count_up
       );
-  
+
       let updatedMembershipId = null;
-  
+
       if (newMembership) {
         const { data: currentUser, error: userError } = await supabase
           .from("users")
           .select("membership_id")
           .eq("id", data.partner_id)
           .single();
-  
+
         if (userError) throw new Error("Error al obtener usuario");
-  
+
         if (newMembership.id !== currentUser.membership_id) {
           await supabase
             .from("users")
             .update({ membership_id: newMembership.id })
             .eq("id", data.partner_id);
         }
-  
+
         updatedMembershipId = newMembership.id;
       }
-  
+
       return NextResponse.json({
         statusCode: 201,
         data: {
@@ -94,6 +115,7 @@ export default class PaymentController {
       });
     }
   }
+
   static async getPaymentsWithFilters(
     req: NextRequest
   ): Promise<NextResponse<ApiResponse<any>>> {
