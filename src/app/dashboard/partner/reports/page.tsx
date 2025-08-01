@@ -12,19 +12,21 @@ export interface PaymentDynamicTable {
   total_price: number;
   created_at: string;
   expiration_date: string | null;
+  extension_date: string | null;
 }
 
-// Función robusta para sumar meses y evitar errores con días desbordados
+function formatUSD(value: number): string {
+  const isInteger = Number.isInteger(value);
+  return `USD ${isInteger ? value : value.toFixed(2)}`;
+}
+
 function addMonthsToDate(date: Date, months: number): Date {
   const result = new Date(date);
   const currentMonth = result.getMonth();
   result.setMonth(currentMonth + months);
-
-  // Si el mes desbordó, ajustar al último día del mes anterior
-  if (result.getMonth() !== ((currentMonth + months) % 12)) {
+  if (result.getMonth() !== (currentMonth + months) % 12) {
     result.setDate(0);
   }
-
   return result;
 }
 
@@ -129,9 +131,7 @@ export default function PartnerReportsPage() {
       cell: ({ row }) => {
         const val = row.getValue("unit_price");
         return val ? (
-          <span className="text-gray-800">
-            USD ${parseFloat(val).toFixed(2)}
-          </span>
+          <span className="text-gray-800">{formatUSD(parseFloat(val))}</span>
         ) : (
           "-"
         );
@@ -146,7 +146,7 @@ export default function PartnerReportsPage() {
         const val = row.getValue("total_price");
         return val ? (
           <span className="text-green-600 font-semibold">
-            USD ${parseFloat(val).toFixed(2)}
+            {formatUSD(parseFloat(val))}
           </span>
         ) : (
           "-"
@@ -175,13 +175,74 @@ export default function PartnerReportsPage() {
           : "Sin vencimiento";
       },
     },
+    {
+      accessorKey: "extension_date",
+      header: "Fecha Extensión",
+      size: 160,
+      meta: { filterType: "date" },
+      cell: ({ row }) => {
+        const val = row.getValue("extension_date");
+        return val
+          ? new Date(val as string).toLocaleDateString()
+          : "No programada";
+      },
+    },
+    {
+      id: "extension",
+      header: "Extensión",
+      size: 120,
+      cell: ({ row }) => {
+        const paymentId = row.original.id;
+        const extensionRaw = row.original.extension_date;
+        const expirationRaw = row.original.expiration_date;
+
+        const extensionDate = extensionRaw ? new Date(extensionRaw) : null;
+        const expirationDate = expirationRaw ? new Date(expirationRaw) : null;
+        const today = new Date();
+
+        const canExtend =
+          extensionDate &&
+          expirationDate &&
+          today >= new Date(extensionDate.toDateString()) &&
+          today <= new Date(expirationDate.toDateString());
+
+        return (
+          <button
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/payments/", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ payment_id: paymentId }),
+                });
+
+                if (!res.ok) throw new Error("Error al extender");
+
+                setRefreshKey((prev) => prev + 1);
+              } catch (err) {
+                console.error("Extensión fallida:", err);
+              }
+            }}
+            disabled={!canExtend}
+            className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+              canExtend
+                ? "text-blue-600 border border-blue-600 hover:bg-blue-50"
+                : "text-gray-400 border border-gray-300 cursor-not-allowed"
+            }`}
+          >
+            Extender
+          </button>
+        );
+      },
+    },
   ];
 
   return (
     <div className="bg-card rounded-lg border shadow-sm p-6">
       <h2 className="text-2xl font-bold mb-1">Mis compras</h2>
       <p className="text-muted-foreground text-sm mb-4">
-        Aquí puedes ver un historial de tus compras de vouchers, aplicar filtros y ordenar columnas.
+        Aquí puedes ver un historial de tus compras de vouchers, aplicar filtros
+        y ordenar columnas.
       </p>
       {partnerId && (
         <DataTable

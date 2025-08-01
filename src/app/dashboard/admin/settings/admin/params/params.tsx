@@ -64,15 +64,15 @@ function ParamsPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl mx-auto p-6 space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-6xl mx-auto p-6 space-y-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">
         Parámetros del sistema
       </h2>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {params.map((param) => (
-          <div key={param.id}>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+          <div key={param.id} className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-1">
               {param.name}
             </label>
             <input
@@ -81,14 +81,14 @@ function ParamsPage() {
               step={param.name.toLowerCase().includes("precio") ? 0.01 : 1}
               value={formData[param.id] ?? ""}
               onChange={(e) => handleChange(param.id, e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
         ))}
       </div>
 
-      <div className="pt-4">
+      <div className="pt-4 text-center">
         <button
           type="submit"
           className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"

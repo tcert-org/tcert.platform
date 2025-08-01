@@ -305,6 +305,7 @@ returns table (
   total_price numeric,
   created_at timestamptz,
   expiration_date timestamptz,
+  extension_date timestamptz,
   total_count bigint
 )
 language plpgsql
@@ -317,7 +318,7 @@ declare
 begin
   -- Validaciones de ordenamiento
   safe_order_by := case
-    when order_by in ('partner_name', 'voucher_quantity', 'unit_price', 'total_price', 'created_at', 'expiration_date') then order_by
+    when order_by in ('partner_name', 'voucher_quantity', 'unit_price', 'total_price', 'created_at', 'expiration_date', 'extension_date') then order_by
     else 'created_at'
   end;
 
@@ -335,7 +336,8 @@ begin
         p.unit_price,
         p.total_price,
         p.created_at,
-        p.expiration_date
+        p.expiration_date,
+        p.extension_date
       from payments p
       left join users u on u.id = p.partner_id
       where u.role_id = 5
@@ -357,6 +359,7 @@ begin
       f.total_price::numeric,
       f.created_at::timestamptz,
       f.expiration_date::timestamptz,
+      f.extension_date::timestamptz,
       f.total_count::bigint
     from filtered f
     order by %I %s
