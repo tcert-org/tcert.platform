@@ -355,35 +355,35 @@ export default function FormExam() {
 
       const gradeData = await gradeRes.json();
 
-      // Verifica qué datos estamos recibiendo
-      console.log("gradeRes data:", gradeData); // Esto nos da la respuesta completa
-
-      // Ahora verificamos si 'passed' está presente
-      const passed = gradeData?.passed;
-      console.log("passed value:", passed); // Verificar si 'passed' es verdadero o falso
+      // Verificar múltiples posibles campos de respuesta
+      const passed = gradeData?.passed || gradeData?.data?.passed || gradeData?.success;
 
       // Si passed es true, actualizamos el estado del voucher
-      if (passed) {
-        const session = JSON.parse(
-          sessionStorage.getItem("student-data") || "{}"
-        );
-        const voucherId = session?.state?.decryptedStudent?.voucher_id;
+      if (passed === true) {
+        try {
+          const sessionRaw = sessionStorage.getItem("student-data");
+          const session = JSON.parse(sessionRaw || "{}");
+          const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
-        if (voucherId) {
-          const updateVoucherRes = await fetch("/api/voucher-state", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+          if (voucherId) {
+            const updatePayload = {
               voucher_id: voucherId,
               new_status_id: 5, // Aprobado (ID para Aprobado)
               is_used: true,
-            }),
-          });
+            };
+            
+            const updateVoucherRes = await fetch("/api/voucher-state", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updatePayload),
+            });
 
-          if (!updateVoucherRes.ok) {
-            const error = await updateVoucherRes.json();
-            console.error("Error al actualizar el estado del voucher", error);
+            if (!updateVoucherRes.ok) {
+              console.error("Error al actualizar el estado del voucher");
+            }
           }
+        } catch (voucherError) {
+          console.error("Error al procesar voucher:", voucherError);
         }
       }
 
@@ -395,7 +395,9 @@ export default function FormExam() {
         );
       });
 
+      // Redirigir a la lista de exámenes
       window.location.href = "/dashboard/student/exam";
+
     } catch (err) {
       console.error("Error al enviar examen:", err);
       alert("Error inesperado al finalizar el examen");

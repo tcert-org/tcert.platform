@@ -79,14 +79,13 @@ export default class AttemptService {
     console.log("Resultado de la calificación:", result);
 
     // Actualizar el intento en la base de datos
-    const { data: updatedAttempt, error: updateError } =
-      await this.table.updateExamAttemptById(attemptId, updatePayload);
+    const updateResult = await this.table.updateExamAttemptById(attemptId, updatePayload);
 
-    if (updateError) {
-      throw new Error("Error actualizando el intento de examen.");
+    if (!updateResult) {
+      throw new Error("Error actualizando el intento de examen");
     }
 
-    return updatedAttempt;
+    return updateResult;
   }
 
   // Método para obtener el mejor intento y el último intento

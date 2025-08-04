@@ -93,7 +93,13 @@ export default function StudentSimulatorsPage() {
                 const resultsResponse = await fetch(
                   `/api/results?exam_id=${exam.id}&student_id=${studentId}`
                 );
-                const hasResults = resultsResponse.ok;
+                
+                // Ahora el endpoint siempre devuelve 200, verificamos si hay data
+                let hasResults = false;
+                if (resultsResponse.ok) {
+                  const resultsData = await resultsResponse.json();
+                  hasResults = resultsData.data !== null;
+                }
 
                 return {
                   id: exam.id,
@@ -102,10 +108,9 @@ export default function StudentSimulatorsPage() {
                     ? "completed"
                     : ("not_started" as SimulatorStatus),
                 };
-              } catch (error) {
-                console.error(
-                  `Error verificando resultados para simulador ${exam.id}:`,
-                  error
+              } catch {
+                console.warn(
+                  `No se pudieron verificar resultados para simulador ${exam.id}`
                 );
                 return {
                   id: exam.id,
@@ -227,12 +232,8 @@ export default function StudentSimulatorsPage() {
           );
         }
       } else {
-        // Manejar diferentes códigos de estado HTTP
-        if (res.status === 404) {
-          alert(
-            "No has presentado este simulador aún. Completa el examen primero para ver tus resultados."
-          );
-        } else if (res.status === 403) {
+        // Manejar errores del servidor
+        if (res.status === 403) {
           alert("No tienes permisos para ver estos resultados.");
         } else if (res.status === 500) {
           alert("Error del servidor. Por favor, intenta más tarde.");

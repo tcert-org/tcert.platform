@@ -24,10 +24,10 @@ export async function GET(req: NextRequest) {
     );
 
     if (!result) {
-      return NextResponse.json(
-        { error: "No se encontraron intentos para este examen y estudiante." },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        message: "No se encontraron intentos para este examen y estudiante.",
+        data: null,
+      });
     }
 
     return NextResponse.json({

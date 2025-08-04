@@ -44,14 +44,13 @@ export async function POST(req: NextRequest) {
     const service = new AttemptsService();
     const updatedAttempt = await service.gradeExamAttempt(attempt_id);
 
-    console.log("Intento calificado: v1", updatedAttempt);
-
-    const response = NextResponse.json({
+    const responseData = {
       message: "Intento calificado correctamente",
-      data: updatedAttempt, // Asegúrate de que esto esté devolviendo el objeto con 'passed'
-    });
+      data: updatedAttempt,
+      passed: updatedAttempt?.passed,
+    };
 
-    console.log("Intento calificado: v2", updatedAttempt);
+    const response = NextResponse.json(responseData);
     // 🔐 Eliminar cookie solo si viene `final_submit: true`
     const shouldClearCookie = body?.final_submit === true;
     if (shouldClearCookie && cookieStore.get("student_attempt_id")?.value) {
