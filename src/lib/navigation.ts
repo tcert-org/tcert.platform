@@ -48,6 +48,12 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
   ],
   admin: [
     {
+      title: "Creacion de Partners",
+      path: "/create-partners",
+      iconName: "Users",
+      showModuleName: true,
+    },
+    {
       title: "Administración de Partners",
       path: "/partners",
       iconName: "Users",

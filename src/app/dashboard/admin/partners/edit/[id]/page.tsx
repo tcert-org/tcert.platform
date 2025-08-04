@@ -37,8 +37,8 @@ export default function EditPartnerPage() {
         const data = await response.json();
         setPartner(data);
         setFormData({
-          company_name: data.company_name,
-          email: data.email,
+          company_name: data.company_name || "",
+          email: data.email || "",
         });
       } catch (error) {
         console.error("Error:", error);
@@ -66,15 +66,17 @@ export default function EditPartnerPage() {
         body: JSON.stringify(formData),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error("Error al actualizar partner");
+        throw new Error(result.error || "Error al actualizar partner");
       }
 
       alert("Partner actualizado exitosamente");
       router.push("/dashboard/admin/partners");
     } catch (error) {
       console.error("Error:", error);
-      alert("Error al actualizar el partner");
+      alert(error instanceof Error ? error.message : "Error al actualizar el partner");
     } finally {
       setSaving(false);
     }

@@ -6,7 +6,7 @@ import {
   type ActionItem,
 } from "@/components/data-table/action-menu";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FileSearch, Pencil } from "lucide-react";
+import { Edit, Eye } from "lucide-react";
 
 export interface PartnerDinamicTable {
   id: string;
@@ -65,13 +65,13 @@ export default function PartnersPage() {
   const partnerActions: ActionItem<PartnerDinamicTable>[] = [
     {
       label: "Ver detalles",
-      icon: FileSearch,
+      icon: Eye,
       navigateTo: (partner) =>
         `/dashboard/admin/partners/${partner.id}?view=vouchers&partner_id=${partner.id}`,
     },
     {
       label: "Editar",
-      icon: Pencil,
+      icon: Edit,
       navigateTo: (partner) => `/dashboard/admin/partners/edit/${partner.id}`,
     },
   ];

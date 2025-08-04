@@ -34,9 +34,11 @@ export interface DataVoucherTable {
   id?: number;
   code: string;
   certification_name: string;
+  status_name: string;
   email: string;
   purchase_date: string;
   expiration_date: string;
+  used: boolean;
 }
 
 export type VoucherType = {

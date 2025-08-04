@@ -30,6 +30,27 @@ const formatLocalDate = (iso: string) => {
   });
 };
 
+const getStatusBadgeColor = (statusName: string) => {
+  if (!statusName) return "text-gray-400";
+  
+  const status = statusName.toLowerCase();
+  
+  if (status.includes("activo") || status.includes("disponible")) {
+    return "text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded-full text-xs";
+  }
+  if (status.includes("usado") || status.includes("utilizado")) {
+    return "text-blue-600 bg-blue-50 border border-blue-200 px-2 py-1 rounded-full text-xs";
+  }
+  if (status.includes("expirado") || status.includes("vencido")) {
+    return "text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full text-xs";
+  }
+  if (status.includes("pendiente")) {
+    return "text-yellow-600 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-full text-xs";
+  }
+  
+  return "text-gray-600 bg-gray-50 border border-gray-200 px-2 py-1 rounded-full text-xs";
+};
+
 export default function VoucherAdministrationPage() {
   const { getUser } = useUserStore();
   const [partnerData, setPartnerData] = useState<any | null>(null);
@@ -161,27 +182,20 @@ export default function VoucherAdministrationPage() {
         ),
     },
     {
-      accessorKey: "used",
+      accessorKey: "status_name",
       header: "Estado del voucher",
       size: 150,
       meta: {
-        filterType: "boolean",
-        booleanOptions: {
-          trueLabel: "Disponible",
-          falseLabel: "No disponible",
-        },
+        filterType: "text",
       },
       cell: ({ row }) => {
-        const used = row.getValue("used");
-        const isAvailable = used === true;
-        return (
-          <span
-            className={`font-medium ${
-              isAvailable ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {isAvailable ? "Disponible" : "No disponible"}
+        const statusName = row.getValue("status_name") as string;
+        return statusName ? (
+          <span className={`font-medium ${getStatusBadgeColor(statusName)}`}>
+            {statusName}
           </span>
+        ) : (
+          <span className="text-gray-400 italic">Sin estado</span>
         );
       },
     },

@@ -166,7 +166,17 @@ export default function ExamDetailsPage() {
         )}
       </div>
 
-      <div className="mb-6 text-gray-500 text-base">Preguntas del Examen</div>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="text-gray-500 text-base">Preguntas del Examen</div>
+        <div className="flex items-center gap-4 text-sm">
+          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
+            Activas: {questions.filter(q => q.active).length}
+          </span>
+          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">
+            Total: {questions.length}
+          </span>
+        </div>
+      </div>
 
       {/* Filtros y buscador */}
       <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
