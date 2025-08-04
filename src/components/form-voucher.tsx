@@ -40,16 +40,22 @@ export async function getVoucherExpirationDate(): Promise<string> {
     );
   }
 
-  const now = new Date();
-  const targetDate = new Date(
-    now.getFullYear(),
-    now.getMonth() + monthsToAdd + 1,
-    0
-  );
+  // Usar la fecha actual como base
+  const purchaseDate = new Date();
+  
+  // Calcular la fecha de vencimiento preservando el día
+  const expirationDate = new Date(purchaseDate);
+  expirationDate.setMonth(purchaseDate.getMonth() + monthsToAdd);
+  
+  // Si el día se ajustó automáticamente (ej: 31 enero → 2-3 marzo), 
+  // ajustar al último día del mes correcto
+  if (expirationDate.getDate() !== purchaseDate.getDate()) {
+    expirationDate.setDate(0); // Va al último día del mes anterior
+  }
 
-  const year = targetDate.getFullYear();
-  const month = String(targetDate.getMonth() + 1).padStart(2, "0");
-  const day = String(targetDate.getDate()).padStart(2, "0");
+  const year = expirationDate.getFullYear();
+  const month = String(expirationDate.getMonth() + 1).padStart(2, "0");
+  const day = String(expirationDate.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
