@@ -356,7 +356,8 @@ export default function FormExam() {
       const gradeData = await gradeRes.json();
 
       // Verificar múltiples posibles campos de respuesta
-      const passed = gradeData?.passed || gradeData?.data?.passed || gradeData?.success;
+      const passed =
+        gradeData?.passed || gradeData?.data?.passed || gradeData?.success;
 
       // Si passed es true, actualizamos el estado del voucher
       if (passed === true) {
@@ -371,7 +372,7 @@ export default function FormExam() {
               new_status_id: 5, // Aprobado (ID para Aprobado)
               is_used: true,
             };
-            
+
             const updateVoucherRes = await fetch("/api/voucher-state", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
@@ -397,7 +398,6 @@ export default function FormExam() {
 
       // Redirigir a la lista de exámenes
       window.location.href = "/dashboard/student/exam";
-
     } catch (err) {
       console.error("Error al enviar examen:", err);
       alert("Error inesperado al finalizar el examen");

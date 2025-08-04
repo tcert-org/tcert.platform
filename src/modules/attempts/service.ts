@@ -79,7 +79,10 @@ export default class AttemptService {
     console.log("Resultado de la calificación:", result);
 
     // Actualizar el intento en la base de datos
-    const updateResult = await this.table.updateExamAttemptById(attemptId, updatePayload);
+    const updateResult = await this.table.updateExamAttemptById(
+      attemptId,
+      updatePayload
+    );
 
     if (!updateResult) {
       throw new Error("Error actualizando el intento de examen");

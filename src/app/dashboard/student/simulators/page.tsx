@@ -93,7 +93,7 @@ export default function StudentSimulatorsPage() {
                 const resultsResponse = await fetch(
                   `/api/results?exam_id=${exam.id}&student_id=${studentId}`
                 );
-                
+
                 // Ahora el endpoint siempre devuelve 200, verificamos si hay data
                 let hasResults = false;
                 if (resultsResponse.ok) {

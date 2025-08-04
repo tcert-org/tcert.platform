@@ -68,7 +68,9 @@ export default function StudentExamPage() {
 
         // Obtener el estado del voucher
         try {
-          const voucherResponse = await fetch(`/api/attempts/grade?voucher_id=${voucherId}`);
+          const voucherResponse = await fetch(
+            `/api/attempts/grade?voucher_id=${voucherId}`
+          );
           if (voucherResponse.ok) {
             const voucherData = await voucherResponse.json();
             const statusId = voucherData?.data?.status_id;
@@ -107,7 +109,7 @@ export default function StudentExamPage() {
                 const resultsResponse = await fetch(
                   `/api/results?exam_id=${exam.id}&student_id=${studentId}`
                 );
-                
+
                 // Ahora el endpoint siempre devuelve 200, verificamos si hay data
                 let hasResults = false;
                 if (resultsResponse.ok) {
@@ -153,7 +155,9 @@ export default function StudentExamPage() {
     // Verificar si el voucher ya está en estado final (4: Reprobado o 5: Aprobado)
     if (voucherStatus === 4 || voucherStatus === 5) {
       const statusText = voucherStatus === 4 ? "reprobado" : "aprobado";
-      alert(`No puedes iniciar el examen porque ya tienes un resultado ${statusText}.`);
+      alert(
+        `No puedes iniciar el examen porque ya tienes un resultado ${statusText}.`
+      );
       return;
     }
 
@@ -430,20 +434,30 @@ export default function StudentExamPage() {
                           <div className="flex items-center">
                             <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
                             <div>
-                              <p className="font-semibold text-red-800">Examen Reprobado</p>
-                              <p className="text-sm text-red-600">Ya has completado este examen con resultado reprobatorio. No puedes volver a tomarlo.</p>
+                              <p className="font-semibold text-red-800">
+                                Examen Reprobado
+                              </p>
+                              <p className="text-sm text-red-600">
+                                Ya has completado este examen con resultado
+                                reprobatorio. No puedes volver a tomarlo.
+                              </p>
                             </div>
                           </div>
                         </div>
                       )}
-                      
+
                       {voucherStatus === 5 && (
                         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
                           <div className="flex items-center">
                             <CheckCircle2 className="w-5 h-5 text-green-600 mr-3" />
                             <div>
-                              <p className="font-semibold text-green-800">Examen Aprobado</p>
-                              <p className="text-sm text-green-600">¡Felicitaciones! Ya has aprobado este examen exitosamente.</p>
+                              <p className="font-semibold text-green-800">
+                                Examen Aprobado
+                              </p>
+                              <p className="text-sm text-green-600">
+                                ¡Felicitaciones! Ya has aprobado este examen
+                                exitosamente.
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -451,57 +465,71 @@ export default function StudentExamPage() {
 
                       <Button
                         className={`w-full font-bold text-lg py-4 shadow-lg transition-all duration-200 group border-0 rounded-xl ${
-                          voucherStatus === 4 || voucherStatus === 5 
-                            ? "bg-gray-400 cursor-not-allowed text-gray-600" 
+                          voucherStatus === 4 || voucherStatus === 5
+                            ? "bg-gray-400 cursor-not-allowed text-gray-600"
                             : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl"
                         }`}
                         onClick={() => handleStartExam(exam.id)}
                         disabled={voucherStatus === 4 || voucherStatus === 5}
                       >
-                        <Play className={`w-5 h-5 mr-3 transition-transform ${
-                          voucherStatus === 4 || voucherStatus === 5 
-                            ? "" 
-                            : "group-hover:translate-x-1"
-                        }`} />
-                        {voucherStatus === 4 
-                          ? "Examen Reprobado" 
-                          : voucherStatus === 5 
-                            ? "Examen Aprobado"
-                            : exam.status === "completed"
-                              ? "Repetir Examen"
-                              : "Iniciar Examen"}
+                        <Play
+                          className={`w-5 h-5 mr-3 transition-transform ${
+                            voucherStatus === 4 || voucherStatus === 5
+                              ? ""
+                              : "group-hover:translate-x-1"
+                          }`}
+                        />
+                        {voucherStatus === 4
+                          ? "Examen Reprobado"
+                          : voucherStatus === 5
+                          ? "Examen Aprobado"
+                          : exam.status === "completed"
+                          ? "Repetir Examen"
+                          : "Iniciar Examen"}
                       </Button>
 
                       <Button
                         variant={
-                          exam.status === "completed" || voucherStatus === 4 || voucherStatus === 5 ? "default" : "outline"
+                          exam.status === "completed" ||
+                          voucherStatus === 4 ||
+                          voucherStatus === 5
+                            ? "default"
+                            : "outline"
                         }
                         className={`w-full border-2 group transition-all duration-200 font-bold text-lg py-4 rounded-xl ${
-                          exam.status === "completed" || voucherStatus === 4 || voucherStatus === 5
-                            ? voucherStatus === 5 
+                          exam.status === "completed" ||
+                          voucherStatus === 4 ||
+                          voucherStatus === 5
+                            ? voucherStatus === 5
                               ? "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-lg hover:shadow-xl"
                               : voucherStatus === 4
-                                ? "bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 shadow-lg hover:shadow-xl"
-                                : "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-lg hover:shadow-xl"
+                              ? "bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 shadow-lg hover:shadow-xl"
+                              : "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-lg hover:shadow-xl"
                             : "hover:bg-gray-50 text-gray-400 border-gray-300 cursor-not-allowed"
                         }`}
                         onClick={() => handleViewResults(exam.id)}
-                        disabled={exam.status === "not_started" && voucherStatus !== 4 && voucherStatus !== 5}
+                        disabled={
+                          exam.status === "not_started" &&
+                          voucherStatus !== 4 &&
+                          voucherStatus !== 5
+                        }
                       >
                         <BarChart3
                           className={`w-5 h-5 mr-3 transition-transform ${
-                            exam.status === "completed" || voucherStatus === 4 || voucherStatus === 5
+                            exam.status === "completed" ||
+                            voucherStatus === 4 ||
+                            voucherStatus === 5
                               ? "group-hover:scale-110"
                               : ""
                           }`}
                         />
-                        {voucherStatus === 5 
+                        {voucherStatus === 5
                           ? "Ver Resultado: Aprobado"
-                          : voucherStatus === 4 
-                            ? "Ver Resultado: Reprobado"
-                            : exam.status === "completed"
-                              ? "Ver Resultados"
-                              : "Sin Resultados"}
+                          : voucherStatus === 4
+                          ? "Ver Resultado: Reprobado"
+                          : exam.status === "completed"
+                          ? "Ver Resultados"
+                          : "Sin Resultados"}
                       </Button>
                     </div>
                   </div>
