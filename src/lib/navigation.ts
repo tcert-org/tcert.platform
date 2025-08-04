@@ -11,7 +11,7 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       title: "Simuladores",
       path: "/simulators",
       iconName: "BookOpen",
-      showModuleName: true,
+      showModuleName: false,
     },
     {
       title: "Examen",
@@ -23,7 +23,7 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       title: "Obtén tu Certificado",
       path: "/diploma",
       iconName: "Award",
-      showModuleName: true,
+      showModuleName: false,
     },
   ],
   partner: [

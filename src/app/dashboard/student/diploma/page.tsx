@@ -132,19 +132,32 @@ export default function CertificatePage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 px-4 items-center text-center">
-      <p className="text-base text-gray-600">
-        Felicidades por tu esfuerzo y dedicación. Aquí podrás descargar el
-        certificado.
-      </p>
+    <div className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+          Certificado de Finalización
+        </h1>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          Felicidades por tu esfuerzo y dedicación. Aquí podrás descargar tu
+          certificado oficial de certificación.
+        </p>
+      </div>
 
-      <Button onClick={handleGetCertificate} disabled={loading}>
-        {loading ? "Generando Certificado..." : "Obtener Certificado"}
-      </Button>
+      <div className="flex flex-col items-center gap-6">
+        <Button
+          onClick={handleGetCertificate}
+          disabled={loading}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200"
+        >
+          {loading ? "Generando Certificado..." : "Obtener Certificado"}
+        </Button>
 
-      {error && <p className="text-red-500 mt-4">{error}</p>}
-
-      <div className="w-full max-w-7xl mx-auto mt-8"></div>
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-md">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

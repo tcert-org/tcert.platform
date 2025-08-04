@@ -38,7 +38,7 @@ export default class ExamTool {
 
     const totalQuestions = correct + incorrect + unanswered;
     const score = totalQuestions > 0 ? (correct / totalQuestions) * 100 : 0;
-    const passed = score >= 90; //Cambiar a variable de entorno
+    const passed = score >= 75; //Cambiar a variable de entorno
 
     return {
       score: Math.round(score),

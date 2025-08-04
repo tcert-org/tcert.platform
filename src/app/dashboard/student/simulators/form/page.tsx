@@ -7,6 +7,13 @@ import QuestionSidebar from "@/modules/tools/QuestionSidebar";
 import { getShuffledQuestionOrder } from "@/modules/tools/examUtils";
 import { getShuffledOptions } from "@/modules/tools/optionUtils";
 import { autosaveAttempt } from "@/modules/tools/autosaveUtils";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Send,
+  Clock,
+  HelpCircle,
+} from "lucide-react";
 
 interface Question {
   id: number;
@@ -200,80 +207,190 @@ export default function FormSimulador() {
 
   if (!questions.length)
     return (
-      <div className="max-w-3xl mx-auto mt-10 font-sans text-center">
-        <h2>{examName}</h2>
-        <p className="mt-8">No hay preguntas para mostrar.</p>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 max-w-md w-full mx-4">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <HelpCircle className="w-8 h-8 text-blue-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              {examName}
+            </h2>
+            <p className="text-gray-600">No hay preguntas para mostrar.</p>
+          </div>
+        </div>
       </div>
     );
 
-  return (
-    <div className="max-w-5xl mx-auto mt-10 font-sans flex flex-col gap-5">
-      <h2 className="text-center mb-0">{examName}</h2>
-      <div className="flex gap-5 min-h-[450px]">
-        <QuestionSidebar
-          questions={questions}
-          currentIndex={currentIndex}
-          selectedOptions={selectedOptions}
-          onSelect={setCurrentIndex}
-          itemRefs={itemRefs}
-        />
+  const progressPercentage = ((currentIndex + 1) / questions.length) * 100;
 
-        <div className="flex-grow min-w-[480px] rounded-md shadow-md border border-gray-200 p-5 flex flex-col min-h-[350px]">
-          <h3 className="mb-5">{currentQuestion.text}</h3>
-          <div className="flex flex-col gap-4 flex-grow">
-            {loadingOptions ? (
-              <p>Cargando opciones...</p>
-            ) : options.length === 0 ? (
-              <p>No hay opciones para esta pregunta.</p>
-            ) : (
-              options.map((opt, i) => {
-                const isSelected =
-                  selectedOptions[currentQuestion.id] === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleOptionSelect(i)}
-                    className={`px-5 py-3 rounded-md text-left text-base cursor-pointer transition-all border ${
-                      isSelected
-                        ? "border-blue-900 bg-blue-100 shadow-md"
-                        : "border-gray-300 bg-white"
-                    }`}
-                  >
-                    {opt.content}
-                  </button>
-                );
-              })
-            )}
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <HelpCircle className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{examName}</h1>
+                <p className="text-sm text-gray-600">
+                  Pregunta {currentIndex + 1} de {questions.length}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Clock className="w-5 h-5 text-gray-400" />
+              <span className="text-sm text-gray-600">
+                Progreso: {Math.round(progressPercentage)}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="w-full bg-gray-200 h-1">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-purple-600 h-1 transition-all duration-300 ease-out"
+              style={{ width: `${progressPercentage}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-8 min-h-[600px]">
+          {/* Question Sidebar */}
+          <div className="w-80 flex-shrink-0">
+            <QuestionSidebar
+              questions={questions}
+              currentIndex={currentIndex}
+              selectedOptions={selectedOptions}
+              onSelect={setCurrentIndex}
+              itemRefs={itemRefs}
+            />
           </div>
 
-          <div className="mt-5 flex justify-between">
-            <button
-              onClick={goBack}
-              disabled={currentIndex === 0}
-              className={`px-6 py-3 rounded-md font-bold text-white ${
-                currentIndex === 0
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-900 hover:bg-blue-950"
-              }`}
-            >
-              Atrás
-            </button>
+          {/* Question Content */}
+          <div className="flex-1">
+            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+              {/* Question Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold">
+                        {currentIndex + 1}
+                      </span>
+                    </div>
+                    <span className="text-white/90 font-medium">Pregunta</span>
+                  </div>
+                  <div className="text-white/90 text-sm">
+                    {questions.length - Object.keys(selectedOptions).length} sin
+                    responder
+                  </div>
+                </div>
+              </div>
 
-            {isLast ? (
-              <button
-                onClick={() => setModalOpen(true)}
-                className="px-6 py-3 rounded-md bg-red-600 text-white font-bold hover:bg-red-700"
-              >
-                Enviar examen
-              </button>
-            ) : (
-              <button
-                onClick={goNext}
-                className="px-6 py-3 rounded-md bg-blue-900 text-white font-bold hover:bg-blue-950"
-              >
-                Siguiente
-              </button>
-            )}
+              {/* Question Content */}
+              <div className="p-8">
+                <h3 className="text-xl font-semibold text-gray-800 mb-8 leading-relaxed">
+                  {currentQuestion.text}
+                </h3>
+
+                <div className="space-y-4">
+                  {loadingOptions ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="ml-3 text-gray-600">
+                        Cargando opciones...
+                      </span>
+                    </div>
+                  ) : options.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500">
+                        No hay opciones para esta pregunta.
+                      </p>
+                    </div>
+                  ) : (
+                    options.map((opt, i) => {
+                      const isSelected =
+                        selectedOptions[currentQuestion.id] === opt.id;
+                      const optionLetter = String.fromCharCode(65 + i); // A, B, C, D...
+
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => handleOptionSelect(i)}
+                          className={`w-full p-4 rounded-xl text-left transition-all duration-200 border-2 group hover:shadow-md ${
+                            isSelected
+                              ? "border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-500/20"
+                              : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50"
+                          }`}
+                        >
+                          <div className="flex items-start space-x-4">
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 transition-colors ${
+                                isSelected
+                                  ? "bg-blue-500 text-white"
+                                  : "bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
+                              }`}
+                            >
+                              {optionLetter}
+                            </div>
+                            <span className="text-gray-800 leading-relaxed pt-0.5">
+                              {opt.content}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Navigation Footer */}
+              <div className="bg-gray-50 px-8 py-6 border-t border-gray-100">
+                <div className="flex justify-between items-center">
+                  <button
+                    onClick={goBack}
+                    disabled={currentIndex === 0}
+                    className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                      currentIndex === 0
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400 shadow-sm hover:shadow"
+                    }`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>Anterior</span>
+                  </button>
+
+                  {isLast ? (
+                    <button
+                      onClick={() => setModalOpen(true)}
+                      className="flex items-center space-x-2 px-8 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>Enviar Examen</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={goNext}
+                      className="flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                    >
+                      <span>Siguiente</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
