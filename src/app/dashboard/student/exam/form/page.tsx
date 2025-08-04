@@ -189,6 +189,10 @@ export default function FormExam() {
 
         // Después de 2 cambios de pestaña, redirigir automáticamente
         if (newCount >= 2) {
+          // Marcar como enviado para evitar el modal de confirmación
+          hasSubmittedRef.current = true;
+          window.onbeforeunload = null;
+
           alert(
             "🚨 EXAMEN CANCELADO: Has cambiado de pestaña 2 veces. Por seguridad, serás redirigido a la lista de exámenes."
           );
@@ -217,6 +221,10 @@ export default function FormExam() {
 
       // Después de 2 cambios de pestaña, redirigir automáticamente
       if (newCount >= 2) {
+        // Marcar como enviado para evitar el modal de confirmación
+        hasSubmittedRef.current = true;
+        window.onbeforeunload = null;
+
         alert(
           "🚨 EXAMEN CANCELADO: Has perdido el enfoque de la ventana 2 veces. Por seguridad, serás redirigido a la lista de exámenes."
         );

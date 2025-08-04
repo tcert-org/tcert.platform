@@ -37,6 +37,7 @@ export default function FormSimulador() {
   >({});
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
 
   const itemRefs = useRef<Array<HTMLDivElement | null>>([]);
 
@@ -127,8 +128,74 @@ export default function FormSimulador() {
       e.returnValue = "";
     };
 
+    // Prevenir copiar y pegar
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevenir Ctrl+C, Ctrl+V, Ctrl+A, Ctrl+X
+      if (
+        e.ctrlKey &&
+        (e.key === "c" || e.key === "v" || e.key === "a" || e.key === "x")
+      ) {
+        e.preventDefault();
+        setShowWarning(true);
+        setTimeout(() => setShowWarning(false), 3000);
+        return false;
+      }
+      // Prevenir F12, Ctrl+Shift+I (DevTools)
+      if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key === "I")) {
+        e.preventDefault();
+        setShowWarning(true);
+        setTimeout(() => setShowWarning(false), 3000);
+        return false;
+      }
+      // Prevenir Ctrl+U (ver código fuente)
+      if (e.ctrlKey && e.key === "u") {
+        e.preventDefault();
+        setShowWarning(true);
+        setTimeout(() => setShowWarning(false), 3000);
+        return false;
+      }
+      // Prevenir Ctrl+S (guardar página)
+      if (e.ctrlKey && e.key === "s") {
+        e.preventDefault();
+        setShowWarning(true);
+        setTimeout(() => setShowWarning(false), 3000);
+        return false;
+      }
+    };
+
+    // Prevenir menú contextual (click derecho)
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+      setShowWarning(true);
+      setTimeout(() => setShowWarning(false), 3000);
+      return false;
+    };
+
+    // Prevenir arrastrar elementos
+    const handleDragStart = (e: DragEvent) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Prevenir selección de texto
+    const handleSelectStart = (e: Event) => {
+      e.preventDefault();
+      return false;
+    };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("dragstart", handleDragStart);
+    document.addEventListener("selectstart", handleSelectStart);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("contextmenu", handleContextMenu);
+      document.removeEventListener("dragstart", handleDragStart);
+      document.removeEventListener("selectstart", handleSelectStart);
+    };
   }, []);
 
   const handleOptionSelect = (optionIndex: number) => {
@@ -225,7 +292,17 @@ export default function FormSimulador() {
   const progressPercentage = ((currentIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div
+      className="min-h-screen bg-white select-none"
+      style={{
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        MozUserSelect: "none",
+        msUserSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -262,6 +339,15 @@ export default function FormSimulador() {
           </div>
         </div>
       </div>
+
+      {/* Advertencia de seguridad */}
+      {showWarning && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
+          <p className="text-sm font-medium">
+            ⚠️ Acción no permitida durante el simulador
+          </p>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

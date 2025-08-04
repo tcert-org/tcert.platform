@@ -325,99 +325,120 @@ export default function StudentExamPage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {exams.map((exam) => {
-            const config = statusConfig[exam.status];
-            const StatusIcon = config.icon;
+        <div className="flex justify-center">
+          <div className="w-full max-w-2xl">
+            {exams.map((exam) => {
+              const config = statusConfig[exam.status];
+              const StatusIcon = config.icon;
 
-            return (
-              <div
-                key={exam.id}
-                className={`group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${config.borderColor} overflow-hidden transform hover:-translate-y-1`}
-              >
-                {/* Header con gradiente */}
+              return (
                 <div
-                  className={`${config.bgColor} px-6 py-4 border-b ${config.borderColor}`}
+                  key={exam.id}
+                  className={`group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 border-2 ${config.borderColor} overflow-hidden transform hover:-translate-y-2`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 bg-white rounded-lg shadow-sm`}>
-                        <Lightbulb className={`w-6 h-6 ${config.color}`} />
+                  {/* Header con gradiente más grande */}
+                  <div
+                    className={`${config.bgColor} px-8 py-6 border-b ${config.borderColor}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-3 bg-white rounded-xl shadow-md`}>
+                          <Lightbulb className={`w-8 h-8 ${config.color}`} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-800 text-xl group-hover:text-blue-600 transition-colors">
+                            {exam.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Examen Oficial de Certificación
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-bold text-gray-800 text-lg group-hover:text-blue-600 transition-colors">
-                          {exam.name}
-                        </h3>
+                      <div
+                        className={`px-4 py-2 rounded-full text-sm font-medium ${config.badgeColor} flex items-center gap-2`}
+                      >
+                        <StatusIcon className="w-4 h-4" />
+                        {config.label}
                       </div>
-                    </div>
-                    <div
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${config.badgeColor} flex items-center gap-1`}
-                    >
-                      <StatusIcon className="w-3 h-3" />
-                      {config.label}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contenido */}
-                <div className="p-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        <span>Examen oficial de certificación</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <BarChart3 className="w-4 h-4" />
-                      <span>Resultado final para certificación</span>
                     </div>
                   </div>
 
-                  {/* Botones de acción */}
-                  <div className="mt-6 space-y-3">
-                    <Button
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 group border-0"
-                      onClick={() => handleStartExam(exam.id)}
-                    >
-                      <Play className="w-4 h-4 mr-2 group-hover:translate-x-1 transition-transform" />
-                      {exam.status === "completed"
-                        ? "Repetir Examen"
-                        : "Iniciar Examen"}
-                    </Button>
+                  {/* Contenido más espacioso */}
+                  <div className="p-8">
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <span className="font-medium">
+                            Examen oficial de certificación
+                          </span>
+                        </div>
+                      </div>
 
-                    <Button
-                      variant={
-                        exam.status === "completed" ? "default" : "outline"
-                      }
-                      className={`w-full border-2 group transition-all duration-200 ${
-                        exam.status === "completed"
-                          ? "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700"
-                          : "hover:bg-gray-50 text-gray-400 border-gray-300 cursor-not-allowed"
-                      }`}
-                      onClick={() => handleViewResults(exam.id)}
-                      disabled={exam.status === "not_started"}
-                    >
-                      <BarChart3
-                        className={`w-4 h-4 mr-2 transition-transform ${
+                      <div className="flex items-center gap-3 text-gray-600">
+                        <BarChart3 className="w-5 h-5" />
+                        <span className="font-medium">
+                          Resultado final para certificación
+                        </span>
+                      </div>
+
+                      <div className="bg-gray-50 rounded-xl p-4">
+                        <h4 className="font-semibold text-gray-800 mb-2">
+                          Información del Examen:
+                        </h4>
+                        <ul className="text-sm text-gray-600 space-y-1">
+                          <li>• Examen cronometrado</li>
+                          <li>• Una sola oportunidad por intento</li>
+                          <li>• Resultado inmediato</li>
+                          <li>• Certificado oficial al aprobar</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Botones de acción más grandes */}
+                    <div className="mt-8 space-y-4">
+                      <Button
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-4 shadow-lg hover:shadow-xl transition-all duration-200 group border-0 rounded-xl"
+                        onClick={() => handleStartExam(exam.id)}
+                      >
+                        <Play className="w-5 h-5 mr-3 group-hover:translate-x-1 transition-transform" />
+                        {exam.status === "completed"
+                          ? "Repetir Examen"
+                          : "Iniciar Examen"}
+                      </Button>
+
+                      <Button
+                        variant={
+                          exam.status === "completed" ? "default" : "outline"
+                        }
+                        className={`w-full border-2 group transition-all duration-200 font-bold text-lg py-4 rounded-xl ${
                           exam.status === "completed"
-                            ? "group-hover:scale-110"
-                            : ""
+                            ? "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-lg hover:shadow-xl"
+                            : "hover:bg-gray-50 text-gray-400 border-gray-300 cursor-not-allowed"
                         }`}
-                      />
-                      {exam.status === "completed"
-                        ? "Ver Resultados"
-                        : "Sin Resultados"}
-                    </Button>
+                        onClick={() => handleViewResults(exam.id)}
+                        disabled={exam.status === "not_started"}
+                      >
+                        <BarChart3
+                          className={`w-5 h-5 mr-3 transition-transform ${
+                            exam.status === "completed"
+                              ? "group-hover:scale-110"
+                              : ""
+                          }`}
+                        />
+                        {exam.status === "completed"
+                          ? "Ver Resultados"
+                          : "Sin Resultados"}
+                      </Button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Efecto de brillo en hover */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
-              </div>
-            );
-          })}
+                  {/* Efecto de brillo en hover más sutil */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
