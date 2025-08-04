@@ -96,4 +96,9 @@ export default class AttemptService {
     // Llamamos directamente a getBestAndLastExamAttempt de AttemptsTable
     return await this.table.getBestAndLastExamAttempt(examId, studentId);
   }
+
+  // Método para obtener todos los intentos aprobados de un estudiante
+  async getApprovedAttempts(studentId: number) {
+    return await this.table.getApprovedAttempts(studentId);
+  }
 }

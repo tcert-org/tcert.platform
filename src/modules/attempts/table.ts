@@ -114,4 +114,21 @@ export default class AttemptsTable extends Table<"exam_attempts"> {
       last_attempt: lastAttempt,
     };
   }
+
+  // Método para obtener todos los intentos aprobados de un estudiante
+  async getApprovedAttempts(studentId: number) {
+    const { data: attempts, error } = await supabase
+      .from("exam_attempts")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("passed", true)
+      .order("attempt_date", { ascending: false });
+
+    if (error) {
+      console.error("Error al obtener los intentos aprobados:", error);
+      throw new Error("Error al obtener los intentos aprobados.");
+    }
+
+    return attempts || [];
+  }
 }

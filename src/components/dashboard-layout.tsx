@@ -14,6 +14,7 @@ import {
   ShoppingBag,
   BarChart,
   Users,
+  Award,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -24,6 +25,7 @@ const iconMap: Record<string, React.ElementType> = {
   ShoppingBag,
   BarChart,
   Users,
+  Award,
 };
 
 interface DashboardLayoutProps {
@@ -31,7 +33,7 @@ interface DashboardLayoutProps {
   userProfile: ProfileWithRole | null; // Updated to use ProfileWithRole
   menuItems: MenuItem[];
   currentModuleName: string;
-  showModuleName: boolean
+  showModuleName: boolean;
 }
 
 export function DashboardLayout({
@@ -39,14 +41,12 @@ export function DashboardLayout({
   userProfile,
   menuItems,
   currentModuleName,
-  showModuleName
+  showModuleName,
 }: DashboardLayoutProps) {
   return (
     <div className="[--header-height:calc(theme(spacing.14))]">
       <SidebarProvider className="flex flex-col">
-        <SiteHeader
-          currentModuleName={currentModuleName}
-        />
+        <SiteHeader currentModuleName={currentModuleName} />
         <div className="flex flex-1">
           <AppSidebar
             userProfile={userProfile}
