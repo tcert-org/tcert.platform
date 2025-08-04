@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import ConfirmModal from "@/modules/tools/Modal_Confirmacion_Simulador";
 import QuestionSidebar from "@/modules/tools/QuestionSidebar";
@@ -29,6 +29,8 @@ export default function FormExam() {
   const examId = searchParams.get("id") ?? "";
 
   const [examName, setExamName] = useState("Cargando título...");
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [options, setOptions] = useState<Option[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -65,6 +67,12 @@ export default function FormExam() {
         if (!examRes.ok) throw new Error("Error al obtener el examen");
         const examData = await examRes.json();
         setExamName(examData.name_exam || "Examen sin nombre");
+
+        // Establecer el tiempo límite del examen
+        if (examData.time_limit && examData.time_limit > 0) {
+          const timeLimitInSeconds = examData.time_limit * 60; // Convertir minutos a segundos
+          setTimeRemaining(timeLimitInSeconds);
+        }
 
         if (!questionRes.ok) throw new Error("Error al obtener preguntas");
         const questionData = await questionRes.json();
@@ -116,6 +124,169 @@ export default function FormExam() {
 
     fetchOptions();
   }, [questions, currentIndex, examId]);
+
+  // Función para formatear el tiempo
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
+        .toString()
+        .padStart(2, "0")}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleSubmit = useCallback(async () => {
+    hasSubmittedRef.current = true;
+    window.onbeforeunload = null;
+
+    try {
+      const attemptRes = await fetch("/api/attempts/current", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!attemptRes.ok) {
+        console.error("Error al obtener intento activo", attemptRes);
+        alert("Error al obtener el intento activo");
+        return;
+      }
+
+      const attemptResult = await attemptRes.json();
+      const attemptId = attemptResult?.data?.id;
+
+      if (!attemptId) {
+        alert("No se encontró intento activo");
+        return;
+      }
+
+      // Paso 1: Obtener las respuestas
+      const payload = questions.map((q) => ({
+        exam_attempt_id: Number(attemptId),
+        question_id: q.id,
+        selected_option_id: selectedOptions[q.id] ?? null,
+      }));
+
+      const res = await fetch("/api/answers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answers: payload }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        console.error("Error al guardar respuestas:", error);
+        alert(error?.error || "Error al guardar respuestas");
+        return;
+      }
+
+      // Paso 2: Calificar el examen
+      const gradeRes = await fetch("/api/attempts/grade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
+      });
+
+      if (!gradeRes.ok) {
+        const error = await gradeRes.json();
+        console.error("Error al calificar examen:", error);
+        alert("Error al calificar examen");
+        return;
+      }
+
+      const gradeData = await gradeRes.json();
+
+      // Verificar múltiples posibles campos de respuesta
+      const passed =
+        gradeData?.passed || gradeData?.data?.passed || gradeData?.success;
+
+      // Si passed es true, actualizamos el estado del voucher
+      if (passed === true) {
+        try {
+          const sessionRaw = sessionStorage.getItem("student-data");
+          const session = JSON.parse(sessionRaw || "{}");
+          const voucherId = session?.state?.decryptedStudent?.voucher_id;
+
+          if (voucherId) {
+            const updatePayload = {
+              voucher_id: voucherId,
+              new_status_id: 5, // Aprobado (ID para Aprobado)
+              is_used: true,
+            };
+
+            const updateVoucherRes = await fetch("/api/voucher-state", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(updatePayload),
+            });
+
+            if (!updateVoucherRes.ok) {
+              console.error("Error al actualizar el estado del voucher");
+            }
+          }
+        } catch (voucherError) {
+          console.error("Error al procesar voucher:", voucherError);
+        }
+      }
+
+      // Limpiar los datos locales después de enviar el examen
+      localStorage.removeItem(`simulator_${examId}_question_order`);
+      questions.forEach((q) => {
+        localStorage.removeItem(
+          `simulator_${examId}_question_${q.id}_option_order`
+        );
+      });
+
+      // Redirigir a la lista de exámenes
+      window.location.href = "/dashboard/student/exam";
+    } catch (err) {
+      console.error("Error al enviar examen:", err);
+      alert("Error inesperado al finalizar el examen");
+    }
+  }, [examId, questions, selectedOptions]);
+
+  // Función para manejar cuando se acaba el tiempo
+  const handleTimeUp = useCallback(async () => {
+    if (hasSubmittedRef.current) return;
+
+    alert("⏰ TIEMPO AGOTADO: El examen se enviará automáticamente.");
+
+    // Enviar el examen automáticamente
+    await handleSubmit();
+  }, [handleSubmit]);
+
+  // useEffect para el temporizador
+  useEffect(() => {
+    if (timeRemaining === null || timeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          // Tiempo agotado - auto enviar examen
+          clearInterval(timer);
+          handleTimeUp();
+          return 0;
+        }
+
+        // Mostrar advertencia cuando quedan exactamente 5 minutos (300 segundos)
+        if (prev === 301) {
+          setShowTimeWarning(true);
+          // Ocultar la advertencia después de 10 segundos
+          setTimeout(() => {
+            setShowTimeWarning(false);
+          }, 10000);
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining, handleTimeUp]);
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -294,116 +465,6 @@ export default function FormExam() {
   };
   const isLast = currentIndex === questions.length - 1;
 
-  const handleSubmit = async () => {
-    hasSubmittedRef.current = true;
-    window.onbeforeunload = null;
-
-    try {
-      const attemptRes = await fetch("/api/attempts/current", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!attemptRes.ok) {
-        console.error("Error al obtener intento activo", attemptRes);
-        alert("Error al obtener el intento activo");
-        return;
-      }
-
-      const attemptResult = await attemptRes.json();
-      const attemptId = attemptResult?.data?.id;
-
-      if (!attemptId) {
-        alert("No se encontró intento activo");
-        return;
-      }
-
-      // Paso 1: Obtener las respuestas
-      const payload = questions.map((q) => ({
-        exam_attempt_id: Number(attemptId),
-        question_id: q.id,
-        selected_option_id: selectedOptions[q.id] ?? null,
-      }));
-
-      const res = await fetch("/api/answers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: payload }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        console.error("Error al guardar respuestas:", error);
-        alert(error?.error || "Error al guardar respuestas");
-        return;
-      }
-
-      // Paso 2: Calificar el examen
-      const gradeRes = await fetch("/api/attempts/grade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
-      });
-
-      if (!gradeRes.ok) {
-        const error = await gradeRes.json();
-        console.error("Error al calificar examen:", error);
-        alert("Error al calificar examen");
-        return;
-      }
-
-      const gradeData = await gradeRes.json();
-
-      // Verificar múltiples posibles campos de respuesta
-      const passed =
-        gradeData?.passed || gradeData?.data?.passed || gradeData?.success;
-
-      // Si passed es true, actualizamos el estado del voucher
-      if (passed === true) {
-        try {
-          const sessionRaw = sessionStorage.getItem("student-data");
-          const session = JSON.parse(sessionRaw || "{}");
-          const voucherId = session?.state?.decryptedStudent?.voucher_id;
-
-          if (voucherId) {
-            const updatePayload = {
-              voucher_id: voucherId,
-              new_status_id: 5, // Aprobado (ID para Aprobado)
-              is_used: true,
-            };
-
-            const updateVoucherRes = await fetch("/api/voucher-state", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(updatePayload),
-            });
-
-            if (!updateVoucherRes.ok) {
-              console.error("Error al actualizar el estado del voucher");
-            }
-          }
-        } catch (voucherError) {
-          console.error("Error al procesar voucher:", voucherError);
-        }
-      }
-
-      // Limpiar los datos locales después de enviar el examen
-      localStorage.removeItem(`simulator_${examId}_question_order`);
-      questions.forEach((q) => {
-        localStorage.removeItem(
-          `simulator_${examId}_question_${q.id}_option_order`
-        );
-      });
-
-      // Redirigir a la lista de exámenes
-      window.location.href = "/dashboard/student/exam";
-    } catch (err) {
-      console.error("Error al enviar examen:", err);
-      alert("Error inesperado al finalizar el examen");
-    }
-  };
-
   if (!questions.length)
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -455,6 +516,22 @@ export default function FormExam() {
               <span className="text-sm text-gray-600">
                 Progreso: {Math.round(progressPercentage)}%
               </span>
+              {timeRemaining !== null && (
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-5 h-5 text-orange-500" />
+                  <span
+                    className={`text-sm font-medium ${
+                      timeRemaining <= 300
+                        ? "text-red-600"
+                        : timeRemaining <= 900
+                        ? "text-orange-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {formatTime(timeRemaining)}
+                  </span>
+                </div>
+              )}
               {tabSwitchCount > 0 && (
                 <div
                   className={`flex items-center space-x-1 px-2 py-1 rounded-full ${
@@ -492,6 +569,19 @@ export default function FormExam() {
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
           <p className="text-sm font-medium">
             ⚠️ Acción no permitida durante el examen
+          </p>
+        </div>
+      )}
+
+      {/* Advertencia de tiempo */}
+      {showTimeWarning && timeRemaining !== null && (
+        <div className="fixed top-32 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg max-w-md text-center animate-pulse">
+          <p className="text-sm font-bold">⏰ ADVERTENCIA DE TIEMPO</p>
+          <p className="text-xs mt-1">
+            Quedan menos de 5 minutos: {formatTime(timeRemaining)}
+          </p>
+          <p className="text-xs mt-1">
+            El examen se enviará automáticamente cuando se acabe el tiempo
           </p>
         </div>
       )}
