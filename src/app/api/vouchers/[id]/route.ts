@@ -18,8 +18,9 @@ export async function GET(
       purchase_date,
       expiration_date,
       certification_id,
-      certification:certifications ( name, logo_url )
-
+      status_id,
+      certification:certifications ( name, logo_url ),
+      voucher_status:voucher_statuses ( name )
     `
     )
     .eq("id", id)
@@ -35,6 +36,10 @@ export async function GET(
     ? data.certification[0]
     : data.certification;
 
+  const voucherStatus = Array.isArray(data.voucher_status)
+    ? data.voucher_status[0]
+    : data.voucher_status;
+
   const formattedData = {
     id: data.id,
     code: data.code,
@@ -43,8 +48,10 @@ export async function GET(
     purchase_date: data.purchase_date,
     expiration_date: data.expiration_date,
     certification_id: data.certification_id,
+    status_id: data.status_id,
     certification_name: certification?.name ?? "N/A",
     certification_logo_url: certification?.logo_url ?? null,
+    status_name: voucherStatus?.name ?? "Sin estado",
   };
 
   return new Response(JSON.stringify({ data: formattedData }), { status: 200 });
