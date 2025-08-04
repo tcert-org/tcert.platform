@@ -101,17 +101,21 @@ BEGIN
                 u.id,
                 u.company_name,
                 u.email,
-                COUNT(v.id) AS total_vouchers,
-                COUNT(v.id) FILTER (WHERE v.used) AS used_vouchers,
-                COUNT(v.id) FILTER (WHERE NOT v.used) AS unused_vouchers,
-                u.created_at
+                u.created_at,
+                -- Calcular vouchers comprados de la tabla payments
+                COALESCE(SUM(p.voucher_quantity), 0)::BIGINT AS total_vouchers,
+                -- Calcular vouchers asignados (usados) de la tabla vouchers
+                COALESCE(COUNT(DISTINCT v.id), 0)::BIGINT AS used_vouchers,
+                -- Calcular vouchers disponibles (comprados - asignados)
+                COALESCE(SUM(p.voucher_quantity), 0)::BIGINT - COALESCE(COUNT(DISTINCT v.id), 0)::BIGINT AS unused_vouchers
             FROM users u
+            LEFT JOIN payments p ON p.partner_id = u.id
             LEFT JOIN vouchers v ON v.partner_id = u.id
             WHERE u.role_id = (SELECT id FROM roles WHERE name = 'partner')
                 %s -- filtro company_name
                 %s -- filtro email
                 %s -- filtro created_at
-            GROUP BY u.id
+            GROUP BY u.id, u.company_name, u.email, u.created_at
         ),
         filtered AS (
             SELECT *,
