@@ -15,12 +15,49 @@ export default class VoucherStateTable extends Table<"vouchers"> {
   async getVoucherState(voucherId: number) {
     const { data, error } = await supabase
       .from("vouchers")
-      .select("status_id")
+      .select(
+        `
+        status_id,
+        voucher_statuses!inner(
+          id,
+          name,
+          slug
+        )
+      `
+      )
       .eq("id", voucherId)
       .single();
 
     if (error) {
-      console.error("Error al obtener el estado del voucher:", error);
+      return null;
+    }
+
+    return data;
+  }
+
+  // Nuevo método para obtener el ID de un status por su slug
+  async getStatusIdBySlug(slug: string) {
+    const { data, error } = await supabase
+      .from("voucher_statuses")
+      .select("id")
+      .eq("slug", slug)
+      .single();
+
+    if (error) {
+      return null;
+    }
+
+    return data?.id || null;
+  }
+
+  // Nuevo método para obtener información completa de todos los statuses
+  async getAllStatuses() {
+    const { data, error } = await supabase
+      .from("voucher_statuses")
+      .select("id, name, slug")
+      .order("id");
+
+    if (error) {
       return null;
     }
 

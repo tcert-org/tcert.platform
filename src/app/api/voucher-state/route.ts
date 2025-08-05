@@ -34,27 +34,33 @@ export async function GET(req: NextRequest) {
 }
 export async function PATCH(req: NextRequest) {
   try {
-    // Imprimir los datos que recibimos
-    const { voucher_id, new_status_id, is_used } = await req.json();
-    console.log(
-      "📥 Datos recibidos en el endpoint para actualizar el estado del voucher:"
-    );
-    console.log("voucher_id:", voucher_id);
-    console.log("new_status_id:", new_status_id);
-    console.log("is_used:", is_used);
+    const body = await req.json();
+    const { voucher_id, new_status_id, new_status_slug, is_used } = body;
 
-    const response = await VoucherStateController.updateVoucherState(
-      voucher_id,
-      new_status_id,
-      is_used
-    );
-
-    return response;
-  } catch (error) {
-    console.error(
-      "⚠️ Error en la ruta al actualizar el estado del voucher:",
-      error
-    );
+    // Determinar si usar slug o ID
+    if (new_status_slug) {
+      // Usar el nuevo método con slug
+      const response = await VoucherStateController.updateVoucherStateBySlug(
+        voucher_id,
+        new_status_slug,
+        is_used
+      );
+      return response;
+    } else if (new_status_id) {
+      // Usar el método tradicional con ID
+      const response = await VoucherStateController.updateVoucherState(
+        voucher_id,
+        new_status_id,
+        is_used
+      );
+      return response;
+    } else {
+      return NextResponse.json({
+        statusCode: 400,
+        error: "Se requiere 'new_status_id' o 'new_status_slug'.",
+      });
+    }
+  } catch {
     return NextResponse.json({
       statusCode: 500,
       data: null,

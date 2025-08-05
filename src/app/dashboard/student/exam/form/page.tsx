@@ -214,7 +214,7 @@ export default function FormExam() {
           if (voucherId) {
             const updatePayload = {
               voucher_id: voucherId,
-              new_status_id: 5, // Aprobado (ID para Aprobado)
+              new_status_slug: "aprobado", // Usar slug en lugar de ID
               is_used: true,
             };
 

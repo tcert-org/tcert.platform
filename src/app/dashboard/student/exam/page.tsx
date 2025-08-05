@@ -48,8 +48,63 @@ export default function StudentExamPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [examDetails, setExamDetails] = useState<any>(null);
-  const [voucherStatus, setVoucherStatus] = useState<number | null>(null);
+  const [voucherStatusSlug, setVoucherStatusSlug] = useState<string | null>(
+    null
+  );
   const router = useRouter();
+
+  // Función para obtener el número de intento basado en el slug
+  const getAttemptNumber = (slug: string | null): number => {
+    switch (slug) {
+      case "sin-presentar":
+        return 0;
+      case "re-take-1":
+        return 1;
+      case "re-take-2":
+        return 2;
+      case "perdido":
+        return 3; // Todos los intentos agotados
+      case "aprobado":
+        return -1; // Aprobado, no aplica
+      default:
+        return 0;
+    }
+  };
+
+  // Función para obtener los intentos restantes
+  const getRemainingAttempts = (slug: string | null): number => {
+    const attemptNumber = getAttemptNumber(slug);
+    return attemptNumber >= 3 ? 0 : 3 - attemptNumber;
+  };
+
+  // Función auxiliar para mapear IDs a slugs (temporal para migración)
+  const mapStatusIdToSlug = (statusId: number): string | null => {
+    const statusMap = {
+      1: "sin-presentar",
+      2: "perdido",
+      3: "perdido",
+      4: "perdido",
+      5: "aprobado",
+      6: "re-take-1",
+      7: "re-take-2",
+    };
+    return statusMap[statusId as keyof typeof statusMap] || null;
+  };
+
+  // Función auxiliar para verificar si el voucher está en estado final
+  const isVoucherInFinalState = (): boolean => {
+    return voucherStatusSlug === "perdido" || voucherStatusSlug === "aprobado";
+  };
+
+  // Función auxiliar para verificar si está aprobado
+  const isVoucherApproved = (): boolean => {
+    return voucherStatusSlug === "aprobado";
+  };
+
+  // Función auxiliar para verificar si está reprobado/perdido
+  const isVoucherFailed = (): boolean => {
+    return voucherStatusSlug === "perdido";
+  };
 
   useEffect(() => {
     async function fetchExams() {
@@ -61,7 +116,6 @@ export default function StudentExamPage() {
         const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
         if (!voucherId) {
-          console.warn("voucher_id no disponible en la sesión");
           setExams([]);
           return;
         }
@@ -69,16 +123,28 @@ export default function StudentExamPage() {
         // Obtener el estado del voucher
         try {
           const voucherResponse = await fetch(
-            `/api/attempts/grade?voucher_id=${voucherId}`
+            `/api/voucher-state?voucher_id=${voucherId}`
           );
           if (voucherResponse.ok) {
             const voucherData = await voucherResponse.json();
-            const statusId = voucherData?.data?.status_id;
-            setVoucherStatus(statusId);
-            console.log("Estado del voucher:", statusId);
+            const statusSlug = voucherData?.data?.voucher_statuses?.slug;
+            setVoucherStatusSlug(statusSlug);
           }
-        } catch (error) {
-          console.error("Error obteniendo estado del voucher:", error);
+        } catch {
+          // Fallback al método anterior
+          try {
+            const voucherResponse = await fetch(
+              `/api/attempts/grade?voucher_id=${voucherId}`
+            );
+            if (voucherResponse.ok) {
+              const voucherData = await voucherResponse.json();
+              const statusId = voucherData?.data?.status_id;
+              const mappedSlug = mapStatusIdToSlug(statusId);
+              setVoucherStatusSlug(mappedSlug);
+            }
+          } catch {
+            // Continúa sin estado de voucher
+          }
         }
 
         // Primero obtenemos el student_id
@@ -88,7 +154,6 @@ export default function StudentExamPage() {
         const studentData = await studentResponse.json();
 
         if (!studentResponse.ok || !studentData?.data?.id) {
-          console.warn("No se pudo obtener el ID del estudiante");
           setExams([]);
           return;
         }
@@ -125,10 +190,6 @@ export default function StudentExamPage() {
                     : ("not_started" as ExamStatus),
                 };
               } catch {
-                // Solo loggear errores que no sean de red/fetch
-                console.warn(
-                  `No se pudieron verificar resultados para examen ${exam.id}`
-                );
                 return {
                   id: exam.id,
                   name: exam.name_exam || "Sin nombre",
@@ -140,8 +201,7 @@ export default function StudentExamPage() {
 
           setExams(examsWithStatus);
         }
-      } catch (err) {
-        console.error("Error al obtener examen:", err);
+      } catch {
         setExams([]);
       } finally {
         setLoading(false);
@@ -152,9 +212,9 @@ export default function StudentExamPage() {
   }, []);
 
   const handleStartExam = async (examId: number) => {
-    // Verificar si el voucher ya está en estado final (4: Reprobado o 5: Aprobado)
-    if (voucherStatus === 4 || voucherStatus === 5) {
-      const statusText = voucherStatus === 4 ? "reprobado" : "aprobado";
+    // Verificar si el voucher ya está en estado final usando la función auxiliar
+    if (isVoucherInFinalState()) {
+      const statusText = isVoucherApproved() ? "aprobado" : "perdido";
       alert(
         `No puedes iniciar el examen porque ya tienes un resultado ${statusText}.`
       );
@@ -165,7 +225,6 @@ export default function StudentExamPage() {
     const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
     if (!voucherId) {
-      console.warn("voucher_id no disponible en la sesión");
       alert("No se pudo obtener tu voucher.");
       return;
     }
@@ -183,20 +242,40 @@ export default function StudentExamPage() {
 
       const voucherData = await voucherRes.json();
 
-      if (!voucherRes.ok || !voucherData?.data?.status_id) {
-        console.error("Error al obtener el estado del voucher", voucherData);
+      if (!voucherRes.ok || !voucherData?.data) {
         alert("No se pudo obtener el estado del voucher.");
         return;
       }
 
-      let newStatusId = 0;
+      // Obtener el slug actual, puede venir directo o mediante el mapeo de ID
+      let currentSlug = voucherData.data.voucher_statuses?.slug;
+      if (!currentSlug && voucherData.data.status_id) {
+        currentSlug = mapStatusIdToSlug(voucherData.data.status_id);
+      }
 
-      if (voucherData.data.status_id === 3) {
-        newStatusId = 6; // "re-take-1"
-      } else if (voucherData.data.status_id === 6) {
-        newStatusId = 7; // "re-take-2"
-      } else if (voucherData.data.status_id === 7) {
-        newStatusId = 4; // "reprobado"
+      if (!currentSlug) {
+        alert("No se pudo determinar el estado del voucher.");
+        return;
+      }
+
+      console.log("Estado actual del voucher:", currentSlug);
+
+      let newStatusSlug = "";
+
+      // Flujo correcto: sin-presentar -> re-take-1 -> re-take-2 -> perdido
+      switch (currentSlug) {
+        case "sin-presentar":
+          newStatusSlug = "re-take-1";
+          break;
+        case "re-take-1":
+          newStatusSlug = "re-take-2";
+          break;
+        case "re-take-2":
+          newStatusSlug = "perdido";
+          break;
+        default:
+          alert("No puedes iniciar el examen en este momento.");
+          return;
       }
 
       const res = await fetch("/api/voucher-state", {
@@ -204,14 +283,12 @@ export default function StudentExamPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           voucher_id: voucherId,
-          new_status_id: newStatusId,
+          new_status_slug: newStatusSlug,
           is_used: false,
         }),
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        console.error("Error al actualizar el estado del voucher", error);
         alert("Error al actualizar el estado del voucher");
         return;
       }
@@ -233,8 +310,7 @@ export default function StudentExamPage() {
       }
 
       router.push(`/dashboard/student/exam/form?id=${examId}`);
-    } catch (err) {
-      console.error("Error al iniciar examen:", err);
+    } catch {
       alert("Error inesperado.");
     }
   };
@@ -261,10 +337,7 @@ export default function StudentExamPage() {
         return;
       }
 
-      const studentId = studentData.data.id; // Usamos el student_id obtenido
-
-      console.log("Este es el ID del examen:", examId);
-      console.log("Este es el ID del estudiante:", studentId);
+      const studentId = studentData.data.id;
 
       // Ahora hacemos la solicitud para obtener los resultados del examen
       const res = await fetch(
@@ -274,15 +347,9 @@ export default function StudentExamPage() {
       if (res.ok) {
         const result = await res.json();
 
-        console.log("Data de los resultados del examen result:", result);
-        console.log(
-          "Data de los resultados del examen result.data:",
-          result.data
-        );
-
         if (result && result.data) {
-          setExamDetails(result.data); // Guardamos los detalles de la calificación
-          setIsModalOpen(true); // Abrimos el modal para mostrar los resultados
+          setExamDetails(result.data);
+          setIsModalOpen(true);
 
           // Actualizamos el estado del examen a "completed" si no lo estaba ya
           setExams((prev) =>
@@ -313,13 +380,8 @@ export default function StudentExamPage() {
             "No se pudieron obtener los resultados. Por favor, intenta más tarde."
           );
         }
-        console.error(
-          "Error al obtener los resultados del examen. Status:",
-          res.status
-        );
       }
-    } catch (err) {
-      console.error("Error al obtener los resultados del examen", err);
+    } catch {
       alert(
         "Error de conexión. Verifica tu conexión a internet e intenta nuevamente."
       );
@@ -422,6 +484,17 @@ export default function StudentExamPage() {
                           <li>• Una sola oportunidad por intento</li>
                           <li>• Resultado inmediato</li>
                           <li>• Certificado oficial al aprobar</li>
+                          {voucherStatusSlug && !isVoucherInFinalState() && (
+                            <li className="font-medium text-blue-600">
+                              • Intentos restantes:{" "}
+                              {getRemainingAttempts(voucherStatusSlug)}
+                            </li>
+                          )}
+                          {voucherStatusSlug === "sin-presentar" && (
+                            <li className="font-medium text-green-600">
+                              • Este es tu primer intento
+                            </li>
+                          )}
                         </ul>
                       </div>
                     </div>
@@ -429,24 +502,24 @@ export default function StudentExamPage() {
                     {/* Botones de acción más grandes */}
                     <div className="mt-8 space-y-4">
                       {/* Mensaje de estado del voucher */}
-                      {voucherStatus === 4 && (
+                      {isVoucherFailed() && (
                         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
                           <div className="flex items-center">
                             <AlertCircle className="w-5 h-5 text-red-600 mr-3" />
                             <div>
                               <p className="font-semibold text-red-800">
-                                Examen Reprobado
+                                Examen Perdido
                               </p>
                               <p className="text-sm text-red-600">
-                                Ya has completado este examen con resultado
-                                reprobatorio. No puedes volver a tomarlo.
+                                Has agotado todos tus intentos disponibles. No
+                                puedes volver a tomar este examen.
                               </p>
                             </div>
                           </div>
                         </div>
                       )}
 
-                      {voucherStatus === 5 && (
+                      {isVoucherApproved() && (
                         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
                           <div className="flex items-center">
                             <CheckCircle2 className="w-5 h-5 text-green-600 mr-3" />
@@ -465,23 +538,23 @@ export default function StudentExamPage() {
 
                       <Button
                         className={`w-full font-bold text-lg py-4 shadow-lg transition-all duration-200 group border-0 rounded-xl ${
-                          voucherStatus === 4 || voucherStatus === 5
+                          isVoucherInFinalState()
                             ? "bg-gray-400 cursor-not-allowed text-gray-600"
                             : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl"
                         }`}
                         onClick={() => handleStartExam(exam.id)}
-                        disabled={voucherStatus === 4 || voucherStatus === 5}
+                        disabled={isVoucherInFinalState()}
                       >
                         <Play
                           className={`w-5 h-5 mr-3 transition-transform ${
-                            voucherStatus === 4 || voucherStatus === 5
+                            isVoucherInFinalState()
                               ? ""
                               : "group-hover:translate-x-1"
                           }`}
                         />
-                        {voucherStatus === 4
-                          ? "Examen Reprobado"
-                          : voucherStatus === 5
+                        {isVoucherFailed()
+                          ? "Examen Perdido"
+                          : isVoucherApproved()
                           ? "Examen Aprobado"
                           : exam.status === "completed"
                           ? "Repetir Examen"
@@ -490,19 +563,15 @@ export default function StudentExamPage() {
 
                       <Button
                         variant={
-                          exam.status === "completed" ||
-                          voucherStatus === 4 ||
-                          voucherStatus === 5
+                          exam.status === "completed" || isVoucherInFinalState()
                             ? "default"
                             : "outline"
                         }
                         className={`w-full border-2 group transition-all duration-200 font-bold text-lg py-4 rounded-xl ${
-                          exam.status === "completed" ||
-                          voucherStatus === 4 ||
-                          voucherStatus === 5
-                            ? voucherStatus === 5
+                          exam.status === "completed" || isVoucherInFinalState()
+                            ? isVoucherApproved()
                               ? "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-lg hover:shadow-xl"
-                              : voucherStatus === 4
+                              : isVoucherFailed()
                               ? "bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 shadow-lg hover:shadow-xl"
                               : "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-lg hover:shadow-xl"
                             : "hover:bg-gray-50 text-gray-400 border-gray-300 cursor-not-allowed"
@@ -510,23 +579,21 @@ export default function StudentExamPage() {
                         onClick={() => handleViewResults(exam.id)}
                         disabled={
                           exam.status === "not_started" &&
-                          voucherStatus !== 4 &&
-                          voucherStatus !== 5
+                          !isVoucherInFinalState()
                         }
                       >
                         <BarChart3
                           className={`w-5 h-5 mr-3 transition-transform ${
                             exam.status === "completed" ||
-                            voucherStatus === 4 ||
-                            voucherStatus === 5
+                            isVoucherInFinalState()
                               ? "group-hover:scale-110"
                               : ""
                           }`}
                         />
-                        {voucherStatus === 5
+                        {isVoucherApproved()
                           ? "Ver Resultado: Aprobado"
-                          : voucherStatus === 4
-                          ? "Ver Resultado: Reprobado"
+                          : isVoucherFailed()
+                          ? "Ver Resultado: Perdido"
                           : exam.status === "completed"
                           ? "Ver Resultados"
                           : "Sin Resultados"}
