@@ -14,14 +14,6 @@ import {
 } from "@/components/ui/dialog";
 import { useUserStore } from "@/stores/user-store";
 
-type MembershipRow = {
-  id: number;
-  name: "Bronce" | "Plata" | "Oro" | "Diamante" | string;
-  price: number;
-  count_from: number;
-  count_up: number;
-};
-
 const membershipColor: Record<string, string> = {
   Bronce: "bg-yellow-700 text-white",
   Plata: "bg-gray-500 text-white",
@@ -32,7 +24,7 @@ const membershipColor: Record<string, string> = {
 export default function AssignVoucherForm() {
   const [quantity, setQuantity] = useState<number>(1);
   const [loading, setLoading] = useState(false);
-  const { getUser, refreshUser } = useUserStore();
+  const { getUser } = useUserStore();
 
   const [membershipName, setMembershipName] = useState<string | null>(null);
   const [unitPrice, setUnitPrice] = useState<number | null>(null);
@@ -41,48 +33,82 @@ export default function AssignVoucherForm() {
   const searchParams = useSearchParams();
   const hasRegistered = useRef(false);
 
-  const fetchMembershipName = async (membership_id: number | null) => {
-    if (!membership_id) {
-      setMembershipName(null);
-      return;
-    }
-
+  // Función para obtener datos frescos del partner directamente de la API
+  const fetchFreshPartnerData = async (partnerId: string) => {
     try {
-      const res = await fetch("/api/membership");
+      const res = await fetch(`/api/partners?id=${partnerId}`, {
+        cache: "no-cache",
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
       const json = await res.json();
-      const list: MembershipRow[] = Array.isArray(json.data) ? json.data : [];
-      const found = list.find((m) => m.id === Number(membership_id));
-      setMembershipName(found?.name ?? null);
+      return json?.data || null;
     } catch (err) {
-      console.error("❌ Error al obtener la membresía:", err);
-      setMembershipName(null);
+      console.error("❌ Error al obtener datos frescos del partner:", err);
+      return null;
     }
   };
 
-  // Mostrar membresía al cargar
+  // Cargar membresía al inicio usando la API directamente (sin session storage)
   useEffect(() => {
-    getUser().then((user) => {
-      fetchMembershipName(user?.membership_id ?? null);
-    });
+    const loadInitialData = async () => {
+      try {
+        const user = await getUser();
+        if (user?.id) {
+          const freshData = await fetchFreshPartnerData(String(user.id));
+          if (
+            freshData?.membership_name &&
+            freshData.membership_name !== "Sin asignar"
+          ) {
+            setMembershipName(freshData.membership_name);
+          }
+        }
+      } catch (error) {
+        console.error("Error al cargar datos iniciales:", error);
+      }
+    };
+
+    loadInitialData();
   }, [getUser]);
 
   useEffect(() => {
     const fetchPrice = async () => {
       const user = await getUser();
-      const membership_id = user?.membership_id;
-      if (!membership_id || quantity < 1) return;
+      if (!user?.id || quantity < 1) return;
+
+      // 🔄 Obtener membresía fresca de la API en lugar del user store
+      const freshData = await fetchFreshPartnerData(String(user.id));
+
+      // Buscar el membership_id basado en el nombre de la membresía fresca
+      if (!freshData) return;
 
       try {
+        // Obtener todas las membresías para encontrar el ID por nombre
+        const membershipRes = await fetch("/api/membership");
+        const membershipJson = await membershipRes.json();
+        const membershipList = Array.isArray(membershipJson.data)
+          ? membershipJson.data
+          : [];
+        const membership = membershipList.find(
+          (m: any) => m.name === freshData.membership_name
+        );
+
+        if (!membership?.id) return;
+
         const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ quantity, membership_id, onlyPrice: true }),
+          body: JSON.stringify({
+            quantity,
+            membership_id: membership.id,
+            onlyPrice: true,
+          }),
         });
 
         const data = await res.json();
         if (typeof data.unit_price === "number") {
           setUnitPrice(data.unit_price);
-          sessionStorage.setItem("unit_price", String(data.unit_price));
         }
       } catch (error) {
         console.error("Error al obtener precio:", error);
@@ -110,13 +136,52 @@ export default function AssignVoucherForm() {
         );
         setQuantity(quantityFromStorage);
 
-        const storedUnitPrice = Number(
-          sessionStorage.getItem("unit_price") || "0"
-        );
+        // ❌ Removido el uso del session storage para unit_price
+        // const storedUnitPrice = Number(sessionStorage.getItem("unit_price") || "0");
 
         const user = await getUser();
         const partnerId = String(user?.id);
-        if (!partnerId) return;
+        if (!partnerId || !user?.id) return;
+
+        // 🔄 Obtener precio actual basado en la membresía fresca de la API
+        let currentUnitPrice = unitPrice; // Usar el precio que ya tenemos en estado
+        if (!currentUnitPrice) {
+          try {
+            // Obtener membresía fresca
+            const freshData = await fetchFreshPartnerData(String(user.id));
+            if (freshData?.membership_name) {
+              // Obtener ID de membresía
+              const membershipRes = await fetch("/api/membership");
+              const membershipJson = await membershipRes.json();
+              const membershipList = Array.isArray(membershipJson.data)
+                ? membershipJson.data
+                : [];
+              const membership = membershipList.find(
+                (m: any) => m.name === freshData.membership_name
+              );
+
+              if (membership?.id) {
+                const priceRes = await fetch("/api/checkout", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    quantity: quantityFromStorage,
+                    membership_id: membership.id,
+                    onlyPrice: true,
+                  }),
+                });
+                const priceData = await priceRes.json();
+                if (typeof priceData.unit_price === "number") {
+                  currentUnitPrice = priceData.unit_price;
+                  setUnitPrice(currentUnitPrice);
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error al obtener precio actual:", error);
+            currentUnitPrice = 0;
+          }
+        }
 
         try {
           const res = await fetch("/api/payments", {
@@ -126,8 +191,8 @@ export default function AssignVoucherForm() {
               partner_id: partnerId,
               admin_id: null,
               voucher_quantity: quantityFromStorage,
-              unit_price: storedUnitPrice,
-              total_price: quantityFromStorage * storedUnitPrice,
+              unit_price: currentUnitPrice || 0,
+              total_price: quantityFromStorage * (currentUnitPrice || 0),
               files: "stripe_payment",
               membership_id: null, // ❌ no usamos el viejo ID
             }),
@@ -138,12 +203,75 @@ export default function AssignVoucherForm() {
           const json = await res.json();
           const newMembershipId = json?.data?.new_membership_id;
 
-          await refreshUser(); // 🔁 actualiza el usuario cacheado
-          await fetchMembershipName(Number(newMembershipId) || null);
+          // 🔁 Esperar un momento para que la DB se actualice completamente
+          await new Promise((resolve) => setTimeout(resolve, 1500));
 
-          sessionStorage.setItem("vouchers_registered", "true");
-          sessionStorage.removeItem("last_quantity");
-          sessionStorage.removeItem("unit_price");
+          // 🔁 Obtener datos frescos del partner directamente de la API (como lo hace partner-detail)
+          console.log(
+            "🔄 Obteniendo datos frescos del partner después del pago..."
+          );
+          const user = await getUser();
+          const freshPartnerData = await fetchFreshPartnerData(
+            String(user?.id)
+          );
+
+          if (freshPartnerData) {
+            console.log("🔄 Datos frescos del partner obtenidos:", {
+              newMembershipId,
+              freshMembershipName: freshPartnerData.membership_name,
+              finalMembershipToUse: newMembershipId,
+            });
+
+            // Actualizar la membresía mostrada usando el nombre directo de la API
+            if (
+              freshPartnerData.membership_name &&
+              freshPartnerData.membership_name !== "Sin asignar"
+            ) {
+              setMembershipName(freshPartnerData.membership_name);
+            }
+
+            // 🔄 Limpiar session storage
+            sessionStorage.removeItem("last_quantity");
+            // ❌ Removido: sessionStorage.removeItem("unit_price");
+            sessionStorage.setItem("vouchers_registered", "true");
+
+            // Forzar actualización del precio con la nueva membresía del response del pago
+            if (newMembershipId) {
+              console.log("🔄 Actualizando precio con nueva membresía...");
+              try {
+                const priceRes = await fetch("/api/checkout", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Cache-Control": "no-cache",
+                  },
+                  body: JSON.stringify({
+                    quantity: quantityFromStorage,
+                    membership_id: newMembershipId,
+                    onlyPrice: true,
+                  }),
+                });
+                const priceData = await priceRes.json();
+                if (typeof priceData.unit_price === "number") {
+                  setUnitPrice(priceData.unit_price);
+                  console.log(
+                    "✅ Nuevo precio unitario:",
+                    priceData.unit_price
+                  );
+                }
+              } catch (error) {
+                console.error(
+                  "Error al actualizar precio con nueva membresía:",
+                  error
+                );
+              }
+            }
+          } else {
+            console.error(
+              "❌ No se pudieron obtener datos frescos del partner"
+            );
+          }
+
           setShowSuccessModal(true);
           toast.success("Vouchers asignados exitosamente.");
 
@@ -164,7 +292,7 @@ export default function AssignVoucherForm() {
     };
 
     registerVouchers();
-  }, [searchParams, getUser, refreshUser]);
+  }, [searchParams, getUser, unitPrice]);
 
   const handlePay = async () => {
     if (quantity < 1) {
@@ -174,9 +302,30 @@ export default function AssignVoucherForm() {
 
     try {
       const user = await getUser();
-      const membership_id = user?.membership_id;
-      if (!membership_id) {
+      if (!user?.id) {
+        toast.error("No se encontró el usuario.");
+        return;
+      }
+
+      // 🔄 Obtener membresía fresca de la API
+      const freshData = await fetchFreshPartnerData(String(user.id));
+      if (!freshData?.membership_name) {
         toast.error("No se encontró la membresía.");
+        return;
+      }
+
+      // Obtener el ID de la membresía
+      const membershipRes = await fetch("/api/membership");
+      const membershipJson = await membershipRes.json();
+      const membershipList = Array.isArray(membershipJson.data)
+        ? membershipJson.data
+        : [];
+      const membership = membershipList.find(
+        (m: any) => m.name === freshData.membership_name
+      );
+
+      if (!membership?.id) {
+        toast.error("No se pudo obtener la información de la membresía.");
         return;
       }
 
@@ -187,13 +336,12 @@ export default function AssignVoucherForm() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity, membership_id }),
+        body: JSON.stringify({ quantity, membership_id: membership.id }),
       });
 
       const data = await res.json();
       if (data.url) {
         if (typeof data.unit_price === "number") {
-          sessionStorage.setItem("unit_price", String(data.unit_price));
           setUnitPrice(data.unit_price);
         }
         window.location.href = data.url;
@@ -220,7 +368,28 @@ export default function AssignVoucherForm() {
 
   return (
     <>
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+      <Dialog
+        open={showSuccessModal}
+        onOpenChange={(open) => {
+          setShowSuccessModal(open);
+          // Si se cierra el modal, obtener datos frescos una vez más
+          if (!open) {
+            setTimeout(async () => {
+              console.log("🔄 Actualizacion final al cerrar modal...");
+              const user = await getUser();
+              if (user?.id) {
+                const freshData = await fetchFreshPartnerData(String(user.id));
+                if (
+                  freshData?.membership_name &&
+                  freshData.membership_name !== "Sin asignar"
+                ) {
+                  setMembershipName(freshData.membership_name);
+                }
+              }
+            }, 500);
+          }
+        }}
+      >
         <DialogContent className="max-w-md bg-gradient-to-br from-white via-green-50/30 to-emerald-50/30 border-green-200/50 shadow-lg shadow-green-100/40">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-green-800 bg-clip-text text-transparent">
@@ -235,6 +404,12 @@ export default function AssignVoucherForm() {
                 voucher(s) fue procesada exitosamente.
               </p>
               <p className="mt-2 text-green-700">¡Gracias por tu pago! 🎉</p>
+              {membershipName && membershipName !== "Sin asignar" && (
+                <p className="mt-2 text-green-700 font-medium">
+                  Tu membresía actual:{" "}
+                  <span className="font-bold">{membershipName}</span>
+                </p>
+              )}
             </div>
           </div>
         </DialogContent>
