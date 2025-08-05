@@ -122,6 +122,16 @@ export default function PartnerReportsPage() {
       header: "Cantidad de Vouchers",
       size: 160,
       meta: { filterType: "number" },
+      cell: ({ row }) => {
+        const quantity = row.getValue("voucher_quantity") as number;
+        return (
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50">
+              {quantity} vouchers
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "unit_price",
@@ -129,11 +139,13 @@ export default function PartnerReportsPage() {
       size: 140,
       meta: { filterType: "number" },
       cell: ({ row }) => {
-        const val = row.getValue("unit_price");
+        const val = row.getValue("unit_price") as number;
         return val ? (
-          <span className="text-gray-800">{formatUSD(parseFloat(val))}</span>
+          <div className="text-center">
+            <span className="text-gray-800">{formatUSD(val)}</span>
+          </div>
         ) : (
-          "-"
+          <div className="text-center text-gray-400">-</div>
         );
       },
     },
@@ -143,13 +155,15 @@ export default function PartnerReportsPage() {
       size: 140,
       meta: { filterType: "number" },
       cell: ({ row }) => {
-        const val = row.getValue("total_price");
+        const val = row.getValue("total_price") as number;
         return val ? (
-          <span className="text-green-600 font-semibold">
-            {formatUSD(parseFloat(val))}
-          </span>
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50">
+              {formatUSD(val)}
+            </span>
+          </div>
         ) : (
-          "-"
+          <div className="text-center text-gray-400">-</div>
         );
       },
     },
@@ -160,7 +174,21 @@ export default function PartnerReportsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("created_at");
-        return val ? new Date(val as string).toLocaleDateString() : "-";
+        const formattedDate = val
+          ? new Date(val as string).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : "-";
+
+        return val ? (
+          <div className="text-center">
+            <span className="text-gray-700">{formattedDate}</span>
+          </div>
+        ) : (
+          <div className="text-center text-gray-400">-</div>
+        );
       },
     },
     {
@@ -170,9 +198,48 @@ export default function PartnerReportsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("expiration_date");
-        return val
-          ? new Date(val as string).toLocaleDateString()
-          : "Sin vencimiento";
+        const formattedDate = val
+          ? new Date(val as string).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : null;
+
+        if (!val) {
+          return (
+            <div className="text-center">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border border-gray-300/50">
+                Sin vencimiento
+              </span>
+            </div>
+          );
+        }
+
+        // Verificar si está vencido o próximo a vencer
+        const today = new Date();
+        const expirationDate = new Date(val as string);
+        const isExpired = expirationDate < today;
+        const isExpiringSoon =
+          (expirationDate.getTime() - today.getTime()) /
+            (1000 * 60 * 60 * 24) <=
+          30;
+
+        return (
+          <div className="text-center">
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                isExpired
+                  ? "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50"
+                  : isExpiringSoon
+                  ? "bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-300/50"
+                  : "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50"
+              }`}
+            >
+              {formattedDate}
+            </span>
+          </div>
+        );
       },
     },
     {
@@ -182,9 +249,23 @@ export default function PartnerReportsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("extension_date");
-        return val
-          ? new Date(val as string).toLocaleDateString()
-          : "No programada";
+        const formattedDate = val
+          ? new Date(val as string).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : null;
+
+        return val ? (
+          <div className="text-center">
+            <span className="text-gray-700">{formattedDate}</span>
+          </div>
+        ) : (
+          <div className="text-center">
+            <span className="text-gray-500">No programada</span>
+          </div>
+        );
       },
     },
     {
@@ -207,50 +288,93 @@ export default function PartnerReportsPage() {
           today <= new Date(expirationDate.toDateString());
 
         return (
-          <button
-            onClick={async () => {
-              try {
-                const res = await fetch("/api/payments/", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ payment_id: paymentId }),
-                });
+          <div className="text-center">
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/payments/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ payment_id: paymentId }),
+                  });
 
-                if (!res.ok) throw new Error("Error al extender");
+                  if (!res.ok) throw new Error("Error al extender");
 
-                setRefreshKey((prev) => prev + 1);
-              } catch (err) {
-                console.error("Extensión fallida:", err);
-              }
-            }}
-            disabled={!canExtend}
-            className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-              canExtend
-                ? "text-blue-600 border border-blue-600 hover:bg-blue-50"
-                : "text-gray-400 border border-gray-300 cursor-not-allowed"
-            }`}
-          >
-            Extender
-          </button>
+                  setRefreshKey((prev) => prev + 1);
+                } catch (err) {
+                  console.error("Extensión fallida:", err);
+                }
+              }}
+              disabled={!canExtend}
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                canExtend
+                  ? "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200"
+                  : "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-400 border border-gray-300/50 cursor-not-allowed"
+              }`}
+            >
+              Extender
+            </button>
+          </div>
         );
       },
     },
   ];
 
   return (
-    <div className="bg-card rounded-lg border shadow-sm p-6">
-      <h2 className="text-2xl font-bold mb-1">Mis compras</h2>
-      <p className="text-muted-foreground text-sm mb-4">
-        Aquí puedes ver un historial de tus compras de vouchers, aplicar filtros
-        y ordenar columnas.
-      </p>
-      {partnerId && (
-        <DataTable
-          key={refreshKey}
-          columns={columns}
-          fetchDataFn={fetchPartnerPayments}
-        />
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-orange-50/30 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header mejorado */}
+        <div className="mb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 rounded-xl shadow-lg shadow-purple-500/30 border border-purple-400/20">
+                <svg
+                  className="h-6 w-6 text-white drop-shadow-sm"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M8 11v6h8v-6M8 11H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent drop-shadow-sm">
+                  Mis Compras
+                </h1>
+                <p className="text-lg text-gray-600 mt-1">
+                  Historial completo de tus adquisiciones de vouchers
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Descripción detallada */}
+          <div className="bg-gradient-to-r from-orange-100 via-amber-100 to-orange-200/80 rounded-lg p-4 border border-orange-300/60 shadow-lg shadow-orange-200/40">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Aquí puedes ver un historial detallado de todas tus compras de
+              vouchers, incluyendo cantidad adquirida, precios, fechas de compra
+              y vencimiento. Puedes aplicar filtros y ordenar las columnas según
+              tus necesidades.
+            </p>
+          </div>
+        </div>
+
+        {/* Contenedor de la tabla */}
+        <div className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-lg p-6">
+          {partnerId && (
+            <DataTable
+              key={refreshKey}
+              columns={columns}
+              fetchDataFn={fetchPartnerPayments}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

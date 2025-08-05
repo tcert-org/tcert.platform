@@ -64,7 +64,7 @@ export default function AssignVoucherForm() {
     getUser().then((user) => {
       fetchMembershipName(user?.membership_id ?? null);
     });
-  }, []);
+  }, [getUser]);
 
   useEffect(() => {
     const fetchPrice = async () => {
@@ -90,7 +90,7 @@ export default function AssignVoucherForm() {
     };
 
     fetchPrice();
-  }, [quantity]);
+  }, [quantity, getUser]);
 
   useEffect(() => {
     const registerVouchers = async () => {
@@ -105,10 +105,14 @@ export default function AssignVoucherForm() {
       ) {
         hasRegistered.current = true;
 
-        const quantityFromStorage = Number(sessionStorage.getItem("last_quantity") || "1");
+        const quantityFromStorage = Number(
+          sessionStorage.getItem("last_quantity") || "1"
+        );
         setQuantity(quantityFromStorage);
 
-        const storedUnitPrice = Number(sessionStorage.getItem("unit_price") || "0");
+        const storedUnitPrice = Number(
+          sessionStorage.getItem("unit_price") || "0"
+        );
 
         const user = await getUser();
         const partnerId = String(user?.id);
@@ -160,7 +164,7 @@ export default function AssignVoucherForm() {
     };
 
     registerVouchers();
-  }, [searchParams]);
+  }, [searchParams, getUser, refreshUser]);
 
   const handlePay = async () => {
     if (quantity < 1) {
@@ -217,91 +221,155 @@ export default function AssignVoucherForm() {
   return (
     <>
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-gradient-to-br from-white via-green-50/30 to-emerald-50/30 border-green-200/50 shadow-lg shadow-green-100/40">
           <DialogHeader>
-            <DialogTitle>✅ Pago exitoso</DialogTitle>
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-green-800 bg-clip-text text-transparent">
+              ✅ Pago exitoso
+            </DialogTitle>
           </DialogHeader>
-          <div className="text-gray-800">
-            <p>
-              Tu compra de <strong>{quantity}</strong> voucher(s) fue procesada.
-            </p>
-            <p className="mt-2">¡Gracias por tu pago! 🎉</p>
+          <div className="text-gray-800 space-y-3">
+            <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg p-4 border border-green-300/50">
+              <p className="text-green-800">
+                Tu compra de{" "}
+                <strong className="text-green-900">{quantity}</strong>{" "}
+                voucher(s) fue procesada exitosamente.
+              </p>
+              <p className="mt-2 text-green-700">¡Gracias por tu pago! 🎉</p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-gradient-to-br from-white via-red-50/30 to-rose-50/30 border-red-200/50 shadow-lg shadow-red-100/40">
           <DialogHeader>
-            <DialogTitle>❌ Pago cancelado</DialogTitle>
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-red-700 via-rose-600 to-red-800 bg-clip-text text-transparent">
+              ❌ Pago cancelado
+            </DialogTitle>
           </DialogHeader>
           <div className="text-gray-800">
-            <p>El proceso de pago fue cancelado.</p>
+            <div className="bg-gradient-to-r from-red-100 to-rose-100 rounded-lg p-4 border border-red-300/50">
+              <p className="text-red-800">El proceso de pago fue cancelado.</p>
+              <p className="mt-2 text-red-700 text-sm">
+                Puedes intentar nuevamente cuando desees.
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <div className="flex justify-center px-4 pt-12 pb-24 bg-white h-auto">
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          className="w-full max-w-xl bg-white border shadow-md rounded-lg p-8 space-y-6"
-        >
-          <div className="flex items-start justify-between">
-            <h2 className="text-2xl font-bold text-blue-900">Comprar Vouchers</h2>
-            {membershipName && (
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${badgeClass}`}
-              >
-                {membershipName}
-              </span>
-            )}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-orange-50/30 p-6">
+        <div className="max-w-4xl mx-auto">
+          {/* Header mejorado */}
+          <div className="mb-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 rounded-xl shadow-lg shadow-purple-500/30 border border-purple-400/20">
+                  <Banknote className="h-6 w-6 text-white drop-shadow-sm" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent drop-shadow-sm">
+                    Comprar Vouchers
+                  </h1>
+                  <p className="text-lg text-gray-600 mt-1">
+                    Adquiere vouchers según tu membresía actual
+                  </p>
+                </div>
+              </div>
+              {membershipName && (
+                <span
+                  className={`px-3 py-1 rounded-full text-sm font-medium ${badgeClass} shadow-sm`}
+                >
+                  {membershipName}
+                </span>
+              )}
+            </div>
+
+            {/* Descripción detallada */}
+            <div className="bg-gradient-to-r from-orange-100 via-amber-100 to-orange-200/80 rounded-lg p-4 border border-orange-300/60 shadow-lg shadow-orange-200/40">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                El precio por unidad se calcula según tu membresía actual
+                {membershipName ? ` (${membershipName})` : ""}. Si tu membresía
+                cambia durante la compra, el precio puede variar. Los vouchers
+                se procesarán inmediatamente después del pago exitoso.
+              </p>
+            </div>
           </div>
 
-          <p className="text-sm text-gray-600">
-            El precio por unidad se calcula según tu membresía actual
-            {membershipName ? ` (${membershipName})` : ""}. Si tu membresía cambia,
-            el precio puede variar.
-          </p>
+          {/* Contenedor del formulario */}
+          <div className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-lg p-8">
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label
+                    htmlFor="quantity"
+                    className="text-lg font-medium text-gray-800"
+                  >
+                    Cantidad de vouchers
+                  </Label>
+                  <Input
+                    id="quantity"
+                    type="number"
+                    min={1}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    className="text-lg py-3 border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
+                  />
+                </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="quantity" className="text-lg">
-              Cantidad de vouchers
-            </Label>
-            <Input
-              id="quantity"
-              type="number"
-              min={1}
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="text-lg"
-            />
+                {/* Información de precios con diseño mejorado */}
+                <div className="bg-gradient-to-r from-gray-50 to-purple-50/50 rounded-lg p-6 border border-gray-200/50 space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Resumen de compra
+                  </h3>
+
+                  <div className="flex justify-between items-center py-2 border-b border-gray-200/50">
+                    <span className="text-gray-700 font-medium">
+                      Precio por unidad:
+                    </span>
+                    <div className="text-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300/50">
+                        USD {unitPrice !== null ? unitPrice.toFixed(2) : "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-700 font-medium">
+                      Total a pagar:
+                    </span>
+                    <div className="text-center">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-lg font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 shadow-sm">
+                        USD {unitPrice !== null ? total.toFixed(2) : "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center py-2 text-sm text-gray-600">
+                    <span>Cantidad seleccionada:</span>
+                    <div className="text-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50">
+                        {quantity} voucher{quantity > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={handlePay}
+                  disabled={loading}
+                  className="w-full text-lg py-4 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-700 hover:from-purple-700 hover:via-violet-700 hover:to-indigo-800 text-white font-semibold rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30 border border-purple-400/20 transition-all duration-200 transform hover:scale-[1.02]"
+                >
+                  <Banknote className="text-[24px] mr-3 shrink-0" />
+                  {loading
+                    ? "Procesando..."
+                    : `Pagar ${quantity} voucher${quantity > 1 ? "s" : ""}`}
+                </Button>
+              </div>
+            </form>
           </div>
-
-          <div className="text-base text-gray-700 space-y-1">
-            <p>
-              <strong>Precio por unidad:</strong>{" "}
-              USD {unitPrice !== null ? unitPrice.toFixed(2) : "—"}
-            </p>
-            <p>
-              <strong>Total a pagar:</strong>{" "}
-              <span className="text-blue-700 font-semibold">
-                USD {unitPrice !== null ? total.toFixed(2) : "—"}
-              </span>
-            </p>
-          </div>
-
-          <Button
-            type="button"
-            onClick={handlePay}
-            disabled={loading}
-            className="w-full text-lg py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md flex items-center justify-center"
-          >
-            <Banknote className="text-[28px] mr-2 shrink-0" />
-            {loading
-              ? "Procesando..."
-              : `Pagar ${quantity} voucher${quantity > 1 ? "s" : ""}`}
-          </Button>
-        </form>
+        </div>
       </div>
     </>
   );

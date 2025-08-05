@@ -95,19 +95,28 @@ export default class PaymentTable extends Table<"payments"> {
       totalCount,
     };
   }
-  async getPaymentsByPartner(partnerId: string): Promise<PaymentRowType[]> {
+  async getPaymentsByPartner(partnerId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from("payments")
-      .select("*")
+      .select(
+        `
+        id,
+        voucher_quantity,
+        unit_price,
+        total_price,
+        created_at,
+        expiration_date,
+        extension_date
+      `
+      )
       .eq("partner_id", partnerId)
       .order("created_at", { ascending: false });
-  
+
     if (error) {
       console.error("[GET_PAYMENTS_PARTNER_ERROR]", error.message);
       throw new Error("Error fetching partner payments: " + error.message);
     }
-  
-    return data;
+
+    return data || [];
   }
-  
 }

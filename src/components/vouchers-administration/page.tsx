@@ -36,19 +36,19 @@ const getStatusBadgeColor = (statusName: string) => {
   const status = statusName.toLowerCase();
 
   if (status.includes("activo") || status.includes("disponible")) {
-    return "text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded-full text-xs";
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50";
   }
   if (status.includes("usado") || status.includes("utilizado")) {
-    return "text-blue-600 bg-blue-50 border border-blue-200 px-2 py-1 rounded-full text-xs";
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300/50";
   }
   if (status.includes("expirado") || status.includes("vencido")) {
-    return "text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full text-xs";
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50";
   }
   if (status.includes("pendiente")) {
-    return "text-yellow-600 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-full text-xs";
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-300/50";
   }
 
-  return "text-gray-600 bg-gray-50 border border-gray-200 px-2 py-1 rounded-full text-xs";
+  return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border border-gray-300/50";
 };
 
 export default function VoucherAdministrationPage() {
@@ -170,16 +170,30 @@ export default function VoucherAdministrationPage() {
       accessorKey: "code",
       header: "Código único",
       size: 150,
+      cell: ({ row }) => {
+        const code = row.getValue("code") as string;
+        return (
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50">
+              {code}
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 250,
       meta: { filterType: "text" },
-      cell: ({ row }) =>
-        row.getValue("certification_name") || (
+      cell: ({ row }) => {
+        const certName = row.getValue("certification_name") as string;
+        return certName ? (
+          <span className="text-gray-800 font-medium">{certName}</span>
+        ) : (
           <span className="text-gray-400 italic">Campo vacío</span>
-        ),
+        );
+      },
     },
     {
       accessorKey: "status_name",
@@ -191,11 +205,15 @@ export default function VoucherAdministrationPage() {
       cell: ({ row }) => {
         const statusName = row.getValue("status_name") as string;
         return statusName ? (
-          <span className={`font-medium ${getStatusBadgeColor(statusName)}`}>
-            {statusName}
-          </span>
+          <div className="text-center">
+            <span className={getStatusBadgeColor(statusName)}>
+              {statusName}
+            </span>
+          </div>
         ) : (
-          <span className="text-gray-400 italic">Sin estado</span>
+          <div className="text-center">
+            <span className="text-gray-400 italic">Sin estado</span>
+          </div>
         );
       },
     },
@@ -204,45 +222,110 @@ export default function VoucherAdministrationPage() {
       header: "Fecha de compra",
       size: 180,
       meta: { filterType: "date" },
-      cell: ({ row }) => formatLocalDate(row.getValue("purchase_date")),
+      cell: ({ row }) => {
+        const date = formatLocalDate(row.getValue("purchase_date"));
+        return (
+          <div className="text-center">
+            <span className="text-gray-700">{date}</span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "expiration_date",
       header: "Fecha de vencimiento",
       size: 180,
       meta: { filterType: "date" },
-      cell: ({ row }) => formatLocalDate(row.getValue("expiration_date")),
+      cell: ({ row }) => {
+        const date = formatLocalDate(row.getValue("expiration_date"));
+
+        return (
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50">
+              {date}
+            </span>
+          </div>
+        );
+      },
     },
   ];
 
   if (!partnerData) return <GeneralLoader />;
 
   return (
-    <>
-      <PartnerDetail partner={partnerData} />
-      {!searchParams.get("partner_id") && (
-        <div className="flex items-center justify-between mt-8">
-          <h2 className="text-3xl font-bold">Tus vouchers</h2>
-          <Button
-            onClick={() => {
-              if (voucherAvailable && voucherAvailable > 0) {
-                router.push("/dashboard/partner/assign-voucher");
-              } else {
-                alert("No tienes vouchers disponibles para asignar.");
-              }
-            }}
-            className="gap-2"
-            disabled={voucherAvailable === 0}
-          >
-            <Plus size={18} />
-            Asignar nuevo voucher
-          </Button>
-        </div>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-orange-50/30 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <PartnerDetail partner={partnerData} />
 
-      <section className="mt-3 bg-card rounded-lg border shadow-sm p-6">
-        <DataTable columns={columns} fetchDataFn={fetchVouchers} />
-      </section>
-    </>
+        {!searchParams.get("partner_id") && (
+          <div className="mb-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 rounded-xl shadow-lg shadow-purple-500/30 border border-purple-400/20">
+                  <svg
+                    className="h-6 w-6 text-white drop-shadow-sm"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent drop-shadow-sm">
+                    Tus Vouchers
+                  </h1>
+                  <p className="text-lg text-gray-600 mt-1">
+                    Gestiona y administra todos tus vouchers de certificación
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => {
+                  if (voucherAvailable && voucherAvailable > 0) {
+                    router.push("/dashboard/partner/assign-voucher");
+                  } else {
+                    alert("No tienes vouchers disponibles para asignar.");
+                  }
+                }}
+                className="gap-2 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-700 hover:from-purple-700 hover:via-violet-700 hover:to-indigo-800 text-white font-semibold rounded-lg shadow-lg shadow-purple-500/30 border border-purple-400/20 transition-all duration-200"
+                disabled={voucherAvailable === 0}
+              >
+                <Plus size={18} />
+                Asignar nuevo voucher
+              </Button>
+            </div>
+
+            {/* Descripción detallada */}
+            <div className="bg-gradient-to-r from-orange-100 via-amber-100 to-orange-200/80 rounded-lg p-4 border border-orange-300/60 shadow-lg shadow-orange-200/40">
+              <p className="text-sm text-gray-700 leading-relaxed">
+                Aquí puedes ver todos tus vouchers de certificación, verificar
+                su estado, fechas de compra y vencimiento. Los vouchers
+                disponibles pueden ser asignados a estudiantes, mientras que los
+                utilizados ya han sido canjeados.
+                {voucherAvailable !== null && (
+                  <span className="font-semibold text-orange-800">
+                    {" "}
+                    Tienes {voucherAvailable} voucher
+                    {voucherAvailable !== 1 ? "s" : ""} disponible
+                    {voucherAvailable !== 1 ? "s" : ""} para asignar.
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Contenedor de la tabla */}
+        <div className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-lg p-6">
+          <DataTable columns={columns} fetchDataFn={fetchVouchers} />
+        </div>
+      </div>
+    </div>
   );
 }
