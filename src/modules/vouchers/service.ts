@@ -41,21 +41,24 @@ export default class VoucherService {
         if (typeof param?.value === "number" && param.value > 0) {
           // Usar la fecha actual como base para el cálculo
           const purchaseDate = new Date();
-          
+
           // Calcular la fecha de vencimiento preservando el día
           const expirationDate = new Date(purchaseDate);
           expirationDate.setMonth(purchaseDate.getMonth() + param.value);
-          
-          // Si el día se ajustó automáticamente (ej: 31 enero → 2-3 marzo), 
+
+          // Si el día se ajustó automáticamente (ej: 31 enero → 2-3 marzo),
           // ajustar al último día del mes correcto
           if (expirationDate.getDate() !== purchaseDate.getDate()) {
             expirationDate.setDate(0); // Va al último día del mes anterior
           }
-          
+
           expiration_date = expirationDate.toISOString();
           console.log("[DEBUG] Fecha de compra:", purchaseDate.toISOString());
           console.log("[DEBUG] Meses a agregar:", param.value);
-          console.log("[DEBUG] Fecha de expiración calculada:", expiration_date);
+          console.log(
+            "[DEBUG] Fecha de expiración calculada:",
+            expiration_date
+          );
         } else {
           throw new Error("Parámetro 'value' inválido o no definido");
         }
@@ -64,7 +67,10 @@ export default class VoucherService {
         throw new Error("No se pudo calcular la fecha de expiración");
       }
     } else {
-      console.log("[DEBUG] Usando fecha de expiración desde frontend:", expiration_date);
+      console.log(
+        "[DEBUG] Usando fecha de expiración desde frontend:",
+        expiration_date
+      );
     }
 
     const voucherData = {
@@ -76,7 +82,10 @@ export default class VoucherService {
       used,
     };
 
-    console.log("[DEBUG] Datos finales que se insertarán en vouchers:", voucherData);
+    console.log(
+      "[DEBUG] Datos finales que se insertarán en vouchers:",
+      voucherData
+    );
 
     const voucherTable = new VoucherTable();
     return await voucherTable.createVoucher(voucherData);

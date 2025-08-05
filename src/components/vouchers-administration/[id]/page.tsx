@@ -19,22 +19,22 @@ type Props = {
 // Función para obtener el color del estado basado en el nombre
 const getStatusColor = (statusName: string | null | undefined): string => {
   if (!statusName) return "text-gray-600";
-  
+
   const status = statusName.toLowerCase();
-  
-  if (status.includes('activo') || status.includes('disponible')) {
+
+  if (status.includes("activo") || status.includes("disponible")) {
     return "text-green-600";
   }
-  if (status.includes('usado') || status.includes('utilizado')) {
+  if (status.includes("usado") || status.includes("utilizado")) {
     return "text-blue-600";
   }
-  if (status.includes('expirado') || status.includes('vencido')) {
+  if (status.includes("expirado") || status.includes("vencido")) {
     return "text-red-600";
   }
-  if (status.includes('pendiente')) {
+  if (status.includes("pendiente")) {
     return "text-yellow-600";
   }
-  
+
   return "text-gray-600";
 };
 
@@ -111,7 +111,11 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
             <BadgeCheck className="text-blue-700 w-5 h-5" />
             <p>
               <strong>Estado:</strong>{" "}
-              <span className={`font-semibold ${getStatusColor(voucher?.status_name)}`}>
+              <span
+                className={`font-semibold ${getStatusColor(
+                  voucher?.status_name
+                )}`}
+              >
                 {voucher?.status_name || "Sin estado"}
               </span>
             </p>

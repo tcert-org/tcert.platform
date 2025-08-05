@@ -42,12 +42,12 @@ export async function getVoucherExpirationDate(): Promise<string> {
 
   // Usar la fecha actual como base
   const purchaseDate = new Date();
-  
+
   // Calcular la fecha de vencimiento preservando el día
   const expirationDate = new Date(purchaseDate);
   expirationDate.setMonth(purchaseDate.getMonth() + monthsToAdd);
-  
-  // Si el día se ajustó automáticamente (ej: 31 enero → 2-3 marzo), 
+
+  // Si el día se ajustó automáticamente (ej: 31 enero → 2-3 marzo),
   // ajustar al último día del mes correcto
   if (expirationDate.getDate() !== purchaseDate.getDate()) {
     expirationDate.setDate(0); // Va al último día del mes anterior
@@ -59,7 +59,6 @@ export async function getVoucherExpirationDate(): Promise<string> {
 
   return `${year}-${month}-${day}`;
 }
-
 
 export default function VoucherForm() {
   const {
@@ -228,9 +227,17 @@ export default function VoucherForm() {
 
       <div className="w-full max-w-xl">
         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-6">
-          <input type="hidden" {...register("partner_id")} value={decryptedUser.id} />
+          <input
+            type="hidden"
+            {...register("partner_id")}
+            value={decryptedUser.id}
+          />
           <input type="hidden" {...register("status_id")} />
-          <input type="hidden" {...register("expiration_dates")} value={watch("expiration_dates") || ""} />
+          <input
+            type="hidden"
+            {...register("expiration_dates")}
+            value={watch("expiration_dates") || ""}
+          />
           <input type="hidden" {...register("used")} value="false" />
 
           <div>
@@ -246,7 +253,10 @@ export default function VoucherForm() {
                     options={certifications}
                     placeholder="Seleccione una certificación"
                     isSearchable
-                    value={certifications.find((o) => o.value === field.value) || null}
+                    value={
+                      certifications.find((o) => o.value === field.value) ||
+                      null
+                    }
                     onChange={(o) => field.onChange(o?.value || "")}
                   />
                   {errors.certification_id && (
@@ -269,7 +279,9 @@ export default function VoucherForm() {
               })}
             />
             {errors.email && (
-              <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>
+              <p className="text-red-600 text-sm mt-1">
+                {errors.email.message}
+              </p>
             )}
           </div>
 

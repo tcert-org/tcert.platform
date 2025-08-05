@@ -32,9 +32,9 @@ const formatLocalDate = (iso: string) => {
 
 const getStatusBadgeColor = (statusName: string) => {
   if (!statusName) return "text-gray-400";
-  
+
   const status = statusName.toLowerCase();
-  
+
   if (status.includes("activo") || status.includes("disponible")) {
     return "text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded-full text-xs";
   }
@@ -47,7 +47,7 @@ const getStatusBadgeColor = (statusName: string) => {
   if (status.includes("pendiente")) {
     return "text-yellow-600 bg-yellow-50 border border-yellow-200 px-2 py-1 rounded-full text-xs";
   }
-  
+
   return "text-gray-600 bg-gray-50 border border-gray-200 px-2 py-1 rounded-full text-xs";
 };
 

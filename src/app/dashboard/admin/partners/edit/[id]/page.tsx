@@ -33,7 +33,7 @@ export default function EditPartnerPage() {
       try {
         const response = await fetch(`/api/partners/${partnerId}`);
         if (!response.ok) throw new Error("Error al cargar partner");
-        
+
         const data = await response.json();
         setPartner(data);
         setFormData({
@@ -76,14 +76,18 @@ export default function EditPartnerPage() {
       router.push("/dashboard/admin/partners");
     } catch (error) {
       console.error("Error:", error);
-      alert(error instanceof Error ? error.message : "Error al actualizar el partner");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Error al actualizar el partner"
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const handleInputChange = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
@@ -120,7 +124,7 @@ export default function EditPartnerPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Volver a Partners
         </Button>
-        
+
         <h1 className="text-2xl font-bold">Editar Partner</h1>
         <p className="text-muted-foreground text-sm">
           Modifica la información del partner
@@ -140,7 +144,9 @@ export default function EditPartnerPage() {
                   id="company_name"
                   type="text"
                   value={formData.company_name}
-                  onChange={(e) => handleInputChange("company_name", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("company_name", e.target.value)
+                  }
                   required
                   disabled={saving}
                 />
@@ -168,7 +174,7 @@ export default function EditPartnerPage() {
                 <Save className="w-4 h-4" />
                 {saving ? "Guardando..." : "Guardar Cambios"}
               </Button>
-              
+
               <Button
                 type="button"
                 variant="outline"
