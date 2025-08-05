@@ -3,12 +3,31 @@
 import React, { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Crown, DollarSign, Hash, Infinity } from "lucide-react";
 
 const colorBar: Record<string, string> = {
-  Bronce: "bg-yellow-700",
-  Plata: "bg-gray-500",
-  Oro: "bg-amber-500",
-  Diamante: "bg-blue-500",
+  Bronce: "bg-gradient-to-r from-orange-400 to-orange-600",
+  Plata: "bg-gradient-to-r from-gray-400 to-gray-600",
+  Oro: "bg-gradient-to-r from-yellow-400 to-yellow-600",
+  Diamante: "bg-gradient-to-r from-blue-400 to-blue-600",
+};
+
+const colorBadge: Record<string, string> = {
+  Bronce: "bg-orange-500 text-white",
+  Plata: "bg-gray-500 text-white",
+  Oro: "bg-yellow-500 text-white",
+  Diamante: "bg-blue-500 text-white",
+};
+
+const membershipIcons: Record<string, React.ReactNode> = {
+  Bronce: <Crown className="h-4 w-4" />,
+  Plata: <Crown className="h-4 w-4" />,
+  Oro: <Crown className="h-4 w-4" />,
+  Diamante: <Crown className="h-4 w-4" />,
 };
 
 type Membership = {
@@ -53,6 +72,7 @@ function MembershipForm() {
     });
 
     setMemberships(updated);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memberships.map((m) => m.count_up).join(",")]);
 
   const handleChange = (
@@ -89,7 +109,12 @@ function MembershipForm() {
         return;
       }
 
-      if (m.name !== "Diamante" && m.count_up <= (m.count_from as number)) {
+      if (
+        m.name !== "Diamante" &&
+        typeof m.count_up === "number" &&
+        typeof m.count_from === "number" &&
+        m.count_up <= m.count_from
+      ) {
         toast.warning(`'Hasta' debe ser mayor que 'Desde' en ${m.name}.`);
         setLoading(false);
         return;
@@ -138,111 +163,190 @@ function MembershipForm() {
   };
 
   return (
-    <>
+    <div className="min-h-screen bg-gray-50 p-4">
       <ToastContainer position="top-center" theme="colored" />
-      <form
-        onSubmit={handleSaveAndAssign}
-        className="space-y-4 w-full max-w-4xl mx-auto"
-      >
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-          Configuración de Membresías
-        </h2>
 
-        {memberships.map((membership, index) => (
-          <div
-            key={membership.id}
-            className="relative flex items-center bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden w-full h-auto min-h-[100px]"
-          >
-            <div className={`${colorBar[membership.name]} w-2 h-full`} />
+      <div className="max-w-6xl mx-auto">
+        <Card className="shadow-lg">
+          <CardHeader className="text-center border-b border-gray-200">
+            <CardTitle className="text-3xl font-bold text-gray-900 flex items-center justify-center gap-3">
+              <Crown className="h-8 w-8 text-yellow-500" />
+              Configuración de Membresías
+            </CardTitle>
+            <p className="text-gray-600 mt-2">
+              Configura los rangos y precios de cada nivel de membresía
+            </p>
+          </CardHeader>
 
-            <div className="relative flex-1 px-6 py-3 flex flex-wrap items-center gap-6">
-              <div className="w-[100px] text-right absolute top-3 right-4">
-                <span
-                  className={`px-4 py-1 rounded-full text-sm font-medium text-white ${
-                    colorBar[membership.name]
-                  }`}
+          <CardContent className="p-8">
+            <form onSubmit={handleSaveAndAssign} className="space-y-6">
+              <div className="grid gap-6">
+                {memberships.map((membership, index) => (
+                  <Card
+                    key={membership.id}
+                    className="overflow-hidden border-l-4 hover:shadow-md transition-shadow duration-200"
+                    style={{
+                      borderLeftColor:
+                        membership.name === "Bronce"
+                          ? "#f97316"
+                          : membership.name === "Plata"
+                          ? "#6b7280"
+                          : membership.name === "Oro"
+                          ? "#eab308"
+                          : "#3b82f6",
+                    }}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          {membershipIcons[membership.name]}
+                          <span
+                            className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                              colorBadge[membership.name]
+                            }`}
+                          >
+                            {membership.name}
+                          </span>
+                        </div>
+                        <div
+                          className={`w-12 h-2 rounded-full ${
+                            colorBar[membership.name]
+                          }`}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {/* Campo Desde */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <Hash className="h-4 w-4" />
+                            Desde
+                          </Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={
+                              membership.count_from === ""
+                                ? ""
+                                : membership.count_from
+                            }
+                            onChange={(e) =>
+                              handleChange(index, "count_from", e.target.value)
+                            }
+                            disabled={index !== 0}
+                            className={
+                              index !== 0 ? "bg-gray-50 cursor-not-allowed" : ""
+                            }
+                            required
+                          />
+                          {index !== 0 && (
+                            <p className="text-xs text-gray-500">
+                              Se calcula automáticamente
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Campo Hasta */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <Hash className="h-4 w-4" />
+                            Hasta
+                          </Label>
+                          {membership.name === "Diamante" ? (
+                            <div className="flex items-center justify-center h-10 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-md">
+                              <Infinity className="h-5 w-5 text-blue-600 mr-2" />
+                              <span className="text-blue-700 font-medium">
+                                Ilimitado
+                              </span>
+                            </div>
+                          ) : (
+                            <Input
+                              type="number"
+                              min={1}
+                              value={
+                                membership.count_up === ""
+                                  ? ""
+                                  : membership.count_up
+                              }
+                              onChange={(e) =>
+                                handleChange(index, "count_up", e.target.value)
+                              }
+                              required
+                            />
+                          )}
+                        </div>
+
+                        {/* Campo Precio */}
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                            <DollarSign className="h-4 w-4" />
+                            Precio
+                          </Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            step="0.01"
+                            value={
+                              membership.price === "" ? "" : membership.price
+                            }
+                            onChange={(e) =>
+                              handleChange(index, "price", e.target.value)
+                            }
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Información del rango */}
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600">
+                          <strong>Rango:</strong>{" "}
+                          {membership.count_from === ""
+                            ? "..."
+                            : membership.count_from}{" "}
+                          -{" "}
+                          {membership.name === "Diamante"
+                            ? "∞"
+                            : membership.count_up === ""
+                            ? "..."
+                            : membership.count_up}{" "}
+                          vouchers
+                          {membership.price !== "" && (
+                            <span className="ml-3">
+                              <strong>Precio:</strong> ${membership.price}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              <div className="flex justify-center pt-8">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
-                  {membership.name}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-4 w-full sm:flex-nowrap sm:gap-6 mt-2 sm:mt-0">
-                <div className="w-full min-w-[160px] max-w-[220px] flex-1">
-                  <label className="text-xs font-medium text-gray-600 block mb-1 h-[18px] leading-none">
-                    Desde
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={
-                      membership.count_from === "" ? "" : membership.count_from
-                    }
-                    onChange={(e) =>
-                      handleChange(index, "count_from", e.target.value)
-                    }
-                    disabled={index !== 0}
-                    className={`w-full border border-gray-300 rounded px-3 py-1 h-[36px] text-sm focus:outline-none focus:ring focus:ring-blue-200 ${
-                      index !== 0 ? "bg-gray-100 cursor-not-allowed" : ""
-                    }`}
-                    required
-                  />
-                </div>
-
-                <div className="w-full min-w-[160px] max-w-[220px] flex-1">
-                  <label className="text-xs font-medium text-gray-600 block mb-1 h-[18px] leading-none">
-                    Hasta
-                  </label>
-                  {membership.name === "Diamante" ? (
-                    <div className="w-full bg-gray-100 text-center text-gray-700 border border-gray-300 rounded px-3 py-[7px] h-[36px] text-sm flex items-center justify-center">
-                      ∞
-                    </div>
+                  {loading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                      Procesando...
+                    </>
                   ) : (
-                    <input
-                      type="number"
-                      min={1}
-                      value={
-                        membership.count_up === "" ? "" : membership.count_up
-                      }
-                      onChange={(e) =>
-                        handleChange(index, "count_up", e.target.value)
-                      }
-                      className="w-full border border-gray-300 rounded px-3 py-1 h-[36px] text-sm focus:outline-none focus:ring focus:ring-blue-200"
-                      required
-                    />
+                    <>
+                      <Crown className="h-5 w-5 mr-2" />
+                      Guardar y Asignar Membresías
+                    </>
                   )}
-                </div>
-
-                <div className="w-full min-w-[160px] max-w-[220px] flex-1">
-                  <label className="text-xs font-medium text-gray-600 block mb-1 h-[18px] leading-none">
-                    Precio
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={membership.price === "" ? "" : membership.price}
-                    onChange={(e) =>
-                      handleChange(index, "price", e.target.value)
-                    }
-                    className="w-full border border-gray-300 rounded px-3 py-1 h-[36px] text-sm focus:outline-none focus:ring focus:ring-blue-200"
-                    required
-                  />
-                </div>
+                </Button>
               </div>
-            </div>
-          </div>
-        ))}
-
-        <div className="text-center mt-6">
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-60"
-          >
-            {loading ? "Procesando..." : "Guardar y Asignar Membresías"}
-          </button>
-        </div>
-      </form>
-    </>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
