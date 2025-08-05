@@ -29,7 +29,14 @@ const partnerSchema = z.object({
   contact: z
     .string()
     .min(10, "El número de contacto debe tener al menos 10 dígitos"),
-  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  password: z
+    .string()
+    .min(6, "La contraseña debe tener al menos 6 caracteres")
+    .regex(/[A-Z]/, "La contraseña debe contener al menos una letra mayúscula")
+    .regex(
+      /[!@#$%^&*]/,
+      "La contraseña debe contener al menos un carácter especial (!@#$%^&*)"
+    ),
 });
 
 type PartnerFormData = z.infer<typeof partnerSchema>;
@@ -56,10 +63,12 @@ function CreatePartnerPage() {
       if (!roleResponse.ok) {
         throw new Error("Error al obtener roles");
       }
-      
+
       const roleData = await roleResponse.json();
-      const partnerRole = roleData.data?.find((role: any) => role.name === "partner");
-      
+      const partnerRole = roleData.data?.find(
+        (role: any) => role.name === "partner"
+      );
+
       if (!partnerRole) {
         throw new Error("No se encontró el rol de partner");
       }
@@ -100,41 +109,48 @@ function CreatePartnerPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <div className="mb-6">
+    <div className="container mx-auto px-4 py-4 max-w-2xl min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-orange-50/30">
+      <div className="mb-4">
         <Link
           href="/dashboard/admin/partners"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex items-center gap-2 text-sm text-purple-600 hover:text-purple-800 transition-all duration-300 font-medium"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver a Partners
         </Link>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5" />
+      <Card className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2">
+        <CardHeader className="bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-700 text-white rounded-t-lg shadow-lg shadow-purple-500/30 border border-purple-400/20">
+          <CardTitle className="flex items-center gap-3 text-lg font-bold">
+            <div className="p-2 bg-gradient-to-br from-white/20 to-white/10 rounded-lg shadow-lg border border-white/30 backdrop-blur-sm">
+              <Building2 className="w-5 h-5 text-white drop-shadow-sm" />
+            </div>
             Registrar Nuevo Partner
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Nombre de la empresa */}
             <div className="space-y-2">
-              <Label htmlFor="company_name">Nombre de la Empresa *</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <Label
+                htmlFor="company_name"
+                className="text-purple-700 font-medium"
+              >
+                Nombre de la Empresa *
+              </Label>
+              <div className="relative group">
+                <Building2 className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
                 <Input
                   id="company_name"
                   type="text"
                   placeholder="Ingrese el nombre de la empresa"
-                  className="pl-10"
+                  className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
                   {...register("company_name")}
                 />
               </div>
               {errors.company_name && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm text-destructive font-medium">
                   {errors.company_name.message}
                 </p>
               )}
@@ -142,19 +158,21 @@ function CreatePartnerPage() {
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="email" className="text-purple-700 font-medium">
+                Email *
+              </Label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="email@empresa.com"
-                  className="pl-10"
+                  className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
                   {...register("email")}
                 />
               </div>
               {errors.email && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm text-destructive font-medium">
                   {errors.email.message}
                 </p>
               )}
@@ -162,19 +180,21 @@ function CreatePartnerPage() {
 
             {/* Contacto */}
             <div className="space-y-2">
-              <Label htmlFor="contact">Número de Contacto *</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="contact" className="text-purple-700 font-medium">
+                Número de Contacto *
+              </Label>
+              <div className="relative group">
+                <Phone className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
                 <Input
                   id="contact"
                   type="tel"
-                  placeholder=" 300 123 4567"
-                  className="pl-10"
+                  placeholder="300 123 4567"
+                  className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
                   {...register("contact")}
                 />
               </div>
               {errors.contact && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm text-destructive font-medium">
                   {errors.contact.message}
                 </p>
               )}
@@ -182,20 +202,22 @@ function CreatePartnerPage() {
 
             {/* Contraseña */}
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña *</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="password" className="text-purple-700 font-medium">
+                Contraseña *
+              </Label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Mínimo 6 caracteres"
-                  className="pl-10 pr-10"
+                  placeholder="Mín 6 caracteres, 1 mayúscula, 1 especial (!@#$%^&*)"
+                  className="pl-10 pr-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
                   {...register("password")}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-3 text-purple-500 hover:text-orange-500 transition-colors duration-300"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -205,33 +227,41 @@ function CreatePartnerPage() {
                 </button>
               </div>
               {errors.password && (
-                <p className="text-sm text-destructive">
+                <p className="text-sm text-destructive font-medium">
                   {errors.password.message}
                 </p>
               )}
+              <div className="text-xs text-gray-600 mt-1">
+                La contraseña debe contener al menos 6 caracteres, una letra
+                mayúscula y un carácter especial (!@#$%^&*)
+              </div>
             </div>
 
             {/* Error general */}
             {errors.root && (
-              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-                <p className="text-sm text-destructive">
+              <div className="p-4 bg-gradient-to-r from-red-50 via-red-50 to-red-100 border border-red-300/50 rounded-lg shadow-md backdrop-blur-sm">
+                <p className="text-sm text-red-700 font-medium">
                   {errors.root.message}
                 </p>
               </div>
             )}
 
             {/* Botones */}
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-4 pt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-all duration-300 font-medium"
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading} className="flex-1">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="flex-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-600/40 border border-orange-400/20 transition-all duration-300 transform hover:scale-105 font-medium"
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />

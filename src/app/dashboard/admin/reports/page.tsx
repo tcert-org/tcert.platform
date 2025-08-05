@@ -80,6 +80,16 @@ export default function PaymentsPage() {
       header: "Cantidad de Vouchers",
       size: 160,
       meta: { filterType: "number" },
+      cell: ({ row }) => {
+        const quantity = row.getValue("voucher_quantity") as number;
+        return (
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50">
+              {quantity} vouchers
+            </span>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "unit_price",
@@ -89,11 +99,13 @@ export default function PaymentsPage() {
       cell: ({ row }) => {
         const val = row.getValue("unit_price");
         return val ? (
-          <span className="text-gray-800">
-            USD ${parseFloat(val).toFixed(2)}
-          </span>
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300/50">
+              USD ${parseFloat(val as string).toFixed(2)}
+            </span>
+          </div>
         ) : (
-          "-"
+          <div className="text-center text-gray-400">-</div>
         );
       },
     },
@@ -105,15 +117,17 @@ export default function PaymentsPage() {
       cell: ({ row }) => {
         const val = row.getValue("total_price");
         return val ? (
-          <span className="text-green-600 font-semibold">
-            USD ${parseFloat(val).toFixed(2)}
-          </span>
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50">
+              USD ${parseFloat(val as string).toFixed(2)}
+            </span>
+          </div>
         ) : (
-          "-"
+          <div className="text-center text-gray-400">-</div>
         );
       },
     },
-    
+
     {
       accessorKey: "created_at",
       header: "Fecha de Compra",
@@ -121,7 +135,23 @@ export default function PaymentsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("created_at");
-        return val ? new Date(val as string).toLocaleDateString() : "-";
+        const formattedDate = val
+          ? new Date(val as string).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : "-";
+
+        return val ? (
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300/50">
+              {formattedDate}
+            </span>
+          </div>
+        ) : (
+          <div className="text-center text-gray-400">-</div>
+        );
       },
     },
     {
@@ -131,27 +161,90 @@ export default function PaymentsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("expiration_date");
-        return val
-          ? new Date(val as string).toLocaleDateString()
-          : "Sin vencimiento";
+        const formattedDate = val
+          ? new Date(val as string).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })
+          : null;
+
+        if (!val) {
+          return (
+            <div className="text-center">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border border-gray-300/50">
+                Sin vencimiento
+              </span>
+            </div>
+          );
+        }
+
+        return (
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50">
+              {formattedDate}
+            </span>
+          </div>
+        );
       },
     },
   ];
 
   return (
-    <div className="bg-card rounded-lg border shadow-sm p-6">
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold mb-1">Módulo de Pagos</h2>
-        <p className="text-muted-foreground text-sm">
-          En esta sección podrás visualizar todos los pagos realizados por los partners, incluyendo información como la cantidad de vouchers adquiridos, el precio unitario, el total pagado y la fecha de compra. Puedes aplicar filtros y ordenar las columnas según lo necesites.
-        </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-orange-50/30 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header mejorado */}
+        <div className="mb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 rounded-xl shadow-lg shadow-purple-500/30 border border-purple-400/20">
+                <svg
+                  className="h-6 w-6 text-white drop-shadow-sm"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent drop-shadow-sm">
+                  Módulo de Pagos
+                </h1>
+                <p className="text-lg text-gray-600 mt-1">
+                  Visualiza y gestiona todos los pagos realizados por los
+                  partners
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Descripción detallada */}
+          <div className="bg-gradient-to-r from-orange-100 via-amber-100 to-orange-200/80 rounded-lg p-4 border border-orange-300/60 shadow-lg shadow-orange-200/40">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              En esta sección podrás visualizar todos los pagos realizados por
+              los partners, incluyendo información como la cantidad de vouchers
+              adquiridos, el precio unitario, el total pagado y la fecha de
+              compra. Puedes aplicar filtros y ordenar las columnas según lo
+              necesites.
+            </p>
+          </div>
+        </div>
+
+        {/* Contenedor de la tabla */}
+        <div className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-lg p-6">
+          <DataTable
+            key={refreshKey}
+            columns={columns}
+            fetchDataFn={fetchPayments}
+          />
+        </div>
       </div>
-      <DataTable
-        key={refreshKey}
-        columns={columns}
-        fetchDataFn={fetchPayments}
-      />
     </div>
   );
-  
 }

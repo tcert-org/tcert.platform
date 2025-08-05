@@ -107,7 +107,9 @@ export default function PartnersPage() {
       },
       cell: ({ row }) => (
         <div className="text-center font-medium">
-          {row.getValue("total_vouchers")}
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50">
+            {row.getValue("total_vouchers")}
+          </span>
         </div>
       ),
     },
@@ -122,7 +124,9 @@ export default function PartnersPage() {
       },
       cell: ({ row }) => (
         <div className="text-center font-medium">
-          {row.getValue("used_vouchers")}
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300/50">
+            {row.getValue("used_vouchers")}
+          </span>
         </div>
       ),
     },
@@ -137,7 +141,9 @@ export default function PartnersPage() {
       },
       cell: ({ row }) => (
         <div className="text-center font-medium">
-          {row.getValue("unused_vouchers")}
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50">
+            {row.getValue("unused_vouchers")}
+          </span>
         </div>
       ),
     },
@@ -147,21 +153,50 @@ export default function PartnersPage() {
       size: 180,
       meta: { filterType: "date" },
       cell: ({ row }) => {
-        return new Date(row.getValue("created_at")).toLocaleDateString(
-          "es-ES",
-          {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          }
+        const date = new Date(row.getValue("created_at"));
+        const formattedDate = date.toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+        return (
+          <div className="text-center">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-300/50">
+              {formattedDate}
+            </span>
+          </div>
         );
       },
     },
   ];
 
   return (
-    <div className="bg-card rounded-lg border shadow-sm p-6">
-      <DataTable columns={columns} fetchDataFn={fetchPartners} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-orange-50/30 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header mejorado */}
+        <div className="mb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 rounded-xl shadow-lg shadow-purple-500/30 border border-purple-400/20">
+                <Eye className="h-6 w-6 text-white drop-shadow-sm" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent drop-shadow-sm">
+                  Gestión de Partners
+                </h1>
+                <p className="text-lg text-gray-600 mt-1">
+                  Administra y monitorea todos los partners de tu plataforma
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenedor de la tabla */}
+        <div className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-lg p-6">
+          <DataTable columns={columns} fetchDataFn={fetchPartners} />
+        </div>
+      </div>
     </div>
   );
 }
