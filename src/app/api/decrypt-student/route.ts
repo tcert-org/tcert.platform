@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ student: decryptedStudent }, { status: 200 });
   } catch (error: any) {
-    console.log("ERROR EN ROUTE DECRYPT:", error);
     return NextResponse.json(
       { message: "Error decrypting student data", error: error.message },
       { status: 500 }

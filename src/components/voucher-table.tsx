@@ -469,8 +469,6 @@ const VoucherTable = () => {
 
   // Handle row actions
   const handleRowAction = (action: string, voucher: Voucher) => {
-    console.log(`Action: ${action}`, voucher);
-
     switch (action) {
       case "view":
         router.push(`/vouchers/${voucher.id}`);
@@ -869,3 +867,5 @@ const VoucherTable = () => {
 };
 
 export default VoucherTable;
+
+//Codigo  no funcional

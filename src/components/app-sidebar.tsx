@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   BarChart,
   Users,
+  Award,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -28,6 +29,7 @@ const iconMap: Record<string, React.ElementType> = {
   ShoppingBag,
   BarChart,
   Users,
+  Award,
 };
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {

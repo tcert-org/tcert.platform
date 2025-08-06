@@ -1,62 +1,54 @@
 import { NextResponse } from "next/server";
-import VoucherTable from "@/modules/vouchers/table";
+import VoucherService from "./service";
+import { CreateParamsVoucher, FilterParamsVoucher } from "./types";
 import { ApiResponse } from "@/lib/types";
-import {
-  FilterParamsVoucher,
-  ResponseVoucherTable,
-  RpcParamsVoucher,
-} from "./types";
 
 export default class VoucherController {
+  // (Puedes omitir este método si llamas directo a Table en la route)
   static async getVouchers(
     filters: FilterParamsVoucher
-  ): Promise<NextResponse<ApiResponse<ResponseVoucherTable | null>>> {
+  ): Promise<NextResponse<ApiResponse<{ data: any[]; totalCount: number }>>> {
     try {
-      const {
-        filter_code,
-        filter_certification_name,
-        filter_student_fullname,
-        filter_student_document_number,
-        filter_email,
-        filter_available,
-        filter_purchase_date,
-        filter_expiration_date,
-        filter_partner_id,
-        order_by,
-        order_dir,
-        page,
-      } = filters;
-
-      const rpcParams: RpcParamsVoucher = {
-        filter_code: filter_code || null,
-        filter_certification_name: filter_certification_name || null,
-        filter_student_fullname: filter_student_fullname || null,
-        filter_student_document_number: filter_student_document_number || null,
-        filter_email: filter_email || null,
-        filter_available: filter_available ?? null,
-        filter_purchase_date: filter_purchase_date || null,
-        filter_expiration_date: filter_expiration_date || null,
-        filter_partner_id: filter_partner_id || null,
-        order_by: order_by || "purchase_date",
-        order_dir: order_dir || "desc",
-        page: page || 1,
-      };
-
-      const voucherTable = new VoucherTable();
-      const result = await voucherTable.getVouchersWithFilters(rpcParams);
-
+      const result = await VoucherService.getVouchersWithFilters(filters);
       return NextResponse.json({
         statusCode: 200,
-        data: {
-          data: result.data,
-          totalCount: result.totalCount,
+        data: result,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          statusCode: 500,
+          data: null,
+          error: error instanceof Error ? error.message : "Error desconocido",
         },
+        { status: 500 }
+      );
+    }
+  }
+
+  static async createVoucher(
+    data: CreateParamsVoucher
+  ): Promise<NextResponse<ApiResponse<any>>> {
+    try {
+      const result = await VoucherService.createVoucher(data);
+
+      if (!result) {
+        return NextResponse.json({
+          statusCode: 400,
+          data: null,
+          error: "No se pudo crear el voucher",
+        });
+      }
+
+      return NextResponse.json({
+        statusCode: 201,
+        data: result,
       });
     } catch (error) {
       return NextResponse.json({
         statusCode: 500,
         data: null,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Error desconocido",
       });
     }
   }

@@ -35,37 +35,38 @@ export function LoginForm({
   const updateStudent = useStudentStore((state) => state.updateStudent);
 
   const handleStudentLogin = async (data: StudentLoginForm) => {
-    try {
-      const response = await fetch("/api/auth-student/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+  try {
+    const response = await fetch("/api/auth-student", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
 
-      if (response.status === 400) {
-        setErrorMessage("Formato del token inválido");
-        return;
-      }
-      if (response.status === 401) {
-        setErrorMessage("Token inválido");
-        return;
-      }
-
-      const result = await response.json();
-
-      updateStudent(result.data.student);
-
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Error en el login:", error);
-      setErrorMessage("Algo salió mal, intenta nuevamente más tarde");
+    if (response.status === 400) {
+      setErrorMessage("Formato del token inválido");
       return;
     }
-  };
+    if (response.status === 401) {
+      setErrorMessage("Token inválido");
+      return;
+    }
+
+    const result = await response.json();
+
+    updateStudent(result.data.student, result.data.access_token);
+
+    router.push("/dashboard");
+  } catch (error) {
+    console.error("Error en el login:", error);
+    setErrorMessage("Algo salió mal, intenta nuevamente más tarde");
+  }
+};
+
 
   const handlePartnerLogin = async (data: PartnerLoginForm) => {
+    setErrorMessage(null);
     try {
       const response = await fetch("/api/auth/login/", {
         method: "POST",
@@ -75,23 +76,22 @@ export function LoginForm({
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        throw new Error("Error en la autenticación");
-      }
-
       const result = await response.json();
-      console.log("result: ", result);
-      console.log("response:  ", result);
-
-      if (result.statusCode === 401) {
-        setErrorMessage("Credenciales incorrectas");
+      if (!response.ok || result.statusCode !== 200) {
+        setErrorMessage(result.error || "Error al iniciar sesión");
         return;
       }
-      updateUser(result.data.user);
 
+      if (!result.data?.user) {
+        setErrorMessage("No se recibió información del usuario.");
+        return;
+      }
+
+      updateUser(result.data.user);
       router.push("/dashboard");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error en el login:", error);
+      setErrorMessage("Error inesperado al iniciar sesión.");
     }
   };
 
@@ -136,8 +136,9 @@ export function LoginForm({
           {loginType === "partner" && (
             <PartnerLoginForm onSubmit={handlePartnerLogin} />
           )}
+
           {errorMessage && (
-            <div className=" text-center my-4">
+            <div className="text-center my-4">
               <span className="text-red-500 text-sm">{errorMessage}</span>
             </div>
           )}

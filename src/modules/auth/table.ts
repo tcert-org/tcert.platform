@@ -29,4 +29,5 @@ export default class UserTable extends Table<typeof tableName> {
       return null;
     }
   }
+  
 }

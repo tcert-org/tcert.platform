@@ -4,15 +4,14 @@ import { SidebarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
+import Image from "next/image";
 
 interface SiteHeaderProps {
   currentModuleName: string;
-  platformTitle: string;
 }
 
 export function SiteHeader({
   currentModuleName,
-  platformTitle,
 }: SiteHeaderProps) {
   const { toggleSidebar } = useSidebar();
 
@@ -34,7 +33,15 @@ export function SiteHeader({
           </p>
         )}
 
-        <h1 className="text-xl font-bold ml-auto">{platformTitle}</h1>
+        <div className="ml-auto">
+          <Image
+            src="/sm-full-color.png"
+            alt="Plataforma T-Cert Logo"
+            height={20}
+            width={80}
+            priority
+          />
+        </div>
       </div>
     </header>
   );

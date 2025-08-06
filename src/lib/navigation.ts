@@ -1,34 +1,81 @@
 import { MenuItem, UserRole } from "./types";
-
 const allMenuItems: Record<UserRole, MenuItem[]> = {
   student: [
-    { title: "Inicio", path: "/home", iconName: "Home" },
-    { title: "Simuladores", path: "/simulators", iconName: "BookOpen" },
-    { title: "Examen", path: "/exam", iconName: "FileText" },
+    {
+      title: "Material",
+      path: "/home",
+      iconName: "Home",
+      showModuleName: false,
+    },
+    {
+      title: "Simuladores",
+      path: "/simulators",
+      iconName: "BookOpen",
+      showModuleName: false,
+    },
+    {
+      title: "Examen",
+      path: "/exam",
+      iconName: "FileText",
+      showModuleName: false,
+    },
+    {
+      title: "Obtén tu Certificado",
+      path: "/diploma",
+      iconName: "Award",
+      showModuleName: false,
+    },
   ],
   partner: [
     {
       title: "Administración de Vouchers",
       path: "/voucher-administration",
       iconName: "CreditCard",
+      showModuleName: false,
     },
     {
       title: "Comprar Vouchers",
       path: "/buy-vouchers",
       iconName: "ShoppingBag",
+      showModuleName: false,
     },
-    // { title: "Reportes", path: "/reports", iconName: "BarChart" },
+    {
+      title: "Pagos",
+      path: "/reports",
+      iconName: "BarChart",
+      showModuleName: true,
+    },
   ],
   admin: [
+    {
+      title: "Creacion de Partners",
+      path: "/create-partners",
+      iconName: "Users",
+      showModuleName: false,
+    },
     {
       title: "Administración de Partners",
       path: "/partners",
       iconName: "Users",
+      showModuleName: false,
     },
     {
       title: "Administración de Vouchers",
       path: "/voucher-administration",
       iconName: "CreditCard",
+      showModuleName: false,
+    },
+    {
+      title: "Academica",
+      path: "/exam",
+      iconName: "BookOpen",
+      showModuleName: false,
+    },
+    {
+      title: "Pagos",
+      path: "/reports",
+      iconName: "BarChart",
+      showModuleName: false,
     },
   ],
   unknown: [],

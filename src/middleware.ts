@@ -11,14 +11,10 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 const secret = new TextEncoder().encode(JWT_SECRET);
 
 async function refreshTokens() {
-  // Hacerlo directamente, porque no se puede llamar apis desde el middleware
-  const refreshResponse = await fetch(
-    `http://localhost:3000${REFRESH_API_URL}`,
-    {
-      method: "POST",
-      credentials: "include",
-    }
-  );
+  const refreshResponse = await fetch(`http://localhost:3000${REFRESH_API_URL}`, {
+    method: "POST",
+    credentials: "include",
+  });
 
   if (!refreshResponse.ok) {
     return null;
@@ -80,41 +76,26 @@ async function handleStudentAuth(req: NextRequest) {
     const { payload } = await jwtVerify(studentToken, secret);
 
     if (!payload || typeof payload !== "object") {
-      return { authenticated: false, student: null };
-    }
 
-    const { voucher_id, code } = payload as {
-      voucher_id: string;
-      code: string;
-    };
-
-    if (!voucher_id || !code) {
       return { authenticated: false, student: null };
     }
 
     const studentLoginTable = new StudentLoginTable();
-    const sessionValid = await studentLoginTable.validateSession(
-      voucher_id,
-      code
-    );
+    const sessionValid = await studentLoginTable.validateSession(studentToken);
 
     if (!sessionValid) {
       return { authenticated: false, student: null };
     }
-
     return { authenticated: true, student: payload };
-  } catch (error) {
-    console.error("Student auth error:", error);
+  } catch {
     return { authenticated: false, student: null };
   }
 }
 
 export async function middleware(req: NextRequest) {
   try {
-    // Check for student_access_token first
     const hasStudentToken = req.cookies.has("student_access_token");
 
-    // Authentication results
     let userAuthResult: { authenticated: boolean; user: User | null } = {
       authenticated: false,
       user: null,
@@ -124,24 +105,19 @@ export async function middleware(req: NextRequest) {
       student: null | JWTPayload;
     } = { authenticated: false, student: null };
 
-    // Try student authentication if token exists
     if (hasStudentToken) {
       studentAuthResult = await handleStudentAuth(req);
     }
 
-    // If student auth failed, try user auth
     if (!studentAuthResult.authenticated) {
       userAuthResult = await handleUserAuth(req);
     }
 
-    // If both auth methods failed and this is a protected route, redirect to sign in
     if (!studentAuthResult.authenticated && !userAuthResult.authenticated) {
       return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
     }
 
-    // Set appropriate headers if this is an API route
-
-    // For user API routes
+    // Headers para rutas API autenticadas como usuario
     if (
       userAuthResult.authenticated &&
       req.nextUrl.pathname.startsWith("/app/api")
@@ -154,7 +130,6 @@ export async function middleware(req: NextRequest) {
       if (!userData) {
         return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
       }
-
       const userString = JSON.stringify(userData);
       const requestHeaders = new Headers(req.headers);
       requestHeaders.set("x-user", userString);
@@ -165,8 +140,6 @@ export async function middleware(req: NextRequest) {
         },
       });
     }
-
-    // If we reach here, either authentication was successful or the route doesn't require it
     return NextResponse.next();
   } catch (error: any) {
     return NextResponse.json(
@@ -178,6 +151,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth/register|api/auth/login|api/auth/refresh|sign-in|api/auth-student|api/decrypt-student|_next/static|_next/image|public|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)",
+    "/((?!api/auth/register|api/auth/login|api/auth/refresh|sign-in|api/auth-student|api/decrypt-student|api/diploma/by-voucher-code|_next/static|_next/image|public|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)",
   ],
 };

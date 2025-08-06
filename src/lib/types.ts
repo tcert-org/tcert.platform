@@ -1,5 +1,5 @@
 import type { UserRowType } from "@/modules/auth/table";
-import { Database } from "../../supabase-types";
+import { Database } from "./database/database.types";
 
 export type UserRole = "student" | "partner" | "admin" | "unknown";
 export type StudentRowType = Database["public"]["Tables"]["students"]["Row"];
@@ -12,6 +12,7 @@ export interface MenuItem {
   title: string;
   path: string;
   iconName: string;
+  showModuleName: boolean;
 }
 
 export interface BreadcrumbItem {

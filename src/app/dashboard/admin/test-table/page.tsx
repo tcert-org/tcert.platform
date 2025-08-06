@@ -37,8 +37,6 @@ interface User {
 async function fetchUsers(
   params: any
 ): Promise<{ data: User[]; totalCount: number }> {
-  console.log("Fetching with params:", params);
-
   // In a real app, this would be an API call
   // return await fetch(`/api/users?${new URLSearchParams(params)}`).then(res => res.json())
 
@@ -367,7 +365,7 @@ export default function UsersPage() {
         <DataTable
           columns={columns}
           fetchDataFn={fetchUsers}
-          booleanLabels={{ trueLabel: "Sí", falseLabel: "No" }}
+          //*/booleanLabels={{ trueLabel: "Sí", falseLabel: "No" }}*/
         />
       </div>
     </div>

@@ -23,13 +23,16 @@ export type VouchersUpdateType =
 export type VoucherWithStudentType = VouchersRowType & {
   student?: StudentsRowType | null;
 };
-
+//TODO: VoucherWithStudentType
 export class StudentLoginTable {
-  async getVoucherWithStudent(token: string): Promise<VoucherWithStudentType> {
+  async getVoucherWithStudent(code: string): Promise<any> {
     const { data, error } = await supabase
       .from("vouchers")
-      .select("*, student:student_id(*)")
-      .eq("code", token)
+      .select(`
+        *,
+        students:students(voucher_id, fullname, document_number, document_type)
+      `)
+      .eq("code", code)
       .maybeSingle();
 
     if (error) {
@@ -40,7 +43,7 @@ export class StudentLoginTable {
   }
 
   async createSession(
-    sessionParams: SessionsInsertType
+    sessionParams: any //TODO: SessionsInsertType
   ): Promise<SessionsRowType> {
     const { data, error } = await supabase
       .from("sessions")
@@ -56,15 +59,13 @@ export class StudentLoginTable {
   }
 
   async validateSession(
-    voucherId: string,
-    voucherCode: string
+    sessionToken: string,
   ): Promise<boolean> {
     try {
       const { data, error } = await supabase
         .from("sessions")
         .select("*")
-        .eq("voucher_id", voucherId)
-        .eq("voucher_code", voucherCode)
+        .eq("session_token", sessionToken)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -96,13 +97,7 @@ export class StudentLoginTable {
         token,
         new TextEncoder().encode(process.env.JWT_SECRET!)
       );
-
-      return {
-        voucher_id: payload.voucher_id as string,
-        code: payload.code as string,
-        role: payload.role as string,
-        certification_id: payload.certification_id as string | null,
-      };
+      return payload;
     } catch (error) {
       console.error("[DECODE_JWT_ERROR]", error);
       return null;

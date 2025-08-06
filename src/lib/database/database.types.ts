@@ -216,35 +216,86 @@ export type Database = {
           }
         ];
       };
+      payments: {
+        Row: {
+          id: number;
+          partner_id: string;
+          admin_id: string | null;
+          voucher_quantity: number;
+          unit_price: number;
+          total_price: number | null;
+          file_url: string | null;
+          created_at: string;
+          expiration_date: string;
+        };
+        Insert: {
+          partner_id: string;
+          admin_id?: string | null;
+          voucher_quantity: number;
+          unit_price: number;
+          total_price?: number | null;
+          file_url?: string | null;
+          created_at?: string;
+          expiration_date?: string;
+        };
+        Update: {
+          partner_id?: string;
+          admin_id?: string | null;
+          voucher_quantity?: number;
+          unit_price?: number;
+          total_price?: number | null;
+          file_url?: string | null;
+          created_at?: string;
+          expiration_date?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "payments_partner_id_fkey";
+            columns: ["partner_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "payments_admin_id_fkey";
+            columns: ["admin_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
       exams: {
         Row: {
-          attempts: number;
-          certification_id: number | null;
-          created_at: string | null;
-          id: number;
-          max_attempts: number;
+          certification_id: number;
           simulator: boolean;
           time_limit: number | null;
+          attempts: number;
+          name_exam: string;
+          active: boolean;
+          created_at: string | null;
+          id: number;
           updated_at: string | null;
         };
         Insert: {
-          attempts?: number;
           certification_id?: number | null;
-          created_at?: string | null;
-          id?: never;
-          max_attempts: number;
           simulator: boolean;
           time_limit?: number | null;
+          attempts?: number;
+          name_exam: string;
+          active: boolean;
+          created_at?: string | null;
+          id?: never;
           updated_at?: string | null;
         };
         Update: {
-          attempts?: number;
           certification_id?: number | null;
+          simulator: boolean;
+          time_limit?: number | null;
+          attempts?: number;
+          name_exam: string;
+          active: boolean;
           created_at?: string | null;
           id?: never;
-          max_attempts?: number;
-          simulator?: boolean;
-          time_limit?: number | null;
           updated_at?: string | null;
         };
         Relationships: [
@@ -256,6 +307,49 @@ export type Database = {
             referencedColumns: ["id"];
           }
         ];
+      };
+      membership: {
+        Row: {
+          name: string;
+          count_from: number;
+          count_up: number;
+          price: number;
+          id: number;
+          created_at?: string | null;
+        };
+        Insert: {
+          name: string;
+          count_from: number;
+          count_up: number;
+          price: number;
+          id: number;
+          created_at?: string | null;
+        };
+        Update: {
+          name: string;
+          count_from: number;
+          count_up: number;
+          price: number;
+          id: number;
+          created_at?: string | null;
+        };
+      };
+      params: {
+        Row: {
+          name: string;
+          value: number;
+          created_at?: string | null;
+        };
+        Insert: {
+          name: string;
+          value: number;
+          created_at?: string | null;
+        };
+        Update: {
+          name: string;
+          value: number;
+          created_at?: string | null;
+        };
       };
       feedback: {
         Row: {
@@ -332,25 +426,30 @@ export type Database = {
       };
       questions: {
         Row: {
-          content: string;
-          created_at: string | null;
-          exam_id: number | null;
           id: number;
+          exam_id: number | null;
+          content: string;
+          type_question: number;
+          active: boolean;
+          created_at: string | null;
           updated_at: string | null;
         };
         Insert: {
+          exam_id: number | null;
           content: string;
-          created_at?: string | null;
-          exam_id?: number | null;
-          id?: never;
-          updated_at?: string | null;
+          type_question: number;
+          active: boolean;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Update: {
-          content?: string;
-          created_at?: string | null;
-          exam_id?: number | null;
-          id?: never;
-          updated_at?: string | null;
+          id: number;
+          exam_id: number | null;
+          content: string;
+          type_question: number;
+          active: boolean;
+          created_at: string | null;
+          updated_at: string | null;
         };
         Relationships: [
           {
@@ -452,10 +551,13 @@ export type Database = {
           contact_number: string | null;
           created_at: string | null;
           email: string;
+          first_name: string | null;
+          last_name: string | null;
           id: number;
           role_id: number;
           updated_at: string | null;
           user_uuid: string | null;
+          membership_id: number;
         };
         Insert: {
           company_address?: string | null;
@@ -463,6 +565,8 @@ export type Database = {
           contact_number?: string | null;
           created_at?: string | null;
           email: string;
+          first_name?: string | null;
+          last_name?: string | null;
           id?: never;
           role_id: number;
           updated_at?: string | null;
@@ -474,6 +578,8 @@ export type Database = {
           contact_number?: string | null;
           created_at?: string | null;
           email?: string;
+          first_name?: string | null;
+          last_name?: string | null;
           id?: never;
           role_id?: number;
           updated_at?: string | null;
@@ -489,6 +595,7 @@ export type Database = {
           }
         ];
       };
+
       voucher_statuses: {
         Row: {
           created_at: string | null;
@@ -522,7 +629,6 @@ export type Database = {
           partner_id: number | null;
           purchase_date: string;
           status_id: number | null;
-          student_id: number | null;
           updated_at: string | null;
           voucher_code: string | null;
         };
@@ -633,8 +739,6 @@ export type Database = {
         Args: {
           filter_code?: string;
           filter_certification_name?: string;
-          filter_student_fullname?: string;
-          filter_student_document_number?: string;
           filter_email?: string;
           filter_available?: boolean;
           filter_purchase_date?: string;

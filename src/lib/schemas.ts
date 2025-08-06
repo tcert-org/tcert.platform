@@ -23,3 +23,55 @@ export const partnerLoginSchema = z.object({
         "La contraseña debe contener al menos un carácter especial (!@#$%^&*)",
     }),
 });
+
+//Esquema de validacion para el examen
+
+export const ExamRegisterSchema = z.object({
+  certification_id: z
+    .number({ required_error: "La certificación es obligatoria." })
+    .min(1, "Debes seleccionar una certificación válida."),
+  simulator: z.boolean({
+    required_error: "Es obligatorio escoger si es examen o no.",
+  }),
+  name_exam: z.string({ required_error: "Debes agregar un nombre." }),
+  active: z.boolean({
+    required_error:
+      "Debes seleccionar si está activo o inactivo el examen o simulador.",
+  }),
+  attempts: z.number().nullable().optional(),
+  time_limit: z.number().nullable().optional(),
+});
+
+//Esquema de validacion para las preguntas
+
+export const QuestionRegisterSchema = z.object({
+  exam_id: z
+    .number({ required_error: "El examenvinculado es obligatorio" })
+    .min(1, "Debes seleccionar un examen valido"),
+  content: z
+    .string({ required_error: "Es obligatorio el contexto de la pregunta" })
+    .min(3),
+  type_question: z
+    .number({ required_error: "El tipo de pregunta es obligatorio." })
+    .min(1, "Debes seleccionar un tipo valido"),
+  active: z.boolean({
+    required_error: "Debes seleccionar si está activa o inactiva la pregunta.",
+  }),
+});
+
+//esquema de validacion de opciones
+export const OptionRegisterSchema = z.object({
+  question_id: z
+    .number({
+      required_error: "Es obligatorio asignar una pregunta a las opciones.",
+    })
+    .min(1, "Debes seleccionar una pregunta valida"),
+  content: z.string({ required_error: "La opcion debe tener un contenido." }),
+  is_correct: z.boolean({
+    required_error:
+      "Es obligatorio seleccionar si la opcion es falsa o correcta.",
+  }),
+});
+
+//esquema para validacion de membresias
+

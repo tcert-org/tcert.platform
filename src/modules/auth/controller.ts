@@ -9,23 +9,24 @@ export default class AuthController {
     data: RegisterUserType
   ): Promise<NextResponse<ApiResponse<{ user: UserRowType }>>> {
     try {
-      const { user, session } = await AuthService.createUser(data);
+      const { user } = await AuthService.createUser(data);
 
       const response = NextResponse.json({ statusCode: 201, data: { user } });
+      /* if (session) {
+        response.cookies.set("access_token", session.access_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 8 * 60 * 60,
+          path: "/",
+        });
 
-      response.cookies.set("access_token", session.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 8 * 60 * 60,
-        path: "/",
-      });
-
-      response.cookies.set("refresh_token", session.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 30,
-        path: "/",
-      });
+        response.cookies.set("refresh_token", session.refresh_token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          maxAge: 60 * 60 * 24 * 30,
+          path: "/",
+        });
+      }*/
 
       return response;
     } catch (error: any) {
@@ -122,6 +123,13 @@ export default class AuthController {
       });
 
       response.cookies.set("refresh_token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 0,
+        path: "/",
+      });
+
+      response.cookies.set("student_access_token", "", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         maxAge: 0,
