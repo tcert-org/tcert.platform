@@ -57,6 +57,8 @@ export function ActionMenu<TData>({ record, actions }: ActionMenuProps<TData>) {
               ? action.icon(record as any)
               : action.icon;
 
+          const IconComponent = Icon as LucideIcon;
+
           return (
             <DropdownMenuItem
               key={index}
@@ -72,7 +74,7 @@ export function ActionMenu<TData>({ record, actions }: ActionMenuProps<TData>) {
                 action.variant === "destructive" ? "text-destructive" : ""
               }
             >
-              {Icon && <Icon className="mr-2 h-4 w-4" />}
+              {IconComponent && <IconComponent className="mr-2 h-4 w-4" />}
               {label}
             </DropdownMenuItem>
           );

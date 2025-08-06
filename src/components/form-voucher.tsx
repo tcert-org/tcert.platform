@@ -117,7 +117,7 @@ export default function VoucherForm() {
         setStatuses(options);
 
         const defaultOption = options.find(
-          (item) => item.label.toLowerCase() === "sin presentar"
+          (item: OptionType) => item.label.toLowerCase() === "sin presentar"
         );
 
         if (defaultOption) {
