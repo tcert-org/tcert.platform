@@ -80,4 +80,33 @@ export default class DiplomaController {
       });
     }
   }
+
+  static async getDiplomaAndStudentByVoucherCode(
+    data: { code: string }
+  ): Promise<NextResponse<ApiResponse<any>>> {
+    try {
+      const table = new DiplomaTable();
+      const diplomaData = await table.getDiplomaAndStudentByVoucherCode(data.code);
+
+      if (!diplomaData) {
+        return NextResponse.json({
+          statusCode: 404,
+          error: "No se encontraron datos del diploma para este código de voucher.",
+        });
+      }
+
+      return NextResponse.json({
+        statusCode: 200,
+        data: diplomaData,
+        message: "Datos del diploma y estudiante obtenidos correctamente.",
+      });
+    } catch (error) {
+      console.error("[GET_DIPLOMA_BY_VOUCHER_CODE_ERROR]", error);
+      return NextResponse.json({
+        statusCode: 500,
+        data: null,
+        error: error instanceof Error ? error.message : "Error desconocido",
+      });
+    }
+  }
 }
