@@ -259,20 +259,15 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
 
           {/* Botones de acción */}
           <div className="flex justify-center gap-4">
-            <a
-              href="/dashboard/student/simulators"
-              className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300/50 hover:from-blue-200 hover:to-indigo-200 transition-all duration-200 shadow-sm"
-            >
-              <BookOpen className="w-4 h-4 mr-2" />
-              Ir a Simuladores
-            </a>
-            <a
-              href="/dashboard/student/exam"
-              className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 hover:from-green-200 hover:to-emerald-200 transition-all duration-200 shadow-sm"
-            >
-              <BadgeCheck className="w-4 h-4 mr-2" />
-              Ir a Exámenes
-            </a>
+            {student && (
+              <a
+                href={`/dashboard/partner/results?voucher_id=${voucher?.id}&student_id=${student.id}`}
+                className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 transition-all duration-200 shadow-sm"
+              >
+                <Contact2 className="w-4 h-4 mr-2" />
+                Ver Resultados del Estudiante
+              </a>
+            )}
           </div>
         </div>
       </div>
