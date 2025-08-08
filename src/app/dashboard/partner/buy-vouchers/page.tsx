@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Banknote } from "lucide-react";
+import { Banknote, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import {
   Dialog,
@@ -24,6 +24,7 @@ const membershipColor: Record<string, string> = {
 export default function AssignVoucherForm() {
   const [quantity, setQuantity] = useState<number>(1);
   const [loading, setLoading] = useState(false);
+  const [priceLoading, setPriceLoading] = useState(false);
   const { getUser } = useUserStore();
 
   const [membershipName, setMembershipName] = useState<string | null>(null);
@@ -77,11 +78,16 @@ export default function AssignVoucherForm() {
       const user = await getUser();
       if (!user?.id || quantity < 1) return;
 
+      setPriceLoading(true);
+
       // 🔄 Obtener membresía fresca de la API en lugar del user store
       const freshData = await fetchFreshPartnerData(String(user.id));
 
       // Buscar el membership_id basado en el nombre de la membresía fresca
-      if (!freshData) return;
+      if (!freshData) {
+        setPriceLoading(false);
+        return;
+      }
 
       try {
         // Obtener todas las membresías para encontrar el ID por nombre
@@ -94,7 +100,10 @@ export default function AssignVoucherForm() {
           (m: any) => m.name === freshData.membership_name
         );
 
-        if (!membership?.id) return;
+        if (!membership?.id) {
+          setPriceLoading(false);
+          return;
+        }
 
         const res = await fetch("/api/checkout", {
           method: "POST",
@@ -112,6 +121,8 @@ export default function AssignVoucherForm() {
         }
       } catch (error) {
         console.error("Error al obtener precio:", error);
+      } finally {
+        setPriceLoading(false);
       }
     };
 
@@ -533,12 +544,14 @@ export default function AssignVoucherForm() {
                 <Button
                   type="button"
                   onClick={handlePay}
-                  disabled={loading}
-                  className="w-full text-lg py-4 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-700 hover:from-purple-700 hover:via-violet-700 hover:to-indigo-800 text-white font-semibold rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30 border border-purple-400/20 transition-all duration-200 transform hover:scale-[1.02]"
+                  disabled={loading || priceLoading}
+                  className="w-full text-lg py-4 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-700 hover:from-purple-700 hover:via-violet-700 hover:to-indigo-800 text-white font-semibold rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30 border border-purple-400/20 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Banknote className="text-[24px] mr-3 shrink-0" />
                   {loading
                     ? "Procesando..."
+                    : priceLoading
+                    ? "Cargando precios..."
                     : `Pagar ${quantity} voucher${quantity > 1 ? "s" : ""}`}
                 </Button>
               </div>

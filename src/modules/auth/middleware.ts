@@ -3,10 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const RegisterUserSchema = z.object({
-  first_name: z.string().optional(),
-  last_name: z
-    .string()
-    .optional(),
   email: z.string().email({ message: "Invalid email format" }),
   password: z
     .string()
@@ -28,9 +24,11 @@ const RegisterUserSchema = z.object({
     .positive({ message: "role_id must be a valid positive integer" }),
   company_name: z.string().optional(), 
   contact_number: z.string().optional(),
+  logo_url: z.string().url({ message: "Invalid logo URL format" }).optional().or(z.literal("")),
+  page_url: z.string().url({ message: "Invalid page URL format" }).optional().or(z.literal("")),
 });
 
-export const LoginUserSchema = RegisterUserSchema.omit({ role_id: true, company_name: true, contact_number: true, last_name: true, first_name: true });
+export const LoginUserSchema = RegisterUserSchema.omit({ role_id: true, company_name: true, contact_number: true, logo_url: true, page_url: true });
 
 export type RegisterUserType = z.infer<typeof RegisterUserSchema>;
 export type LoginUserType = z.infer<typeof LoginUserSchema>;

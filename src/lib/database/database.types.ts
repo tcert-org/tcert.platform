@@ -551,9 +551,9 @@ export type Database = {
           contact_number: string | null;
           created_at: string | null;
           email: string;
-          first_name: string | null;
-          last_name: string | null;
           id: number;
+          logo_url: string | null;
+          page_url: string | null;
           role_id: number;
           updated_at: string | null;
           user_uuid: string | null;
@@ -565,9 +565,9 @@ export type Database = {
           contact_number?: string | null;
           created_at?: string | null;
           email: string;
-          first_name?: string | null;
-          last_name?: string | null;
           id?: never;
+          logo_url?: string | null;
+          page_url?: string | null;
           role_id: number;
           updated_at?: string | null;
           user_uuid?: string | null;
@@ -578,9 +578,9 @@ export type Database = {
           contact_number?: string | null;
           created_at?: string | null;
           email?: string;
-          first_name?: string | null;
-          last_name?: string | null;
           id?: never;
+          logo_url?: string | null;
+          page_url?: string | null;
           role_id?: number;
           updated_at?: string | null;
           user_uuid?: string | null;

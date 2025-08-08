@@ -12,13 +12,13 @@ export default class AuthService {
     data: RegisterUserType
   ): Promise<{ user: UserRowType; session: Session | null }> {
     const {
-      first_name,
-      last_name,
       email,
       password,
       role_id,
       company_name,
       contact_number,
+      logo_url,
+      page_url,
     } = data;
 
     try {
@@ -28,10 +28,10 @@ export default class AuthService {
         options: {
           data: {
             role_id,
-            first_name,
-            last_name,
             company_name,
             contact_number,
+            logo_url,
+            page_url,
           },
         },
       });
@@ -48,8 +48,8 @@ export default class AuthService {
         user_uuid: authData.user.id,
         company_name,
         contact_number,
-        first_name,
-        last_name,
+        logo_url,
+        page_url,
       });
 
       if (createdUser === null) {

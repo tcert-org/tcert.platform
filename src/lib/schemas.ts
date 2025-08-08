@@ -74,4 +74,3 @@ export const OptionRegisterSchema = z.object({
 });
 
 //esquema para validacion de membresias
-

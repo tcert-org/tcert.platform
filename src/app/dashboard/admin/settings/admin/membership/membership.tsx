@@ -180,9 +180,9 @@ function MembershipForm() {
         pauseOnHover
         style={{ zIndex: 10000 }}
         toastStyle={{
-          fontSize: '14px',
-          borderRadius: '8px',
-          padding: '12px 16px'
+          fontSize: "14px",
+          borderRadius: "8px",
+          padding: "12px 16px",
         }}
       />
 
