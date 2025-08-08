@@ -35,35 +35,34 @@ export function LoginForm({
   const updateStudent = useStudentStore((state) => state.updateStudent);
 
   const handleStudentLogin = async (data: StudentLoginForm) => {
-  try {
-    const response = await fetch("/api/auth-student", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
+    try {
+      const response = await fetch("/api/auth-student", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
 
-    if (response.status === 400) {
-      setErrorMessage("Formato del token inválido");
-      return;
+      if (response.status === 400) {
+        setErrorMessage("Formato del token inválido");
+        return;
+      }
+      if (response.status === 401) {
+        setErrorMessage("Token inválido");
+        return;
+      }
+
+      const result = await response.json();
+
+      updateStudent(result.data.student, result.data.access_token);
+
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error en el login:", error);
+      setErrorMessage("Algo salió mal, intenta nuevamente más tarde");
     }
-    if (response.status === 401) {
-      setErrorMessage("Token inválido");
-      return;
-    }
-
-    const result = await response.json();
-
-    updateStudent(result.data.student, result.data.access_token);
-
-    router.push("/dashboard");
-  } catch (error) {
-    console.error("Error en el login:", error);
-    setErrorMessage("Algo salió mal, intenta nuevamente más tarde");
-  }
-};
-
+  };
 
   const handlePartnerLogin = async (data: PartnerLoginForm) => {
     setErrorMessage(null);
@@ -203,11 +202,11 @@ function PartnerLoginForm({
     <form onSubmit={handleSubmit(onSubmit)}>
       <div className="grid gap-6">
         <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Correo Electrónico</Label>
           <Input
             id="email"
             type="email"
-            placeholder="m@example.com"
+            placeholder="correo@empresa.com"
             {...register("email")}
           />
           {errors.email && (

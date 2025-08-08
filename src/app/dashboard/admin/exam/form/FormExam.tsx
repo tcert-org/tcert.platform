@@ -167,7 +167,7 @@ export default function FormExam({
         <Card className="w-full max-w-full sm:max-w-3xl md:max-w-5xl xl:max-w-[1400px] rounded-2xl shadow-2xl px-2 sm:px-4 md:px-8 xl:px-0 py-3 md:py-5 xl:py-8 bg-card flex flex-col justify-center">
           <CardContent className="h-full flex flex-col justify-center">
             <CardTitle className=" mb-4 text-xl md:text-2xl">
-              Información examen
+              Información del examen
             </CardTitle>
             <form
               onSubmit={handleSubmit(onSubmit)}
@@ -178,7 +178,7 @@ export default function FormExam({
 
               <div>
                 <Label className="text-base md:text-lg" htmlFor="name_exam">
-                  Nombre de Examen
+                  Nombre del Examen
                 </Label>
                 <Input
                   id="name_exam"

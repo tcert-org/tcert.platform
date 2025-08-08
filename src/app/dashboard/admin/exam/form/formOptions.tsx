@@ -1,233 +1,259 @@
 "use client";
 
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 
-type OptionFormData = {
-  question_id: number;
+type OptionData = {
   content: string;
-  is_correct: string;
-  active: string;
+  is_correct: boolean;
 };
 
-const correctOptions = [
-  { value: "true", label: "Correcta" },
-  { value: "false", label: "Incorrecta" },
-];
+type AllOptionsFormData = {
+  options: OptionData[];
+};
 
 export default function FormOptions({ questionId }: { questionId: number }) {
   const {
     register,
     handleSubmit,
-    control,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<OptionFormData>({
+  } = useForm<AllOptionsFormData>({
     defaultValues: {
-      question_id: questionId,
-      content: "",
-      is_correct: "",
-      active: "activo",
+      options: [
+        { content: "", is_correct: false },
+        { content: "", is_correct: false },
+        { content: "", is_correct: false },
+        { content: "", is_correct: false },
+      ],
     },
   });
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [lastOption, setLastOption] = useState<{
-    content: string;
-    is_correct: string;
-    optionNumber: number;
-  } | null>(null);
-
   const [showForm, setShowForm] = useState(true);
-  const [optionNumber, setOptionNumber] = useState(1);
 
-  // Submit y muestra solo el banner
-  const onSubmit = async (data: OptionFormData) => {
+  const watchedOptions = watch("options");
+
+  // Submit todas las opciones de una vez
+  const onSubmit = async (data: AllOptionsFormData) => {
     setErrorMessage(null);
     setSuccessMessage(null);
+
+    // Validar que todas las opciones tengan contenido
+    const hasEmptyOptions = data.options.some(
+      (option) => !option.content.trim()
+    );
+    if (hasEmptyOptions) {
+      setErrorMessage("Todas las opciones deben tener contenido");
+      return;
+    }
+
+    // Validar que al menos una opción sea correcta
+    const hasCorrectOption = data.options.some((option) => option.is_correct);
+    if (!hasCorrectOption) {
+      setErrorMessage("Debe marcar al menos una opción como correcta");
+      return;
+    }
+
     try {
-      const dataToSend = {
-        ...data,
-        question_id: Number(questionId),
-        is_correct: data.is_correct === "true",
-        active: data.active === "activo",
-      };
-      const res = await fetch("/api/exam/question/elections", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSend),
-      });
-      const result = await res.json();
-      if (!res.ok || result.error) {
-        setErrorMessage(result.error || "No se pudo crear la opción");
-        return;
+      // Enviar cada opción por separado
+      for (let i = 0; i < data.options.length; i++) {
+        const option = data.options[i];
+        const dataToSend = {
+          question_id: Number(questionId),
+          content: option.content.trim(),
+          is_correct: option.is_correct,
+          active: true,
+        };
+
+        const res = await fetch("/api/exam/question/elections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataToSend),
+        });
+
+        const result = await res.json();
+        if (!res.ok || result.error) {
+          setErrorMessage(
+            `Error en opción ${i + 1}: ${
+              result.error || "No se pudo crear la opción"
+            }`
+          );
+          return;
+        }
       }
-      setSuccessMessage("Opción creada correctamente");
-      setLastOption({
-        content: data.content,
-        is_correct: data.is_correct,
-        optionNumber: optionNumber,
-      });
-      setShowForm(false); // Oculta el form
-      reset({
-        question_id: questionId,
-        content: "",
-        is_correct: "",
-        active: "activo",
-      });
+
+      setSuccessMessage("Todas las opciones creadas correctamente");
+      setShowForm(false);
     } catch (e: any) {
       setErrorMessage(e.message || "Error desconocido");
     }
   };
 
-  // Banner para mostrar la última opción creada (idéntico a pregunta/examen)
-  function BannerOpcionCreada({
-    content,
-    is_correct,
-    optionNumber,
-    onNuevaOpcion,
-  }: {
-    content: string;
-    is_correct: string;
-    optionNumber: number;
-    onNuevaOpcion: () => void;
-  }) {
-    const isCorrecta = is_correct === "true";
+  // Banner para mostrar las opciones creadas
+  function BannerOpcionesCreadas() {
     return (
-      <div className="w-full flex items-center justify-center gap-4 mb-4 ">
-        <div className="w-full max-w-2xl mx-auto bg-gray-100 border border-gray-300 px-6 py-3 rounded-lg flex items-center gap-3 shadow-none">
-          {/* Número de opción */}
-          <span className="inline-block bg-gray-200 text-gray-700 px-2 py-1 rounded font-semibold text-xs uppercase tracking-wide mr-3">
-            Opción {optionNumber}
-          </span>
-          <span
-            className={`inline-block rounded font-bold text-xs uppercase tracking-wide mr-3 px-4 py-1
-              ${
-                isCorrecta
-                  ? "bg-green-500 text-white"
-                  : "bg-yellow-400 text-yellow-900"
-              }`}
-          >
-            {isCorrecta ? "Correcta" : "Incorrecta"}
-          </span>
-          <span className="font-bold text-base text-gray-800 flex-1 truncate">
-            {content}
-          </span>
-          <span className="text-green-700 text-xs ml-4 font-semibold">
-            Opción creada correctamente
-          </span>
+      <div className="w-full flex justify-center mb-6">
+        <div className="w-full max-w-4xl mx-auto bg-green-50 border border-green-300 px-6 py-4 rounded-lg shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="inline-block bg-green-500 text-white px-3 py-1 rounded font-semibold text-sm">
+              ✓ Opciones Creadas
+            </span>
+            <span className="text-green-700 text-sm font-semibold">
+              Las 4 opciones se crearon correctamente
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {watchedOptions.map((option, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 bg-white p-3 rounded border"
+              >
+                <span className="text-sm text-gray-600 font-medium">
+                  {index + 1}.
+                </span>
+                <span
+                  className={`inline-block rounded font-bold text-xs px-2 py-1 ${
+                    option.is_correct
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-400 text-white"
+                  }`}
+                >
+                  {option.is_correct ? "Correcta" : "Incorrecta"}
+                </span>
+                <span className="text-sm text-gray-800 flex-1 truncate">
+                  {option.content}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-        <Button
-          className="h-10 px-6 text-base font-semibold bg-gray-700 text-white hover:bg-gray-800 transition"
-          onClick={() => {
-            setShowForm(true);
-            setOptionNumber((prev) => prev + 1);
-            setSuccessMessage(null);
-          }}
-          type="button"
-        >
-          Siguiente
-        </Button>
       </div>
     );
   }
 
   return (
     <div className="w-full">
-      {/* Banner y botón alineados horizontalmente */}
-      {!showForm && lastOption && (
-        <BannerOpcionCreada
-          content={lastOption.content}
-          is_correct={lastOption.is_correct}
-          optionNumber={lastOption.optionNumber}
-          onNuevaOpcion={() => {
-            setShowForm(true);
-            setOptionNumber((prev) => prev + 1);
-            setSuccessMessage(null);
-          }}
-        />
-      )}
+      {/* Banner de opciones creadas */}
+      {!showForm && successMessage && <BannerOpcionesCreadas />}
+
+      {/* Formulario de opciones */}
       {showForm && (
-        <div className="w-full max-w-2xl mx-auto mb-4">
-          <Card className="w-full rounded-2xl shadow-2xl p-8 bg-card">
-            <CardContent>
-              {/* Número de opción arriba del form */}
-              <div className="mb-2 text-right  font-semibold text-sm">
-                Opción {optionNumber}
-              </div>
-              <CardTitle className="mb-4">Agregar opción</CardTitle>
-              <form
-                onSubmit={handleSubmit(onSubmit)}
-                className="flex flex-col gap-6"
-                autoComplete="off"
-              >
-                <input
-                  type="hidden"
-                  {...register("question_id", { valueAsNumber: true })}
-                />
-                <div>
-                  <Label htmlFor="content">Opción</Label>
-                  <Input
-                    id="content"
-                    {...register("content", { required: "Campo obligatorio" })}
-                    placeholder="Texto de la opción"
-                    autoComplete="off"
-                  />
-                  {errors.content && (
-                    <span className="text-red-500 text-xs">
-                      {errors.content.message}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <Label>¿Es correcta?</Label>
-                  <Controller
-                    control={control}
-                    name="is_correct"
-                    rules={{ required: "Seleccione si es correcta" }}
-                    render={({ field }) => (
-                      <select
-                        {...field}
-                        className="w-full p-2 rounded border border-gray-300"
-                      >
-                        <option value="">Selecciona una opción</option>
-                        {correctOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  />
-                  {errors.is_correct && (
-                    <span className="text-red-500 text-xs">
-                      {errors.is_correct.message}
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-4">
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Guardando..." : "Guardar"}
-                  </Button>
-                </div>
-                {errorMessage && (
-                  <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm text-center mt-2">
-                    <strong className="font-bold">Error:</strong> {errorMessage}
+        <Card className="w-full border-gray-300 shadow-md">
+          <CardContent className="p-6">
+            <CardTitle className="text-xl font-bold mb-6 text-gray-800">
+              Opciones de la Pregunta
+            </CardTitle>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <div key={index} className="space-y-3">
+                    <Label
+                      htmlFor={`option-${index}`}
+                      className="text-sm font-semibold text-gray-700"
+                    >
+                      Opción {index + 1}
+                    </Label>
+                    <div className="space-y-2">
+                      <Input
+                        id={`option-${index}`}
+                        type="text"
+                        {...register(`options.${index}.content`, {
+                          required: "Esta opción es requerida",
+                        })}
+                        placeholder={`Ingrese la opción ${index + 1}`}
+                        className="w-full"
+                      />
+                      {errors.options?.[index]?.content && (
+                        <p className="text-red-500 text-xs">
+                          {errors.options[index]?.content?.message}
+                        </p>
+                      )}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          id={`correct-${index}`}
+                          type="checkbox"
+                          {...register(`options.${index}.is_correct`)}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <Label
+                          htmlFor={`correct-${index}`}
+                          className="text-sm text-gray-600 cursor-pointer"
+                        >
+                          Esta es la respuesta correcta
+                        </Label>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+                ))}
+              </div>
+
+              {/* Mensajes de error y éxito */}
+              {errorMessage && (
+                <div className="p-3 bg-red-50 border border-red-300 rounded text-red-700 text-sm">
+                  {errorMessage}
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="p-3 bg-green-50 border border-green-300 rounded text-green-700 text-sm">
+                  {successMessage}
+                </div>
+              )}
+
+              {/* Información adicional */}
+              <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                <p className="text-blue-800 text-sm">
+                  <strong>Instrucciones:</strong>
+                </p>
+                <ul className="text-blue-700 text-sm mt-2 list-disc list-inside space-y-1">
+                  <li>Complete todas las 4 opciones</li>
+                  <li>Marque al menos una opción como correcta</li>
+                  <li>
+                    Puede marcar múltiples opciones como correctas si es
+                    necesario
+                  </li>
+                </ul>
+              </div>
+
+              {/* Botones */}
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    reset({
+                      options: [
+                        { content: "", is_correct: false },
+                        { content: "", is_correct: false },
+                        { content: "", is_correct: false },
+                        { content: "", is_correct: false },
+                      ],
+                    })
+                  }
+                  disabled={isSubmitting}
+                >
+                  Limpiar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isSubmitting ? "Creando..." : "Crear Todas las Opciones"}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

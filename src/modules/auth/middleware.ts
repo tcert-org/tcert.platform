@@ -22,13 +22,27 @@ const RegisterUserSchema = z.object({
     .number()
     .int()
     .positive({ message: "role_id must be a valid positive integer" }),
-  company_name: z.string().optional(), 
+  company_name: z.string().optional(),
   contact_number: z.string().optional(),
-  logo_url: z.string().url({ message: "Invalid logo URL format" }).optional().or(z.literal("")),
-  page_url: z.string().url({ message: "Invalid page URL format" }).optional().or(z.literal("")),
+  logo_url: z
+    .string()
+    .url({ message: "Invalid logo URL format" })
+    .optional()
+    .or(z.literal("")),
+  page_url: z
+    .string()
+    .url({ message: "Invalid page URL format" })
+    .optional()
+    .or(z.literal("")),
 });
 
-export const LoginUserSchema = RegisterUserSchema.omit({ role_id: true, company_name: true, contact_number: true, logo_url: true, page_url: true });
+export const LoginUserSchema = RegisterUserSchema.omit({
+  role_id: true,
+  company_name: true,
+  contact_number: true,
+  logo_url: true,
+  page_url: true,
+});
 
 export type RegisterUserType = z.infer<typeof RegisterUserSchema>;
 export type LoginUserType = z.infer<typeof LoginUserSchema>;

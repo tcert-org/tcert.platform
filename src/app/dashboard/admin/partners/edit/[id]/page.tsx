@@ -6,14 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Link as LinkIcon } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 interface Partner {
   id: number;
   company_name: string;
-  email: string;
+  logo_url?: string;
+  page_url?: string;
 }
 
 export default function EditPartnerPage() {
@@ -26,7 +27,8 @@ export default function EditPartnerPage() {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     company_name: "",
-    email: "",
+    logo_url: "",
+    page_url: "",
   });
 
   // Cargar datos del partner
@@ -40,7 +42,8 @@ export default function EditPartnerPage() {
         setPartner(data);
         setFormData({
           company_name: data.company_name || "",
-          email: data.email || "",
+          logo_url: data.logo_url || "",
+          page_url: data.page_url || "",
         });
       } catch (error) {
         console.error("Error:", error);
@@ -217,20 +220,47 @@ export default function EditPartnerPage() {
                 <div className="space-y-2">
                   <Label
                     className="text-purple-700 font-semibold text-sm"
-                    htmlFor="email"
+                    htmlFor="logo_url"
                   >
-                    Correo Electrónico *
+                    URL del Logo (Opcional)
                   </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
-                    placeholder="correo@empresa.com"
-                    className="border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
-                    required
-                    disabled={saving}
-                  />
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-purple-500" />
+                    <Input
+                      id="logo_url"
+                      type="url"
+                      value={formData.logo_url}
+                      onChange={(e) =>
+                        handleInputChange("logo_url", e.target.value)
+                      }
+                      placeholder="https://ejemplo.com/logo.png"
+                      className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    className="text-purple-700 font-semibold text-sm"
+                    htmlFor="page_url"
+                  >
+                    URL de la Página Web (Opcional)
+                  </Label>
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-purple-500" />
+                    <Input
+                      id="page_url"
+                      type="url"
+                      value={formData.page_url}
+                      onChange={(e) =>
+                        handleInputChange("page_url", e.target.value)
+                      }
+                      placeholder="https://ejemplo.com"
+                      className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
+                      disabled={saving}
+                    />
+                  </div>
                 </div>
 
                 <div className="md:col-span-2 flex gap-4 pt-6">

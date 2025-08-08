@@ -26,7 +26,7 @@ const partnerSchema = z.object({
   company_name: z
     .string()
     .min(2, "El nombre de la empresa debe tener al menos 2 caracteres"),
-  email: z.string().email("Ingrese un email válido"),
+  email: z.string().email("Ingrese un correo electrónico válido"),
   contact: z
     .string()
     .min(10, "El número de contacto debe tener al menos 10 dígitos"),
@@ -103,7 +103,9 @@ function CreatePartnerPage() {
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.error === "Email already exists") {
-          setError("email", { message: "Este email ya está registrado" });
+          setError("email", {
+            message: "Este correo electrónico ya está registrado",
+          });
         } else {
           throw new Error(errorData.error || "Error al registrar partner");
         }
@@ -174,14 +176,14 @@ function CreatePartnerPage() {
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-purple-700 font-medium">
-                Email *
+                Correo Electrónico *
               </Label>
               <div className="relative group">
                 <Mail className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="email@empresa.com"
+                  placeholder="correo@empresa.com"
                   className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
                   {...register("email")}
                 />
@@ -292,7 +294,8 @@ function CreatePartnerPage() {
               )}
               <div className="text-xs text-gray-600 mt-1">
                 La contraseña debe contener al menos 8 caracteres, una letra
-                mayúscula, una minúscula, un número y un carácter especial (!@#$%^&*)
+                mayúscula, una minúscula, un número y un carácter especial
+                (!@#$%^&*)
               </div>
             </div>
 
