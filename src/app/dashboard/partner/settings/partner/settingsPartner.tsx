@@ -49,7 +49,7 @@ function SettingsPartner() {
       description:
         "Administra la seguridad de tu cuenta y cambio de contraseña",
       icon: Shield,
-      color: "red",
+      color: "orange",
       isExpanded: showSecurityForm,
       onToggle: () => setShowSecurityForm(!showSecurityForm),
       component: <SecurityForm />,
@@ -81,6 +81,14 @@ function SettingsPartner() {
         icon: "text-red-600 drop-shadow-sm",
         badge:
           "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-red-300/50 shadow-sm",
+      },
+      orange: {
+        card: "border-orange-300/50 bg-gradient-to-br from-orange-50 via-amber-50 to-orange-100/70 hover:from-orange-100/80 hover:via-amber-100/60 hover:to-orange-200/50 shadow-orange-100/50 hover:shadow-orange-200/60",
+        button:
+          "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-600/40 border border-orange-400/20",
+        icon: "text-orange-600 drop-shadow-sm",
+        badge:
+          "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-300/50 shadow-sm",
       },
     };
     return colorMap[color as keyof typeof colorMap]?.[variant] || "";
@@ -135,7 +143,9 @@ function SettingsPartner() {
                       className={`p-3 rounded-xl shadow-lg border border-white/50 backdrop-blur-sm ${
                         option.color === "purple"
                           ? "bg-gradient-to-br from-purple-100 to-violet-200"
-                          : "bg-gradient-to-br from-red-100 to-rose-200"
+                          : option.color === "red"
+                          ? "bg-gradient-to-br from-red-100 to-rose-200"
+                          : "bg-gradient-to-br from-orange-100 to-amber-200"
                       }`}
                     >
                       <IconComponent
@@ -201,7 +211,9 @@ function SettingsPartner() {
                     className={`border-t-2 pt-6 ${
                       option.color === "purple"
                         ? "border-purple-200/60"
-                        : "border-red-200/60"
+                        : option.color === "red"
+                        ? "border-red-200/60"
+                        : "border-orange-200/60"
                     }`}
                   >
                     <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-inner border border-white/40">
