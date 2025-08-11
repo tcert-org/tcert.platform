@@ -12,8 +12,11 @@ import {
   BookOpen,
   GraduationCap,
   Shield,
+  Eye,
+  Download,
 } from "lucide-react";
-import { Modal } from "@/modules/tools/ModalScore"; // Modal de calificación
+import { Modal } from "@/modules/tools/ModalScore"; // Modal de calificación simple
+import { DetailedAttemptModal } from "@/components/ui/detailed-attempt-modal"; // Modal detallado para admin
 
 type SimulatorStatus = "completed" | "not_started";
 type ExamStatus = "completed" | "not_started";
@@ -60,6 +63,11 @@ export default function AdminResultsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [examDetails, setExamDetails] = useState<any>(null);
   const [student, setStudent] = useState<any>(null);
+
+  // Estados para el modal detallado de admin
+  const [isDetailedModalOpen, setIsDetailedModalOpen] = useState(false);
+  const [detailedAttemptData, setDetailedAttemptData] = useState<any>(null);
+  const [loadingDetailed, setLoadingDetailed] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -158,6 +166,254 @@ export default function AdminResultsPage() {
       }
     } catch (error) {
       console.error("Error al cargar los resultados:", error);
+    }
+  };
+
+  const handleViewDetailedResults = async (
+    type: "simulator" | "exam",
+    id: number
+  ) => {
+    try {
+      setLoadingDetailed(true);
+      console.log("🔍 Iniciando análisis detallado para:", {
+        type,
+        id,
+        voucherId,
+      });
+
+      // Primero obtener el attempt_id
+      let url = "";
+      if (type === "simulator") {
+        url = `/api/attempts/best-last-simulator?simulator_id=${id}&voucher_id=${voucherId}`;
+      } else {
+        url = `/api/attempts/best-last-exam?exam_id=${id}&voucher_id=${voucherId}`;
+      }
+
+      console.log("🔍 Obteniendo attempt ID desde:", url);
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("📊 Datos del attempt:", data);
+
+        const attemptId =
+          data.data?.best_attempt?.id || data.data?.last_attempt?.id;
+        console.log("🎯 Attempt ID encontrado:", attemptId);
+
+        if (attemptId) {
+          // Intentar primero la API detallada de admin
+          let detailedData = null;
+
+          try {
+            const detailedUrl = `/api/admin/attempts/${attemptId}`;
+            console.log("🔍 Consultando detalles en:", detailedUrl);
+
+            const detailedResponse = await fetch(detailedUrl, {
+              method: "GET",
+              credentials: "include",
+            });
+
+            if (detailedResponse.ok) {
+              const result = await detailedResponse.json();
+              detailedData = result.data;
+              console.log(
+                "✅ Datos detallados obtenidos de admin API:",
+                detailedData
+              );
+            } else {
+              console.warn(
+                "⚠️ Admin API no disponible, usando método alternativo"
+              );
+              throw new Error("Admin API not available");
+            }
+          } catch (adminError) {
+            console.warn(
+              "⚠️ Usando método alternativo para obtener datos detallados"
+            );
+
+            // Método alternativo: construir los datos usando APIs existentes
+            detailedData = await getDetailedDataAlternative(
+              attemptId,
+              data.data,
+              type,
+              id
+            );
+          }
+
+          if (detailedData) {
+            setDetailedAttemptData(detailedData);
+            setIsDetailedModalOpen(true);
+          }
+        } else {
+          console.error("❌ No se encontró attempt ID en los datos:", data);
+        }
+      } else {
+        const errorData = await response.json();
+        console.error("❌ Error al obtener el attempt ID:", errorData);
+      }
+    } catch (error) {
+      console.error(
+        "❌ Error completo al cargar los resultados detallados:",
+        error
+      );
+    } finally {
+      setLoadingDetailed(false);
+    }
+  };
+
+  // Método alternativo para obtener datos detallados usando APIs existentes
+  const getDetailedDataAlternative = async (
+    attemptId: number,
+    attemptData: any,
+    examType: string,
+    examId: number
+  ) => {
+    try {
+      console.log(
+        "🔍 Método alternativo: Obteniendo datos detallados para attempt:",
+        attemptId
+      );
+
+      // 1. Obtener información básica del intento
+      const attempt = attemptData.best_attempt || attemptData.last_attempt;
+      if (!attempt) {
+        throw new Error("No se encontró información del intento");
+      }
+
+      // 2. Obtener todas las preguntas del examen
+      console.log("🔍 Obteniendo preguntas del examen:", attempt.exam_id);
+      const questionsResponse = await fetch(
+        `/api/exam/question?exam_id=${attempt.exam_id}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      if (!questionsResponse.ok) {
+        throw new Error("Error al obtener preguntas del examen");
+      }
+
+      const questionsData = await questionsResponse.json();
+      console.log("📋 Preguntas obtenidas:", questionsData);
+
+      // 3. Obtener las respuestas del estudiante para este intento específico
+      console.log(
+        "🔍 Obteniendo respuestas del estudiante para attempt:",
+        attemptId
+      );
+
+      // Obtener respuestas del estudiante usando la API
+      const answersResponse = await fetch(
+        `/api/admin/student-answers?attempt_id=${attemptId}`,
+        {
+          method: "GET",
+          credentials: "include",
+        }
+      );
+
+      if (!answersResponse.ok) {
+        throw new Error("Error al obtener respuestas del estudiante");
+      }
+
+      const answersData = await answersResponse.json();
+      const studentAnswers = answersData.data;
+
+      console.log("📝 Respuestas del estudiante:", studentAnswers);
+
+      // 4. Combinar preguntas con respuestas del estudiante
+      const detailedQuestions =
+        questionsData.data?.map((question: any) => {
+          const studentAnswer = studentAnswers?.find(
+            (answer: any) => answer.question_id === question.id
+          );
+
+          const correctOption = question.options?.find(
+            (opt: any) => opt.is_correct
+          );
+          const selectedOption = studentAnswer
+            ? question.options?.find(
+                (opt: any) => opt.id === studentAnswer.selected_option_id
+              )
+            : null;
+
+          return {
+            id: question.id,
+            question_text: question.question_text,
+            explanation: question.explanation,
+            options: question.options || [],
+            student_selected_option_id:
+              studentAnswer?.selected_option_id || null,
+            selected_option: selectedOption || null,
+            correct_option: correctOption || null,
+            is_correct: studentAnswer
+              ? studentAnswer.selected_option_id === correctOption?.id
+              : false,
+            is_answered: !!studentAnswer,
+            answered_at: studentAnswer?.created_at || null,
+          };
+        }) || [];
+
+      // 5. Calcular estadísticas detalladas
+      const totalQuestions = detailedQuestions.length;
+      const answeredQuestions = detailedQuestions.filter(
+        (q: any) => q.is_answered
+      ).length;
+      const correctAnswers = detailedQuestions.filter(
+        (q: any) => q.is_correct
+      ).length;
+      const incorrectAnswers = detailedQuestions.filter(
+        (q: any) => q.is_answered && !q.is_correct
+      ).length;
+      const unansweredQuestions = totalQuestions - answeredQuestions;
+      const scorePercentage =
+        totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+
+      // 6. Construir el objeto de datos completo
+      const detailedData = {
+        attempt: {
+          ...attempt,
+          duration_minutes:
+            attempt.start_time && attempt.end_time
+              ? Math.round(
+                  (new Date(attempt.end_time).getTime() -
+                    new Date(attempt.start_time).getTime()) /
+                    (1000 * 60)
+                )
+              : null,
+        },
+        student: student,
+        exam: {
+          id: attempt.exam_id,
+          name_exam: `${
+            examType.charAt(0).toUpperCase() + examType.slice(1)
+          } #${examId}`,
+          description: `Análisis detallado del ${examType}`,
+        },
+        statistics: {
+          total_questions: totalQuestions,
+          answered_questions: answeredQuestions,
+          correct_answers: correctAnswers,
+          incorrect_answers: incorrectAnswers,
+          unanswered_questions: unansweredQuestions,
+          score_percentage: Math.round(scorePercentage * 100) / 100,
+          pass_percentage: 70,
+          passed: scorePercentage >= 70,
+        },
+        questions: detailedQuestions,
+      };
+
+      console.log(
+        "✅ Datos detallados construidos exitosamente:",
+        detailedData
+      );
+      return detailedData;
+    } catch (error) {
+      console.error("❌ Error en método alternativo:", error);
+      return null;
     }
   };
 
@@ -277,17 +533,35 @@ export default function AdminResultsPage() {
                         </div>
                         <div className="flex space-x-2">
                           {simulator.status === "completed" && (
-                            <Button
-                              onClick={() =>
-                                handleViewResults("simulator", simulator.id)
-                              }
-                              variant="outline"
-                              size="sm"
-                              className="text-blue-600 border-blue-300 hover:bg-blue-50"
-                            >
-                              <BarChart3 className="w-4 h-4 mr-2" />
-                              Ver Resultados
-                            </Button>
+                            <>
+                              <Button
+                                onClick={() =>
+                                  handleViewResults("simulator", simulator.id)
+                                }
+                                variant="outline"
+                                size="sm"
+                                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+                              >
+                                <BarChart3 className="w-4 h-4 mr-2" />
+                                Resumen
+                              </Button>
+                              <Button
+                                onClick={() =>
+                                  handleViewDetailedResults(
+                                    "simulator",
+                                    simulator.id
+                                  )
+                                }
+                                disabled={loadingDetailed}
+                                size="sm"
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                {loadingDetailed
+                                  ? "Cargando..."
+                                  : "Análisis Detallado"}
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -348,15 +622,32 @@ export default function AdminResultsPage() {
                         </div>
                         <div className="flex space-x-2">
                           {exam.status === "completed" && (
-                            <Button
-                              onClick={() => handleViewResults("exam", exam.id)}
-                              variant="outline"
-                              size="sm"
-                              className="text-green-600 border-green-300 hover:bg-green-50"
-                            >
-                              <BarChart3 className="w-4 h-4 mr-2" />
-                              Ver Resultados
-                            </Button>
+                            <>
+                              <Button
+                                onClick={() =>
+                                  handleViewResults("exam", exam.id)
+                                }
+                                variant="outline"
+                                size="sm"
+                                className="text-green-600 border-green-300 hover:bg-green-50"
+                              >
+                                <BarChart3 className="w-4 h-4 mr-2" />
+                                Resumen
+                              </Button>
+                              <Button
+                                onClick={() =>
+                                  handleViewDetailedResults("exam", exam.id)
+                                }
+                                disabled={loadingDetailed}
+                                size="sm"
+                                className="bg-purple-600 hover:bg-purple-700 text-white"
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                {loadingDetailed
+                                  ? "Cargando..."
+                                  : "Análisis Detallado"}
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -368,12 +659,21 @@ export default function AdminResultsPage() {
           </div>
         </div>
 
-        {/* Modal de calificación */}
+        {/* Modal de calificación simple */}
         {isModalOpen && examDetails && (
           <Modal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             examDetails={examDetails}
+          />
+        )}
+
+        {/* Modal detallado para admin */}
+        {isDetailedModalOpen && detailedAttemptData && (
+          <DetailedAttemptModal
+            isOpen={isDetailedModalOpen}
+            onClose={() => setIsDetailedModalOpen(false)}
+            attemptData={detailedAttemptData}
           />
         )}
       </div>
