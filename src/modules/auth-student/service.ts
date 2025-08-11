@@ -1,25 +1,60 @@
 import { SignJWT } from "jose";
 import CryptoJS from "crypto-js";
 import { StudentLoginTable } from "./table";
+import VoucherStateTable from "@/modules/voucher-state/table";
 
 const studentLoginTable = new StudentLoginTable();
+const voucherStateTable = new VoucherStateTable();
 
 export class StudentLoginService {
-  async processToken(token: string) {
+  async processToken(token: string): Promise<{
+    student: string | null;
+    session: string | null;
+    hasStudent: boolean;
+    error?: string;
+  }> {
     try {
       const voucherWithStudent = await studentLoginTable.getVoucherWithStudent(
         token
       );
 
-      if (
-        !voucherWithStudent ||
-        (voucherWithStudent?.expiration_date &&
-          new Date(voucherWithStudent.expiration_date) < new Date())
-      ) {
+      if (!voucherWithStudent) {
         return {
           student: null,
           session: null,
           hasStudent: false,
+          error: "VOUCHER_NOT_FOUND",
+        };
+      }
+
+      // Verificar si el voucher está vencido
+      if (
+        voucherWithStudent?.expiration_date &&
+        new Date(voucherWithStudent.expiration_date) < new Date()
+      ) {
+        // Actualizar el estado del voucher a "vencido" solo si no está ya en ese estado
+        try {
+          const statusId = await voucherStateTable.getStatusIdBySlug("vencido");
+          if (statusId && voucherWithStudent.status_id !== statusId) {
+            await voucherStateTable.updateStateVoucher(
+              voucherWithStudent.id,
+              statusId,
+              voucherWithStudent.used || false
+            );
+          }
+        } catch (updateError) {
+          console.error(
+            "Error al actualizar estado de voucher vencido:",
+            updateError
+          );
+          // No bloqueamos el login por este error, pero lo registramos
+        }
+
+        return {
+          student: null,
+          session: null,
+          hasStudent: false,
+          error: "VOUCHER_EXPIRED",
         };
       }
 
