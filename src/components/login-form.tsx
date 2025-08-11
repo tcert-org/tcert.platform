@@ -65,23 +65,43 @@ export function LoginForm({
         body: JSON.stringify(data),
       });
 
-      if (response.status === 400) {
-        setErrorMessage("Formato del token inválido");
-        return;
-      }
-      if (response.status === 401) {
-        setErrorMessage("Token inválido");
-        return;
-      }
-
       const result = await response.json();
 
-      updateStudent(result.data.student, result.data.access_token);
+      // Manejar diferentes tipos de error
+      if (response.status === 403 && result.error === "VOUCHER_EXPIRED") {
+        setErrorMessage("🕒 Tu voucher ha expirado.");
+        return;
+      }
 
+      if (response.status === 401 && result.error === "VOUCHER_NOT_FOUND") {
+        setErrorMessage(
+          "🔍 Voucher inválido. Verifica que hayas ingresado el código correctamente."
+        );
+        return;
+      }
+
+      if (response.status === 400) {
+        setErrorMessage(
+          "⚠️ Formato del token inválido. Por favor verifica el código ingresado."
+        );
+        return;
+      }
+
+      if (response.status === 401) {
+        setErrorMessage("🚫 Token inválido o no autorizado.");
+        return;
+      }
+
+      if (!response.ok) {
+        setErrorMessage(result.error || "Error inesperado al iniciar sesión.");
+        return;
+      }
+
+      updateStudent(result.data.student, result.data.access_token);
       router.push("/dashboard");
     } catch (error) {
       console.error("Error en el login:", error);
-      setErrorMessage("Algo salió mal, intenta nuevamente más tarde");
+      setErrorMessage("❌ Algo salió mal, intenta nuevamente más tarde");
     } finally {
       setIsLoading(false);
     }
@@ -252,14 +272,44 @@ export function LoginForm({
 
           {errorMessage && (
             <div className="mt-6 animate-in slide-in-from-top-2 duration-300">
-              <div className="bg-red-50/80 border-l-4 border-red-400 rounded-r-xl p-4 backdrop-blur-sm">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+              <div
+                className={cn(
+                  "border-l-4 rounded-r-xl p-4 backdrop-blur-sm",
+                  errorMessage.includes("expirado")
+                    ? "bg-orange-50/80 border-orange-400"
+                    : "bg-red-50/80 border-red-400"
+                )}
+              >
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <div
+                      className={cn(
+                        "w-2 h-2 rounded-full animate-pulse",
+                        errorMessage.includes("expirado")
+                          ? "bg-orange-400"
+                          : "bg-red-400"
+                      )}
+                    ></div>
                   </div>
-                  <span className="ml-3 text-red-700 text-sm font-medium">
-                    {errorMessage}
-                  </span>
+                  <div className="ml-3">
+                    <span
+                      className={cn(
+                        "text-sm font-medium",
+                        errorMessage.includes("expirado")
+                          ? "text-orange-800"
+                          : "text-red-700"
+                      )}
+                    >
+                      {errorMessage}
+                    </span>
+                    {errorMessage.includes("expirado") && (
+                      <div className="mt-2 text-xs text-orange-600 bg-orange-100/50 p-2 rounded-lg border border-orange-200/50">
+                        💡 <strong>Tip:</strong> Solicita un nuevo voucher a tu
+                        institución educativa para continuar con tus
+                        certificaciones.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
