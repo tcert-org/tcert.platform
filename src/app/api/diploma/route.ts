@@ -7,6 +7,8 @@ export async function POST(req: NextRequest) {
     // Obtenemos los datos del cuerpo de la solicitud
     const body = await req.json();
 
+    console.log("📋 Datos recibidos para crear diploma:", body);
+
     // Llamamos al método insertDiploma del controlador para crear el diploma
     const response = await DiplomaController.insertDiploma(body);
 
