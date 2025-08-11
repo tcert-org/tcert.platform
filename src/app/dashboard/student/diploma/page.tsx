@@ -165,10 +165,6 @@ export default function CertificatePage() {
             student_id: studentId, // Usar el ID de la tabla students
             certification_id: voucherData.data.certification_id,
             completion_date: new Date().toISOString().split("T")[0], // Solo la fecha (YYYY-MM-DD)
-            diploma_url: null, // Dejamos null como mencionaste
-            expiration_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0], // Solo la fecha, expira en 1 año
           }),
         });
 

@@ -73,6 +73,13 @@ export function LoginForm({
         return;
       }
 
+      if (response.status === 409 && result.error === "VOUCHER_ALREADY_USED") {
+        setErrorMessage(
+          "✅ Este voucher ya fue utilizado. No puedes acceder nuevamente con el mismo código."
+        );
+        return;
+      }
+
       if (response.status === 401 && result.error === "VOUCHER_NOT_FOUND") {
         setErrorMessage(
           "🔍 Voucher inválido. Verifica que hayas ingresado el código correctamente."
@@ -277,6 +284,8 @@ export function LoginForm({
                   "border-l-4 rounded-r-xl p-4 backdrop-blur-sm",
                   errorMessage.includes("expirado")
                     ? "bg-orange-50/80 border-orange-400"
+                    : errorMessage.includes("ya fue utilizado")
+                    ? "bg-green-50/80 border-green-400"
                     : "bg-red-50/80 border-red-400"
                 )}
               >
@@ -287,6 +296,8 @@ export function LoginForm({
                         "w-2 h-2 rounded-full animate-pulse",
                         errorMessage.includes("expirado")
                           ? "bg-orange-400"
+                          : errorMessage.includes("ya fue utilizado")
+                          ? "bg-green-400"
                           : "bg-red-400"
                       )}
                     ></div>
@@ -297,6 +308,8 @@ export function LoginForm({
                         "text-sm font-medium",
                         errorMessage.includes("expirado")
                           ? "text-orange-800"
+                          : errorMessage.includes("ya fue utilizado")
+                          ? "text-green-800"
                           : "text-red-700"
                       )}
                     >
@@ -307,6 +320,13 @@ export function LoginForm({
                         💡 <strong>Tip:</strong> Solicita un nuevo voucher a tu
                         institución educativa para continuar con tus
                         certificaciones.
+                      </div>
+                    )}
+                    {errorMessage.includes("ya fue utilizado") && (
+                      <div className="mt-2 text-xs text-green-700 bg-green-100/50 p-2 rounded-lg border border-green-200/50">
+                        ℹ️ <strong>Información:</strong> Este voucher ya fue
+                        usado anteriormente. Solicita un nuevo voucher si deseas
+                        obtener otra certificación.
                       </div>
                     )}
                   </div>

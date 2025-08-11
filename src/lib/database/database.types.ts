@@ -91,9 +91,7 @@ export type Database = {
           certification_id: number | null;
           completion_date: string;
           created_at: string | null;
-          diploma_url: string | null;
           exam_attempt_id: number | null;
-          expiration_date: string | null;
           id: number;
           student_id: number | null;
           updated_at: string | null;
@@ -102,9 +100,7 @@ export type Database = {
           certification_id?: number | null;
           completion_date: string;
           created_at?: string | null;
-          diploma_url?: string | null;
           exam_attempt_id?: number | null;
-          expiration_date?: string | null;
           id?: never;
           student_id?: number | null;
           updated_at?: string | null;
@@ -113,9 +109,7 @@ export type Database = {
           certification_id?: number | null;
           completion_date?: string;
           created_at?: string | null;
-          diploma_url?: string | null;
           exam_attempt_id?: number | null;
-          expiration_date?: string | null;
           id?: never;
           student_id?: number | null;
           updated_at?: string | null;

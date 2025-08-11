@@ -29,6 +29,18 @@ export default class StudentController {
         );
       }
 
+      // Manejar voucher ya utilizado
+      if (result.error === "VOUCHER_ALREADY_USED") {
+        return NextResponse.json(
+          {
+            statusCode: 409,
+            data: null,
+            error: "VOUCHER_ALREADY_USED",
+          },
+          { status: 409 }
+        );
+      }
+
       // Manejar voucher no encontrado
       if (result.error === "VOUCHER_NOT_FOUND") {
         return NextResponse.json(

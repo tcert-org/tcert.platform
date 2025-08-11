@@ -30,10 +30,10 @@ export default class PDFTool {
       const date = new Date().toISOString();
       const nameCertificate = `${nameStudent}-${date}`; // Nombre del archivo PDF
 
-      // Usamos la nueva ruta para el archivo template
-      const templatePath = path.resolve(
-        __dirname,
-        "../../../../../public/assets/certificates/Modelo_definitivo-SIN_INSIGNIA.pdf"
+      // Usamos process.cwd() que es más confiable en Next.js
+      const templatePath = path.join(
+        process.cwd(),
+        "public/assets/certificates/Modelo_definitivo-SIN_INSIGNIA.pdf"
       );
 
       // Cargar el template PDF
@@ -44,10 +44,10 @@ export default class PDFTool {
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica); // Usamos la fuente estándar
       const fontSize = 20;
 
-      // Cargar el logo
-      const logoPath = path.resolve(
-        __dirname,
-        `../../../../../public/assets/certificates/logos/${URL_logo}`
+      // Cargar el logo usando process.cwd()
+      const logoPath = path.join(
+        process.cwd(),
+        `public/assets/certificates/logos/${URL_logo}`
       );
       const logoBytes = fs.readFileSync(logoPath);
       const logoImage = await pdfDoc.embedPng(logoBytes);

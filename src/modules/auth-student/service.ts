@@ -58,6 +58,31 @@ export class StudentLoginService {
         };
       }
 
+      // Verificar si el voucher ya fue utilizado (aprobado o reprobado)
+      try {
+        const aprobadoStatusId = await voucherStateTable.getStatusIdBySlug(
+          "aprobado"
+        );
+        const perdidoStatusId = await voucherStateTable.getStatusIdBySlug(
+          "perdido"
+        );
+
+        if (
+          voucherWithStudent.status_id === aprobadoStatusId ||
+          voucherWithStudent.status_id === perdidoStatusId
+        ) {
+          return {
+            student: null,
+            session: null,
+            hasStudent: false,
+            error: "VOUCHER_ALREADY_USED",
+          };
+        }
+      } catch (statusError) {
+        console.error("Error al verificar estado del voucher:", statusError);
+        // Continuamos con el login si no podemos verificar el estado
+      }
+
       const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
 
       const sessionJWT = await new SignJWT({
