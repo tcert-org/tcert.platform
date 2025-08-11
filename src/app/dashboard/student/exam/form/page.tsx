@@ -203,9 +203,7 @@ export default function FormExam() {
       // Limpiar los datos locales inmediatamente después de calificar exitosamente
       localStorage.removeItem(`simulator_${examId}_question_order`);
       questions.forEach((q) => {
-        localStorage.removeItem(
-          `simulator_${examId}_q${q.id}_option_order`
-        );
+        localStorage.removeItem(`simulator_${examId}_q${q.id}_option_order`);
       });
 
       // Verificar múltiples posibles campos de respuesta
@@ -403,9 +401,7 @@ export default function FormExam() {
         // Limpiar datos locales antes de redirigir
         localStorage.removeItem(`simulator_${examId}_question_order`);
         questions.forEach((q) => {
-          localStorage.removeItem(
-            `simulator_${examId}_q${q.id}_option_order`
-          );
+          localStorage.removeItem(`simulator_${examId}_q${q.id}_option_order`);
         });
 
         // Redirigir inmediatamente

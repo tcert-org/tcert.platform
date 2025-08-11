@@ -262,9 +262,7 @@ export default function FormSimulador() {
         // Limpiar los datos locales solo si la calificación fue exitosa
         localStorage.removeItem(`simulator_${examId}_question_order`);
         questions.forEach((q) =>
-          localStorage.removeItem(
-            `simulator_${examId}_q${q.id}_option_order`
-          )
+          localStorage.removeItem(`simulator_${examId}_q${q.id}_option_order`)
         );
       } else {
         console.error("Error al calificar simulador");
