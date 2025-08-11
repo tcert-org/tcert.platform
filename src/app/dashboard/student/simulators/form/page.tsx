@@ -251,19 +251,24 @@ export default function FormSimulador() {
         return alert(error?.error || "Error al guardar respuestas.");
       }
 
-      await fetch("/api/attempts/grade", {
+      const gradeRes = await fetch("/api/attempts/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
       });
 
-      localStorage.removeItem(`simulator_${examId}_question_order`);
-      questions.forEach((q) =>
-        localStorage.removeItem(
-          `simulator_${examId}_question_${q.id}_option_order`
-        )
-      );
+      if (gradeRes.ok) {
+        // Limpiar los datos locales solo si la calificación fue exitosa
+        localStorage.removeItem(`simulator_${examId}_question_order`);
+        questions.forEach((q) =>
+          localStorage.removeItem(
+            `simulator_${examId}_q${q.id}_option_order`
+          )
+        );
+      } else {
+        console.error("Error al calificar simulador");
+      }
 
       window.location.href = "/dashboard/student/simulators";
     } catch (err) {

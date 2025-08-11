@@ -200,6 +200,14 @@ export default function FormExam() {
 
       const gradeData = await gradeRes.json();
 
+      // Limpiar los datos locales inmediatamente después de calificar exitosamente
+      localStorage.removeItem(`simulator_${examId}_question_order`);
+      questions.forEach((q) => {
+        localStorage.removeItem(
+          `simulator_${examId}_q${q.id}_option_order`
+        );
+      });
+
       // Verificar múltiples posibles campos de respuesta
       const passed =
         gradeData?.passed || gradeData?.data?.passed || gradeData?.success;
@@ -232,14 +240,6 @@ export default function FormExam() {
           console.error("Error al procesar voucher:", voucherError);
         }
       }
-
-      // Limpiar los datos locales después de enviar el examen
-      localStorage.removeItem(`simulator_${examId}_question_order`);
-      questions.forEach((q) => {
-        localStorage.removeItem(
-          `simulator_${examId}_question_${q.id}_option_order`
-        );
-      });
 
       // Redirigir a la lista de exámenes
       window.location.href = "/dashboard/student/exam";
@@ -372,7 +372,7 @@ export default function FormExam() {
           localStorage.removeItem(`simulator_${examId}_question_order`);
           questions.forEach((q) => {
             localStorage.removeItem(
-              `simulator_${examId}_question_${q.id}_option_order`
+              `simulator_${examId}_q${q.id}_option_order`
             );
           });
 
@@ -404,7 +404,7 @@ export default function FormExam() {
         localStorage.removeItem(`simulator_${examId}_question_order`);
         questions.forEach((q) => {
           localStorage.removeItem(
-            `simulator_${examId}_question_${q.id}_option_order`
+            `simulator_${examId}_q${q.id}_option_order`
           );
         });
 
