@@ -267,9 +267,11 @@ export default function StudentForm() {
                       disabled={loading}
                     >
                       <option value="">Selecciona un tipo de documento</option>
-                      <option value="CC">Cédula de Ciudadanía</option>
-                      <option value="TI">Tarjeta de Identidad</option>
-                      <option value="CE">Cédula de Extranjería</option>
+                      <option value="DNI">
+                        Documento Nacional de Identidad
+                      </option>
+                      <option value="PAS">Pasaporte</option>
+                      <option value="DL">Licencia de Conducir</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
                       <div className="w-2 h-2 rounded-full bg-gradient-to-r from-violet-400 to-orange-400 animate-pulse"></div>
