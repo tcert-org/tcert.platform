@@ -26,13 +26,28 @@ export default class QuestionTable extends Table<"questions"> {
     return inserted;
   }
   async getQuestions(exam_id?: number): Promise<QuestionRowType[]> {
-    let query = supabase.from("questions").select("*");
+    let query = supabase.from("questions").select("*").eq("active", true); // Solo preguntas activas
     if (exam_id !== undefined) {
       query = query.eq("exam_id", exam_id);
     }
     const { data, error } = await query;
     if (error) {
       throw new Error("Error consultando preguntas: " + error.message);
+    }
+    return data || [];
+  }
+
+  // Método para administradores que necesitan ver todas las preguntas (activas e inactivas)
+  async getAllQuestions(exam_id?: number): Promise<QuestionRowType[]> {
+    let query = supabase.from("questions").select("*");
+    if (exam_id !== undefined) {
+      query = query.eq("exam_id", exam_id);
+    }
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(
+        "Error consultando todas las preguntas: " + error.message
+      );
     }
     return data || [];
   }
