@@ -91,7 +91,6 @@ export type Database = {
           certification_id: number | null;
           completion_date: string;
           created_at: string | null;
-          diploma_url: string | null;
           exam_attempt_id: number | null;
           expiration_date: string | null;
           id: number;
@@ -102,7 +101,6 @@ export type Database = {
           certification_id?: number | null;
           completion_date: string;
           created_at?: string | null;
-          diploma_url?: string | null;
           exam_attempt_id?: number | null;
           expiration_date?: string | null;
           id?: never;
@@ -113,7 +111,6 @@ export type Database = {
           certification_id?: number | null;
           completion_date?: string;
           created_at?: string | null;
-          diploma_url?: string | null;
           exam_attempt_id?: number | null;
           expiration_date?: string | null;
           id?: never;
@@ -551,9 +548,9 @@ export type Database = {
           contact_number: string | null;
           created_at: string | null;
           email: string;
-          first_name: string | null;
-          last_name: string | null;
           id: number;
+          logo_url: string | null;
+          page_url: string | null;
           role_id: number;
           updated_at: string | null;
           user_uuid: string | null;
@@ -565,9 +562,9 @@ export type Database = {
           contact_number?: string | null;
           created_at?: string | null;
           email: string;
-          first_name?: string | null;
-          last_name?: string | null;
           id?: never;
+          logo_url?: string | null;
+          page_url?: string | null;
           role_id: number;
           updated_at?: string | null;
           user_uuid?: string | null;
@@ -578,9 +575,9 @@ export type Database = {
           contact_number?: string | null;
           created_at?: string | null;
           email?: string;
-          first_name?: string | null;
-          last_name?: string | null;
           id?: never;
+          logo_url?: string | null;
+          page_url?: string | null;
           role_id?: number;
           updated_at?: string | null;
           user_uuid?: string | null;

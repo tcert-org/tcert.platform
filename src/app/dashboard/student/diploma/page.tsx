@@ -15,6 +15,7 @@ export default function CertificatePage() {
   const [hasApprovedAttempts, setHasApprovedAttempts] = useState<
     boolean | null
   >(null);
+  const [approvedAttempts, setApprovedAttempts] = useState<any[]>([]);
   const [checkingEligibility, setCheckingEligibility] = useState(true);
 
   useEffect(() => {
@@ -72,6 +73,20 @@ export default function CertificatePage() {
       const approvedData = await approvedResponse.json();
       const attemptData: ApprovedAttemptData = approvedData.data;
       setHasApprovedAttempts(attemptData.hasApprovedAttempts);
+
+      // Guardar los intentos aprobados en el estado
+      if (
+        attemptData.hasApprovedAttempts &&
+        attemptData.approvedAttempts.length > 0
+      ) {
+        setApprovedAttempts(attemptData.approvedAttempts);
+        console.log(
+          "✅ Intentos aprobados guardados:",
+          attemptData.approvedAttempts
+        );
+      } else {
+        setApprovedAttempts([]);
+      }
     } catch (err) {
       console.error("Error verificando elegibilidad:", err);
       setError("Error inesperado al verificar la elegibilidad.");
@@ -154,6 +169,28 @@ export default function CertificatePage() {
       const voucherData = await response.json();
 
       if (voucherData?.data) {
+        // Obtener el intento aprobado más reciente para usar su ID
+        let examAttemptId = null;
+
+        if (approvedAttempts.length > 0) {
+          // Usar el intento más reciente (primero en la lista ya que está ordenado por fecha descendente)
+          examAttemptId = approvedAttempts[0].id;
+          console.log("✅ Usando exam_attempt_id:", examAttemptId);
+          console.log("📋 Datos del intento:", approvedAttempts[0]);
+        } else {
+          console.warn("❌ No hay intentos aprobados disponibles");
+          setError(
+            "No se encontraron intentos aprobados para generar el certificado."
+          );
+          setLoading(false);
+          return;
+        }
+
+        // Calcular la fecha de expiración (2 años después)
+        const expirationDate = new Date();
+        expirationDate.setFullYear(expirationDate.getFullYear() + 2);
+        const expirationDateString = expirationDate.toISOString().split("T")[0];
+
         // Validar o crear el registro del diploma antes de generar el PDF
         const diplomaResponse = await fetch("/api/diploma", {
           method: "POST",
@@ -161,14 +198,11 @@ export default function CertificatePage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            exam_attempt_id: null, // Campo nullable según la tabla
+            exam_attempt_id: examAttemptId, // Usar el ID del intento aprobado
             student_id: studentId, // Usar el ID de la tabla students
             certification_id: voucherData.data.certification_id,
             completion_date: new Date().toISOString().split("T")[0], // Solo la fecha (YYYY-MM-DD)
-            diploma_url: null, // Dejamos null como mencionaste
-            expiration_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0], // Solo la fecha, expira en 1 año
+            expiration_date: expirationDateString, // Fecha de expiración (2 años después)
           }),
         });
 

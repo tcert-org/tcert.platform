@@ -18,7 +18,7 @@ export async function GET(
     // Obtener datos del partner
     const { data, error } = await supabase
       .from("users")
-      .select("id, company_name, email")
+      .select("id, company_name, email, logo_url, page_url")
       .eq("id", partnerId)
       .eq("role_id", 5) // role_id 5 es para partners
       .single();
@@ -55,7 +55,7 @@ export async function PUT(
   try {
     const { id: partnerId } = await params;
     const body = await request.json();
-    const { company_name, email } = body;
+    const { company_name, logo_url, page_url } = body;
 
     if (!partnerId) {
       return NextResponse.json(
@@ -64,18 +64,25 @@ export async function PUT(
       );
     }
 
-    if (!company_name || !email) {
+    if (!company_name) {
       return NextResponse.json(
-        { error: "Nombre de empresa y correo son requeridos" },
+        { error: "Nombre de empresa es requerido" },
         { status: 400 }
       );
     }
 
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Validar URLs si se proporcionan
+    const urlRegex = /^https?:\/\/.+/;
+    if (logo_url && logo_url.trim() && !urlRegex.test(logo_url)) {
       return NextResponse.json(
-        { error: "Formato de email inválido" },
+        { error: "Formato de URL del logo inválido" },
+        { status: 400 }
+      );
+    }
+
+    if (page_url && page_url.trim() && !urlRegex.test(page_url)) {
+      return NextResponse.json(
+        { error: "Formato de URL de la página web inválido" },
         { status: 400 }
       );
     }
@@ -95,34 +102,13 @@ export async function PUT(
       );
     }
 
-    // Verificar si el email ya existe en otro usuario
-    const { data: emailCheck, error: emailError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("email", email)
-      .neq("id", partnerId);
-
-    if (emailError) {
-      console.error("Error checking email:", emailError);
-      return NextResponse.json(
-        { error: "Error al verificar email" },
-        { status: 500 }
-      );
-    }
-
-    if (emailCheck && emailCheck.length > 0) {
-      return NextResponse.json(
-        { error: "El correo electrónico ya está en uso" },
-        { status: 400 }
-      );
-    }
-
-    // Actualizar el partner
+    // Actualizar el partner (sin incluir email)
     const { data, error } = await supabase
       .from("users")
       .update({
         company_name: company_name.trim(),
-        email: email.trim().toLowerCase(),
+        logo_url: logo_url ? logo_url.trim() : null,
+        page_url: page_url ? page_url.trim() : null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", partnerId)

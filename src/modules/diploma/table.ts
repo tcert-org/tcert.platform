@@ -80,15 +80,13 @@ export default class DiplomaTable extends Table<"diplomas"> {
       return null; // No existe el voucher
     }
 
-    // Paso 2: Obtener el estudiante asociado al voucher
+    // Paso 2: Obtener el estudiante asociado al voucher (solo información pública)
     const { data: student, error: studentError } = await supabase
       .from("students")
       .select(
         `
         id,
         fullname,
-        email,
-        document_type,
         document_number,
         voucher_id
       `
@@ -105,14 +103,16 @@ export default class DiplomaTable extends Table<"diplomas"> {
       return null; // No existe estudiante para este voucher
     }
 
-    // Paso 3: Obtener el diploma del estudiante con información de certificación
+    // Paso 3: Obtener el diploma del estudiante con información esencial
     const { data: diploma, error: diplomaError } = await supabase
       .from("diplomas")
       .select(
         `
         id,
         student_id,
-        certification_id
+        certification_id,
+        completion_date,
+        expiration_date
       `
       )
       .eq("student_id", student.id)
@@ -146,14 +146,15 @@ export default class DiplomaTable extends Table<"diplomas"> {
     }
 
     // Retornar toda la información combinada
+    // Incluye información del estudiante incluso si no tiene diploma
     return {
       voucher: {
         id: voucher.id,
         code: code,
       },
       student: student,
-      diploma: diploma,
-      certification: certification,
+      diploma: diploma, // Puede ser null si no tiene diploma
+      certification: certification, // Puede ser null si no tiene diploma
     };
   }
 }

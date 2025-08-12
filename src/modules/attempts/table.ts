@@ -115,20 +115,52 @@ export default class AttemptsTable extends Table<"exam_attempts"> {
     };
   }
 
-  // Método para obtener todos los intentos aprobados de un estudiante
+  // Método para obtener todos los intentos aprobados de un estudiante (solo exámenes, no simuladores)
   async getApprovedAttempts(studentId: number) {
-    const { data: attempts, error } = await supabase
+    // 1. Obtener todos los intentos aprobados del estudiante
+    const { data: allAttempts, error: attemptsError } = await supabase
       .from("exam_attempts")
       .select("*")
       .eq("student_id", studentId)
       .eq("passed", true)
       .order("attempt_date", { ascending: false });
 
-    if (error) {
-      console.error("Error al obtener los intentos aprobados:", error);
+    if (attemptsError) {
+      console.error("Error al obtener intentos aprobados:", attemptsError);
       throw new Error("Error al obtener los intentos aprobados.");
     }
 
-    return attempts || [];
+    if (!allAttempts || allAttempts.length === 0) {
+      return [];
+    }
+
+    // 2. Obtener los IDs de los exámenes y filtrar solo los exámenes reales (no simuladores)
+    const examIds = allAttempts.map((attempt) => attempt.exam_id);
+
+    const { data: realExams, error: examsError } = await supabase
+      .from("exams")
+      .select("id")
+      .in("id", examIds)
+      .eq("simulator", false); // Solo exámenes reales
+
+    if (examsError) {
+      console.error("Error al obtener información de exámenes:", examsError);
+      throw new Error("Error al obtener información de los exámenes.");
+    }
+
+    // 3. Filtrar solo los intentos que corresponden a exámenes reales
+    const realExamIds = new Set(realExams?.map((exam) => exam.id) || []);
+    const filteredAttempts = allAttempts.filter((attempt) =>
+      realExamIds.has(attempt.exam_id)
+    );
+
+    console.log(
+      "✅ Intentos filtrados (solo exámenes reales):",
+      filteredAttempts
+    );
+    console.log("📊 Total intentos aprobados:", allAttempts.length);
+    console.log("� Intentos de exámenes reales:", filteredAttempts.length);
+
+    return filteredAttempts;
   }
 }

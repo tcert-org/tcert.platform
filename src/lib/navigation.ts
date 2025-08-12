@@ -60,7 +60,7 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       showModuleName: false,
     },
     {
-      title: "Administración de Vouchers",
+      title: "Asignación de Vouchers",
       path: "/voucher-administration",
       iconName: "CreditCard",
       showModuleName: false,

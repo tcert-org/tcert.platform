@@ -17,6 +17,42 @@ export default class StudentController {
     try {
       const result = await studentLoginService.processToken(token);
 
+      // Manejar voucher vencido
+      if (result.error === "VOUCHER_EXPIRED") {
+        return NextResponse.json(
+          {
+            statusCode: 403,
+            data: null,
+            error: "VOUCHER_EXPIRED",
+          },
+          { status: 403 }
+        );
+      }
+
+      // Manejar voucher ya utilizado
+      if (result.error === "VOUCHER_ALREADY_USED") {
+        return NextResponse.json(
+          {
+            statusCode: 409,
+            data: null,
+            error: "VOUCHER_ALREADY_USED",
+          },
+          { status: 409 }
+        );
+      }
+
+      // Manejar voucher no encontrado
+      if (result.error === "VOUCHER_NOT_FOUND") {
+        return NextResponse.json(
+          {
+            statusCode: 401,
+            data: null,
+            error: "VOUCHER_NOT_FOUND",
+          },
+          { status: 401 }
+        );
+      }
+
       if (!result.session) {
         return NextResponse.json(
           {

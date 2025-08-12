@@ -152,20 +152,111 @@ RETURNS TABLE(voucher_purchased integer, voucher_asigned integer, voucher_availa
 BEGIN
     RETURN QUERY
     SELECT
-        COALESCE(SUM(voucher_data.voucher_quantity)::integer, 0) AS voucher_purchased,
-        COALESCE(COUNT(DISTINCT voucher_data.voucher_id)::integer, 0) AS voucher_asigned,
-        COALESCE(SUM(voucher_data.voucher_quantity)::integer, 0) - COALESCE(COUNT(DISTINCT voucher_data.voucher_id)::integer, 0) AS voucher_available
-    FROM (
-        SELECT
+        -- Vouchers comprados: suma de todos los pagos
+        COALESCE((
+            SELECT SUM(p.voucher_quantity)::integer
+            FROM payments p
+            WHERE p.partner_id = p_id
+        ), 0) AS voucher_purchased,
+        
+        -- Vouchers asignados: contar vouchers únicos del partner
+        COALESCE((
+            SELECT COUNT(DISTINCT v.id)::integer
+            FROM vouchers v
+            WHERE v.partner_id = p_id
+        ), 0) AS voucher_asigned,
+        
+        -- Vouchers disponibles: comprados - asignados
+        COALESCE((
+            SELECT SUM(p.voucher_quantity)::integer
+            FROM payments p
+            WHERE p.partner_id = p_id
+        ), 0) - COALESCE((
+            SELECT COUNT(DISTINCT v.id)::integer
+            FROM vouchers v
+            WHERE v.partner_id = p_id
+        ), 0) AS voucher_available;
+END;
+$$ LANGUAGE plpgsql;
+
+-------------funcion para contar vouchers asignados de un pago específico-----------------------
+CREATE OR REPLACE FUNCTION get_assigned_vouchers_by_payment(payment_id_param bigint)
+RETURNS TABLE(
+    total_vouchers_in_payment integer,
+    assigned_vouchers_count integer,
+    unassigned_vouchers_count integer,
+    unit_price_per_voucher numeric,
+    partner_id_info bigint
+) AS $$
+BEGIN
+    RETURN QUERY
+    WITH payment_info AS (
+        SELECT 
+            p.id as payment_id,
+            p.partner_id,
             p.voucher_quantity,
-            v.id AS voucher_id
-        FROM
-            payments p
-        LEFT JOIN
-            vouchers v ON p.partner_id = v.partner_id
-        WHERE
-            p.partner_id = p_id
-    ) AS voucher_data;
+            p.unit_price,
+            p.created_at as payment_date
+        FROM payments p 
+        WHERE p.id = payment_id_param
+    ),
+    -- Obtener todos los pagos del partner ordenados por fecha (FIFO)
+    partner_payments AS (
+        SELECT 
+            p.id,
+            p.voucher_quantity,
+            p.created_at,
+            ROW_NUMBER() OVER (ORDER BY p.created_at ASC) as payment_order
+        FROM payments p
+        WHERE p.partner_id = (SELECT partner_id FROM payment_info)
+        ORDER BY p.created_at ASC
+    ),
+    -- Calcular vouchers asignados acumulativos usando FIFO
+    voucher_assignment AS (
+        SELECT 
+            pi.payment_id,
+            pi.partner_id,
+            pi.voucher_quantity,
+            pi.unit_price,
+            -- Total de vouchers asignados del partner
+            COALESCE((
+                SELECT COUNT(*)::integer 
+                FROM vouchers v 
+                WHERE v.partner_id = pi.partner_id 
+                AND v.used = true
+            ), 0) as total_assigned_vouchers,
+            -- Posición de este pago en el orden FIFO
+            (SELECT payment_order FROM partner_payments WHERE id = pi.payment_id) as current_payment_order,
+            -- Suma acumulativa de vouchers de pagos anteriores (FIFO)
+            COALESCE((
+                SELECT SUM(pp.voucher_quantity)::integer
+                FROM partner_payments pp
+                WHERE pp.payment_order < (
+                    SELECT payment_order 
+                    FROM partner_payments 
+                    WHERE id = pi.payment_id
+                )
+            ), 0) as vouchers_from_previous_payments
+        FROM payment_info pi
+    )
+    SELECT
+        va.voucher_quantity::integer AS total_vouchers_in_payment,
+        -- Calcular vouchers asignados de este pago específico usando FIFO
+        CASE 
+            WHEN va.total_assigned_vouchers <= va.vouchers_from_previous_payments THEN 0
+            WHEN va.total_assigned_vouchers >= (va.vouchers_from_previous_payments + va.voucher_quantity) THEN va.voucher_quantity
+            ELSE (va.total_assigned_vouchers - va.vouchers_from_previous_payments)
+        END::integer AS assigned_vouchers_count,
+        -- Vouchers sin asignar de este pago
+        (va.voucher_quantity - 
+         CASE 
+            WHEN va.total_assigned_vouchers <= va.vouchers_from_previous_payments THEN 0
+            WHEN va.total_assigned_vouchers >= (va.vouchers_from_previous_payments + va.voucher_quantity) THEN va.voucher_quantity
+            ELSE (va.total_assigned_vouchers - va.vouchers_from_previous_payments)
+         END)::integer AS unassigned_vouchers_count,
+        va.unit_price AS unit_price_per_voucher,
+        va.partner_id AS partner_id_info
+    FROM voucher_assignment va;
 END;
 $$ LANGUAGE plpgsql;
 -------------funcion para los filtros de los vouchers---------------------------------------------
@@ -310,6 +401,7 @@ returns table (
   created_at timestamptz,
   expiration_date timestamptz,
   extension_date timestamptz,
+  extension_used boolean,
   total_count bigint
 )
 language plpgsql
@@ -341,7 +433,8 @@ begin
         p.total_price,
         p.created_at,
         p.expiration_date,
-        p.extension_date
+        p.extension_date,
+        p.extension_used
       from payments p
       left join users u on u.id = p.partner_id
       where u.role_id = 5

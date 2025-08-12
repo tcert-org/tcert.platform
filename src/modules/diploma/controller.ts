@@ -81,25 +81,47 @@ export default class DiplomaController {
     }
   }
 
-  static async getDiplomaAndStudentByVoucherCode(
-    data: { code: string }
-  ): Promise<NextResponse<ApiResponse<any>>> {
+  static async getDiplomaAndStudentByVoucherCode(data: {
+    code: string;
+  }): Promise<NextResponse<ApiResponse<any>>> {
     try {
       const table = new DiplomaTable();
-      const diplomaData = await table.getDiplomaAndStudentByVoucherCode(data.code);
+      const diplomaData = await table.getDiplomaAndStudentByVoucherCode(
+        data.code
+      );
 
       if (!diplomaData) {
         return NextResponse.json({
           statusCode: 404,
-          error: "No se encontraron datos del diploma para este código de voucher.",
+          data: null,
+          error: "No se encontró información para este código de voucher.",
         });
       }
 
-      return NextResponse.json({
-        statusCode: 200,
-        data: diplomaData,
-        message: "Datos del diploma y estudiante obtenidos correctamente.",
-      });
+      // Solo devolver información si existe diploma válido
+      if (diplomaData.diploma && diplomaData.certification) {
+        // Caso: Estudiante CON diploma - incluir toda la información
+        const responseData = {
+          voucher: diplomaData.voucher,
+          student: diplomaData.student,
+          diploma: diplomaData.diploma,
+          certification: diplomaData.certification,
+        };
+
+        return NextResponse.json({
+          statusCode: 200,
+          data: responseData,
+          message: "Datos del diploma y estudiante obtenidos correctamente.",
+        });
+      } else {
+        // Caso: Estudiante SIN diploma - no devolver información
+        return NextResponse.json({
+          statusCode: 404,
+          data: null,
+          error:
+            "No se encontró un diploma válido para este código de voucher.",
+        });
+      }
     } catch (error) {
       console.error("[GET_DIPLOMA_BY_VOUCHER_CODE_ERROR]", error);
       return NextResponse.json({

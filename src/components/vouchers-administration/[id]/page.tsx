@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   Loader2,
   BadgeCheck,
@@ -43,6 +44,19 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
   const [voucher, setVoucher] = useState<any | null>(null);
   const [student, setStudent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
+
+  // Detectar si estamos en la ruta de admin
+  const isAdminRoute = pathname.includes("/dashboard/admin");
+
+  // Construir la URL de resultados según el contexto
+  const getResultsUrl = () => {
+    if (isAdminRoute) {
+      // Si estamos en admin, usar la ruta específica de admin
+      return `/dashboard/admin/results?voucher_id=${voucher?.id}&student_id=${student.id}`;
+    }
+    return `/dashboard/partner/results?voucher_id=${voucher?.id}&student_id=${student.id}`;
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -261,7 +275,7 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
           <div className="flex justify-center gap-4">
             {student && (
               <a
-                href={`/dashboard/partner/results?voucher_id=${voucher?.id}&student_id=${student.id}`}
+                href={getResultsUrl()}
                 className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 transition-all duration-200 shadow-sm"
               >
                 <Contact2 className="w-4 h-4 mr-2" />

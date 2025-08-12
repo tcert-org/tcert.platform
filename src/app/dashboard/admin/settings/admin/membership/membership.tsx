@@ -60,7 +60,10 @@ function MembershipForm() {
     if (memberships.length === 0) return;
 
     const updated: Membership[] = memberships.map((m, i) => {
-      if (i === 0) return m;
+      if (i === 0) {
+        // La membresía Bronce siempre arranca desde 0
+        return { ...m, count_from: 0 };
+      }
       const prev = memberships[i - 1];
       const prevCountUp =
         typeof prev.count_up === "number" ? prev.count_up : null;
@@ -100,7 +103,7 @@ function MembershipForm() {
       if (
         m.count_from === "" ||
         m.price === "" ||
-        m.count_from <= 0 ||
+        (m.name === "Bronce" ? m.count_from < 0 : m.count_from <= 0) ||
         m.price <= 0 ||
         (m.name !== "Diamante" && (m.count_up === "" || m.count_up <= 0))
       ) {
@@ -164,7 +167,24 @@ function MembershipForm() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <ToastContainer position="top-center" theme="colored" />
+      <ToastContainer
+        position="top-right"
+        theme="colored"
+        autoClose={4000}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        style={{ zIndex: 10000 }}
+        toastStyle={{
+          fontSize: "14px",
+          borderRadius: "8px",
+          padding: "12px 16px",
+        }}
+      />
 
       <div className="max-w-6xl mx-auto">
         <Card className="shadow-lg">
@@ -178,9 +198,9 @@ function MembershipForm() {
             </p>
           </CardHeader>
 
-          <CardContent className="p-8">
-            <form onSubmit={handleSaveAndAssign} className="space-y-6">
-              <div className="grid gap-6">
+          <CardContent className="p-6">
+            <form onSubmit={handleSaveAndAssign} className="space-y-4">
+              <div className="grid gap-4">
                 {memberships.map((membership, index) => (
                   <Card
                     key={membership.id}
@@ -196,12 +216,12 @@ function MembershipForm() {
                           : "#3b82f6",
                     }}
                   >
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
                           {membershipIcons[membership.name]}
                           <span
-                            className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                            className={`px-3 py-1 rounded-full text-sm font-semibold ${
                               colorBadge[membership.name]
                             }`}
                           >
@@ -209,22 +229,22 @@ function MembershipForm() {
                           </span>
                         </div>
                         <div
-                          className={`w-12 h-2 rounded-full ${
+                          className={`w-10 h-1.5 rounded-full ${
                             colorBar[membership.name]
                           }`}
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Campo Desde */}
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                            <Hash className="h-4 w-4" />
+                        <div className="space-y-1">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                            <Hash className="h-3 w-3" />
                             Desde
                           </Label>
                           <Input
                             type="number"
-                            min={1}
+                            min={0}
                             value={
                               membership.count_from === ""
                                 ? ""
@@ -233,29 +253,25 @@ function MembershipForm() {
                             onChange={(e) =>
                               handleChange(index, "count_from", e.target.value)
                             }
-                            disabled={index !== 0}
-                            className={
-                              index !== 0 ? "bg-gray-50 cursor-not-allowed" : ""
-                            }
+                            disabled={true} // Siempre deshabilitado ya que se calcula automáticamente
+                            className="bg-gray-50 cursor-not-allowed h-9"
                             required
                           />
-                          {index !== 0 && (
-                            <p className="text-xs text-gray-500">
-                              Se calcula automáticamente
-                            </p>
-                          )}
+                          <p className="text-xs text-gray-500">
+                            Se calcula automáticamente
+                          </p>
                         </div>
 
                         {/* Campo Hasta */}
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                            <Hash className="h-4 w-4" />
+                        <div className="space-y-1">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                            <Hash className="h-3 w-3" />
                             Hasta
                           </Label>
                           {membership.name === "Diamante" ? (
-                            <div className="flex items-center justify-center h-10 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-md">
-                              <Infinity className="h-5 w-5 text-blue-600 mr-2" />
-                              <span className="text-blue-700 font-medium">
+                            <div className="flex items-center justify-center h-9 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-md">
+                              <Infinity className="h-4 w-4 text-blue-600 mr-1" />
+                              <span className="text-blue-700 font-medium text-sm">
                                 Ilimitado
                               </span>
                             </div>
@@ -271,15 +287,16 @@ function MembershipForm() {
                               onChange={(e) =>
                                 handleChange(index, "count_up", e.target.value)
                               }
+                              className="h-9"
                               required
                             />
                           )}
                         </div>
 
                         {/* Campo Precio */}
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                            <DollarSign className="h-4 w-4" />
+                        <div className="space-y-1">
+                          <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
                             Precio
                           </Label>
                           <Input
@@ -292,13 +309,14 @@ function MembershipForm() {
                             onChange={(e) =>
                               handleChange(index, "price", e.target.value)
                             }
+                            className="h-9"
                             required
                           />
                         </div>
                       </div>
 
                       {/* Información del rango */}
-                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="mt-3 p-2 bg-gray-50 rounded-lg">
                         <p className="text-xs text-gray-600">
                           <strong>Rango:</strong>{" "}
                           {membership.count_from === ""
@@ -323,20 +341,20 @@ function MembershipForm() {
                 ))}
               </div>
 
-              <div className="flex justify-center pt-8">
+              <div className="flex justify-center pt-6">
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   {loading ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Procesando...
                     </>
                   ) : (
                     <>
-                      <Crown className="h-5 w-5 mr-2" />
+                      <Crown className="h-4 w-4 mr-2" />
                       Guardar y Asignar Membresías
                     </>
                   )}

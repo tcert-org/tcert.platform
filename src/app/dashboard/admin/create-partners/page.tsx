@@ -18,6 +18,7 @@ import {
   Eye,
   EyeOff,
   Phone,
+  Link as LinkIcon,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -25,18 +26,30 @@ const partnerSchema = z.object({
   company_name: z
     .string()
     .min(2, "El nombre de la empresa debe tener al menos 2 caracteres"),
-  email: z.string().email("Ingrese un email válido"),
+  email: z.string().email("Ingrese un correo electrónico válido"),
   contact: z
     .string()
     .min(10, "El número de contacto debe tener al menos 10 dígitos"),
   password: z
     .string()
-    .min(6, "La contraseña debe tener al menos 6 caracteres")
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
     .regex(/[A-Z]/, "La contraseña debe contener al menos una letra mayúscula")
+    .regex(/[a-z]/, "La contraseña debe contener al menos una letra minúscula")
+    .regex(/[0-9]/, "La contraseña debe contener al menos un número")
     .regex(
       /[!@#$%^&*]/,
       "La contraseña debe contener al menos un carácter especial (!@#$%^&*)"
     ),
+  logo_url: z
+    .string()
+    .url("Ingrese una URL válida para el logo")
+    .optional()
+    .or(z.literal("")),
+  page_url: z
+    .string()
+    .url("Ingrese una URL válida para la página web")
+    .optional()
+    .or(z.literal("")),
 });
 
 type PartnerFormData = z.infer<typeof partnerSchema>;
@@ -82,13 +95,17 @@ function CreatePartnerPage() {
           ...data,
           role_id: partnerRole.id,
           contact_number: data.contact, // Mapear contact a contact_number
+          logo_url: data.logo_url || "",
+          page_url: data.page_url || "",
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.error === "Email already exists") {
-          setError("email", { message: "Este email ya está registrado" });
+          setError("email", {
+            message: "Este correo electrónico ya está registrado",
+          });
         } else {
           throw new Error(errorData.error || "Error al registrar partner");
         }
@@ -159,14 +176,14 @@ function CreatePartnerPage() {
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-purple-700 font-medium">
-                Email *
+                Correo Electrónico *
               </Label>
               <div className="relative group">
                 <Mail className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="email@empresa.com"
+                  placeholder="correo@empresa.com"
                   className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
                   {...register("email")}
                 />
@@ -200,6 +217,50 @@ function CreatePartnerPage() {
               )}
             </div>
 
+            {/* URL del Logo */}
+            <div className="space-y-2">
+              <Label htmlFor="logo_url" className="text-purple-700 font-medium">
+                URL del Logo (Opcional)
+              </Label>
+              <div className="relative group">
+                <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
+                <Input
+                  id="logo_url"
+                  type="url"
+                  placeholder="https://ejemplo.com/logo.png"
+                  className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
+                  {...register("logo_url")}
+                />
+              </div>
+              {errors.logo_url && (
+                <p className="text-sm text-destructive font-medium">
+                  {errors.logo_url.message}
+                </p>
+              )}
+            </div>
+
+            {/* URL de la Página Web */}
+            <div className="space-y-2">
+              <Label htmlFor="page_url" className="text-purple-700 font-medium">
+                URL de la Página Web (Opcional)
+              </Label>
+              <div className="relative group">
+                <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
+                <Input
+                  id="page_url"
+                  type="url"
+                  placeholder="https://ejemplo.com"
+                  className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
+                  {...register("page_url")}
+                />
+              </div>
+              {errors.page_url && (
+                <p className="text-sm text-destructive font-medium">
+                  {errors.page_url.message}
+                </p>
+              )}
+            </div>
+
             {/* Contraseña */}
             <div className="space-y-2">
               <Label htmlFor="password" className="text-purple-700 font-medium">
@@ -210,7 +271,7 @@ function CreatePartnerPage() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Mín 6 caracteres, 1 mayúscula, 1 especial (!@#$%^&*)"
+                  placeholder="Mín 8 caracteres, 1 mayúscula, 1 minúscula, 1 número, 1 especial"
                   className="pl-10 pr-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
                   {...register("password")}
                 />
@@ -232,8 +293,9 @@ function CreatePartnerPage() {
                 </p>
               )}
               <div className="text-xs text-gray-600 mt-1">
-                La contraseña debe contener al menos 6 caracteres, una letra
-                mayúscula y un carácter especial (!@#$%^&*)
+                La contraseña debe contener al menos 8 caracteres, una letra
+                mayúscula, una minúscula, un número y un carácter especial
+                (!@#$%^&*)
               </div>
             </div>
 

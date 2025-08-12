@@ -44,7 +44,7 @@ const statusConfig = {
 };
 
 export default function StudentExamPage() {
-  const [exams, setExams] = useState<ExamCard[]>([]);
+  const [exam, setExam] = useState<ExamCard | null>(null); // Solo un examen
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [examDetails, setExamDetails] = useState<any>(null);
@@ -107,7 +107,7 @@ export default function StudentExamPage() {
   };
 
   useEffect(() => {
-    async function fetchExams() {
+    async function fetchExam() {
       setLoading(true);
       try {
         const session = JSON.parse(
@@ -116,7 +116,7 @@ export default function StudentExamPage() {
         const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
         if (!voucherId) {
-          setExams([]);
+          setExam(null);
           return;
         }
 
@@ -154,64 +154,63 @@ export default function StudentExamPage() {
         const studentData = await studentResponse.json();
 
         if (!studentResponse.ok || !studentData?.data?.id) {
-          setExams([]);
+          setExam(null);
           return;
         }
 
         const studentId = studentData.data.id;
 
+        // Verificamos si el estudiante ya tiene algún resultado/intento
         const res = await fetch(`/api/students/exam?voucher_id=${voucherId}`);
         const result = await res.json();
 
-        if (!res.ok || !Array.isArray(result.data)) {
-          setExams([]);
+        if (
+          !res.ok ||
+          !Array.isArray(result.data) ||
+          result.data.length === 0
+        ) {
+          setExam(null);
         } else {
-          // Para cada examen, verificamos si tiene calificaciones
-          const examsWithStatus = await Promise.all(
-            result.data.map(async (exam: any) => {
-              try {
-                // Verificamos si existen resultados para este examen
-                const resultsResponse = await fetch(
-                  `/api/results?exam_id=${exam.id}&student_id=${studentId}`
-                );
+          // Verificamos si existe algún resultado para cualquiera de los exámenes
+          let hasAnyResult = false;
+          for (const examData of result.data) {
+            try {
+              const resultsResponse = await fetch(
+                `/api/results?exam_id=${examData.id}&student_id=${studentId}`
+              );
 
-                // Ahora el endpoint siempre devuelve 200, verificamos si hay data
-                let hasResults = false;
-                if (resultsResponse.ok) {
-                  const resultsData = await resultsResponse.json();
-                  hasResults = resultsData.data !== null;
+              if (resultsResponse.ok) {
+                const resultsData = await resultsResponse.json();
+                if (resultsData.data !== null) {
+                  hasAnyResult = true;
+                  break;
                 }
-
-                return {
-                  id: exam.id,
-                  name: exam.name_exam || "Sin nombre",
-                  status: hasResults
-                    ? "completed"
-                    : ("not_started" as ExamStatus),
-                };
-              } catch {
-                return {
-                  id: exam.id,
-                  name: exam.name_exam || "Sin nombre",
-                  status: "not_started" as ExamStatus,
-                };
               }
-            })
-          );
+            } catch {
+              // Continúa verificando otros exámenes
+            }
+          }
 
-          setExams(examsWithStatus);
+          // Creamos un único examen representativo
+          const singleExam: ExamCard = {
+            id: 0, // ID ficticio que será reemplazado por uno aleatorio al iniciar
+            name: "Examen Final",
+            status: hasAnyResult ? "completed" : "not_started",
+          };
+
+          setExam(singleExam);
         }
       } catch {
-        setExams([]);
+        setExam(null);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchExams();
+    fetchExam();
   }, []);
 
-  const handleStartExam = async (examId: number) => {
+  const handleStartExam = async () => {
     // Verificar si el voucher ya está en estado final usando la función auxiliar
     if (isVoucherInFinalState()) {
       const statusText = isVoucherApproved() ? "aprobado" : "perdido";
@@ -293,6 +292,19 @@ export default function StudentExamPage() {
         return;
       }
 
+      // Obtener un examen aleatorio
+      const randomExamRes = await fetch(
+        `/api/students/exam/random?voucher_id=${voucherId}`
+      );
+      const randomExamData = await randomExamRes.json();
+
+      if (!randomExamRes.ok) {
+        alert(randomExamData?.error || "No se encontró un examen disponible.");
+        return;
+      }
+
+      const examId = randomExamData.data.id;
+
       const response = await fetch("/api/attempts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -315,7 +327,7 @@ export default function StudentExamPage() {
     }
   };
 
-  const handleViewResults = async (examId: number) => {
+  const handleViewResults = async () => {
     // Obtener el voucher_id desde sessionStorage
     const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
     const voucherId = session?.state?.decryptedStudent?.voucher_id;
@@ -339,47 +351,101 @@ export default function StudentExamPage() {
 
       const studentId = studentData.data.id;
 
-      // Ahora hacemos la solicitud para obtener los resultados del examen
-      const res = await fetch(
-        `/api/results?exam_id=${examId}&student_id=${studentId}`
+      // Obtener todos los exámenes de la certificación para verificar cuáles son exámenes (no simuladores)
+      const examsRes = await fetch(
+        `/api/students/exam?voucher_id=${voucherId}`
       );
+      const examsData = await examsRes.json();
 
-      if (res.ok) {
-        const result = await res.json();
+      if (
+        !examsRes.ok ||
+        !Array.isArray(examsData.data) ||
+        examsData.data.length === 0
+      ) {
+        alert("No se encontraron exámenes disponibles.");
+        return;
+      }
 
-        if (result && result.data) {
-          setExamDetails(result.data);
-          setIsModalOpen(true);
-
-          // Actualizamos el estado del examen a "completed" si no lo estaba ya
-          setExams((prev) =>
-            prev.map((exam) =>
-              exam.id === examId
-                ? { ...exam, status: "completed" as ExamStatus }
-                : exam
-            )
+      // Obtener todos los resultados de todos los exámenes que el estudiante haya presentado
+      const allResults = [];
+      for (const examData of examsData.data) {
+        try {
+          const resultsResponse = await fetch(
+            `/api/results?exam_id=${examData.id}&student_id=${studentId}`
           );
-        } else {
-          // Si no hay datos en la respuesta
-          alert(
-            "No se encontraron resultados para este examen. Asegúrate de haber completado el examen primero."
-          );
+
+          if (resultsResponse.ok) {
+            const resultsData = await resultsResponse.json();
+            if (resultsData.data !== null) {
+              // Los resultados ya vienen con best_attempt y last_attempt del examen específico
+              // Necesitamos extraer los intentos individuales
+              const examResults = resultsData.data;
+
+              // Agregar both attempts to our collection with additional info
+              if (examResults.best_attempt) {
+                allResults.push({
+                  ...examResults.best_attempt,
+                  exam_name: examData.name_exam || "Examen",
+                  exam_id: examData.id,
+                  student_name: examResults.student_name,
+                });
+              }
+
+              // Only add last_attempt if it's different from best_attempt
+              if (
+                examResults.last_attempt &&
+                examResults.last_attempt.attempt_date !==
+                  examResults.best_attempt?.attempt_date
+              ) {
+                allResults.push({
+                  ...examResults.last_attempt,
+                  exam_name: examData.name_exam || "Examen",
+                  exam_id: examData.id,
+                  student_name: examResults.student_name,
+                });
+              }
+            }
+          }
+        } catch {
+          // Continúa con el siguiente examen
         }
+      }
+
+      if (allResults.length > 0) {
+        // Ordenar todos los resultados por fecha
+        allResults.sort(
+          (a, b) =>
+            new Date(a.attempt_date).getTime() -
+            new Date(b.attempt_date).getTime()
+        );
+
+        // Encontrar el mejor intento (mayor puntaje) de todos los exámenes
+        const bestAttempt = allResults.reduce((best, current) =>
+          current.score > best.score ? current : best
+        );
+
+        // El último intento es el más reciente
+        const lastAttempt = allResults[allResults.length - 1];
+
+        // Construir el objeto en el formato que espera el modal original
+        const consolidatedResults = {
+          best_attempt: bestAttempt,
+          last_attempt: lastAttempt,
+          student_name: allResults[0].student_name,
+          total_attempts: allResults.length,
+        };
+
+        setExamDetails(consolidatedResults);
+        setIsModalOpen(true);
+
+        // Actualizamos el estado del examen a "completed" si no lo estaba ya
+        setExam((prev) =>
+          prev ? { ...prev, status: "completed" as ExamStatus } : prev
+        );
       } else {
-        // Manejar diferentes códigos de estado HTTP
-        if (res.status === 404) {
-          alert(
-            "No has presentado este examen aún. Completa el examen primero para ver tus resultados."
-          );
-        } else if (res.status === 403) {
-          alert("No tienes permisos para ver estos resultados.");
-        } else if (res.status === 500) {
-          alert("Error del servidor. Por favor, intenta más tarde.");
-        } else {
-          alert(
-            "No se pudieron obtener los resultados. Por favor, intenta más tarde."
-          );
-        }
+        alert(
+          "No se encontraron resultados. Asegúrate de haber completado el examen primero."
+        );
       }
     } catch {
       alert(
@@ -403,9 +469,9 @@ export default function StudentExamPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-lg text-gray-500">Cargando exámenes...</p>
+          <p className="text-lg text-gray-500">Cargando examen...</p>
         </div>
-      ) : exams.length === 0 ? (
+      ) : !exam ? (
         <div className="text-center py-20">
           <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <Lightbulb className="w-12 h-12 text-gray-400" />
@@ -420,7 +486,7 @@ export default function StudentExamPage() {
       ) : (
         <div className="flex justify-center">
           <div className="w-full max-w-2xl">
-            {exams.map((exam) => {
+            {(() => {
               const config = statusConfig[exam.status];
               const StatusIcon = config.icon;
 
@@ -484,6 +550,7 @@ export default function StudentExamPage() {
                           <li>• Una sola oportunidad por intento</li>
                           <li>• Resultado inmediato</li>
                           <li>• Certificado oficial al aprobar</li>
+                          <li>• Se selecciona aleatoriamente al iniciar</li>
                           {voucherStatusSlug && !isVoucherInFinalState() && (
                             <li className="font-medium text-blue-600">
                               • Intentos restantes:{" "}
@@ -542,7 +609,7 @@ export default function StudentExamPage() {
                             ? "bg-gray-400 cursor-not-allowed text-gray-600"
                             : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl"
                         }`}
-                        onClick={() => handleStartExam(exam.id)}
+                        onClick={handleStartExam}
                         disabled={isVoucherInFinalState()}
                       >
                         <Play
@@ -576,7 +643,7 @@ export default function StudentExamPage() {
                               : "bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 shadow-lg hover:shadow-xl"
                             : "hover:bg-gray-50 text-gray-400 border-gray-300 cursor-not-allowed"
                         }`}
-                        onClick={() => handleViewResults(exam.id)}
+                        onClick={handleViewResults}
                         disabled={
                           exam.status === "not_started" &&
                           !isVoucherInFinalState()
@@ -605,7 +672,7 @@ export default function StudentExamPage() {
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
                 </div>
               );
-            })}
+            })()}
           </div>
         </div>
       )}

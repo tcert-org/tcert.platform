@@ -55,4 +55,37 @@ export default class ExamsTable {
 
     return examsWithAttempts;
   }
+
+  async getRandomActiveExam(voucher_id: number) {
+    // Obtener la certificación del voucher
+    const { data, error } = await supabase
+      .from("vouchers")
+      .select("certification_id")
+      .eq("id", voucher_id)
+      .single();
+
+    if (error || !data?.certification_id) {
+      throw new Error("Certificación no encontrada desde el voucher");
+    }
+
+    // Obtener todos los exámenes activos de la certificación (no simuladores)
+    const { data: exams, error: examsError } = await supabase
+      .from("exams")
+      .select("id, name_exam, simulator, active")
+      .eq("certification_id", data.certification_id)
+      .eq("simulator", false)
+      .eq("active", true);
+
+    if (examsError) {
+      throw new Error("Error consultando exámenes");
+    }
+
+    if (!exams || exams.length === 0) {
+      throw new Error("No se encontraron exámenes activos");
+    }
+
+    // Seleccionar un examen aleatorio
+    const randomIndex = Math.floor(Math.random() * exams.length);
+    return exams[randomIndex];
+  }
 }

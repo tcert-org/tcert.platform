@@ -79,16 +79,44 @@ function ParamsPage() {
 
   const getParamDescription = (name: string) => {
     const lowerName = name.toLowerCase();
-    if (lowerName.includes("precio")) {
-      return "Valor monetario del sistema";
+
+    // Expiración de voucher
+    if (
+      lowerName.includes("expiración") &&
+      lowerName.includes("voucher") &&
+      !lowerName.includes("estudiante")
+    ) {
+      return "Establece el período de vigencia del voucher contado desde la fecha de compra.";
     }
-    if (lowerName.includes("tiempo") || lowerName.includes("días")) {
-      return "Configuración de tiempo";
+
+    // Expiración de membresía
+    if (lowerName.includes("expiración") && lowerName.includes("membresía")) {
+      return "Tiempo en el cual las membresías deben renovarse.";
     }
-    if (lowerName.includes("mes")) {
-      return "Duración en meses";
+
+    // Tiempo de extensión
+    if (lowerName.includes("tiempo") && lowerName.includes("extensión")) {
+      return "Alerta para habilitar la extensión de los vouchers antes de su vencimiento.";
     }
-    return "Parámetro numérico del sistema";
+
+    // Precio de extensión
+    if (lowerName.includes("precio") && lowerName.includes("extensión")) {
+      return "Valor del voucher para extenderlo antes de su vencimiento.";
+    }
+
+    // Porcentaje de examen
+    if (lowerName.includes("porcentaje") && lowerName.includes("examen")) {
+      return "Define el porcentaje mínimo requerido para aprobar simuladores y exámenes.";
+    }
+
+    // Expiración de voucher de estudiante
+    if (
+      lowerName.includes("expiración") &&
+      lowerName.includes("voucher") &&
+      lowerName.includes("estudiante")
+    ) {
+      return "Tiempo que tendrá el estudiante para utilizar su voucher antes de su vencimiento.";
+    }
   };
 
   if (initialLoading) {

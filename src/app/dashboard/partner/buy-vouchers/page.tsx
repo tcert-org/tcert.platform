@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Banknote } from "lucide-react";
+import { Banknote, Loader2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import {
   Dialog,
@@ -24,6 +24,7 @@ const membershipColor: Record<string, string> = {
 export default function AssignVoucherForm() {
   const [quantity, setQuantity] = useState<number>(1);
   const [loading, setLoading] = useState(false);
+  const [priceLoading, setPriceLoading] = useState(false);
   const { getUser } = useUserStore();
 
   const [membershipName, setMembershipName] = useState<string | null>(null);
@@ -77,11 +78,16 @@ export default function AssignVoucherForm() {
       const user = await getUser();
       if (!user?.id || quantity < 1) return;
 
+      setPriceLoading(true);
+
       // 🔄 Obtener membresía fresca de la API en lugar del user store
       const freshData = await fetchFreshPartnerData(String(user.id));
 
       // Buscar el membership_id basado en el nombre de la membresía fresca
-      if (!freshData) return;
+      if (!freshData) {
+        setPriceLoading(false);
+        return;
+      }
 
       try {
         // Obtener todas las membresías para encontrar el ID por nombre
@@ -94,7 +100,10 @@ export default function AssignVoucherForm() {
           (m: any) => m.name === freshData.membership_name
         );
 
-        if (!membership?.id) return;
+        if (!membership?.id) {
+          setPriceLoading(false);
+          return;
+        }
 
         const res = await fetch("/api/checkout", {
           method: "POST",
@@ -112,6 +121,8 @@ export default function AssignVoucherForm() {
         }
       } catch (error) {
         console.error("Error al obtener precio:", error);
+      } finally {
+        setPriceLoading(false);
       }
     };
 
@@ -136,54 +147,20 @@ export default function AssignVoucherForm() {
         );
         setQuantity(quantityFromStorage);
 
-        // ❌ Removido el uso del session storage para unit_price
-        // const storedUnitPrice = Number(sessionStorage.getItem("unit_price") || "0");
-
         const user = await getUser();
         const partnerId = String(user?.id);
         if (!partnerId || !user?.id) return;
 
-        // 🔄 Obtener precio actual basado en la membresía fresca de la API
-        let currentUnitPrice = unitPrice; // Usar el precio que ya tenemos en estado
-        if (!currentUnitPrice) {
-          try {
-            // Obtener membresía fresca
-            const freshData = await fetchFreshPartnerData(String(user.id));
-            if (freshData?.membership_name) {
-              // Obtener ID de membresía
-              const membershipRes = await fetch("/api/membership");
-              const membershipJson = await membershipRes.json();
-              const membershipList = Array.isArray(membershipJson.data)
-                ? membershipJson.data
-                : [];
-              const membership = membershipList.find(
-                (m: any) => m.name === freshData.membership_name
-              );
+        // Mostrar modal inmediatamente
+        setShowSuccessModal(true);
+        toast.success("Vouchers asignados exitosamente.");
 
-              if (membership?.id) {
-                const priceRes = await fetch("/api/checkout", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    quantity: quantityFromStorage,
-                    membership_id: membership.id,
-                    onlyPrice: true,
-                  }),
-                });
-                const priceData = await priceRes.json();
-                if (typeof priceData.unit_price === "number") {
-                  currentUnitPrice = priceData.unit_price;
-                  setUnitPrice(currentUnitPrice);
-                }
-              }
-            }
-          } catch (error) {
-            console.error("Error al obtener precio actual:", error);
-            currentUnitPrice = 0;
-          }
-        }
+        // Limpiar session storage
+        sessionStorage.removeItem("last_quantity");
+        sessionStorage.setItem("vouchers_registered", "true");
 
         try {
+          // Registrar el pago en background
           const res = await fetch("/api/payments", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -191,96 +168,22 @@ export default function AssignVoucherForm() {
               partner_id: partnerId,
               admin_id: null,
               voucher_quantity: quantityFromStorage,
-              unit_price: currentUnitPrice || 0,
-              total_price: quantityFromStorage * (currentUnitPrice || 0),
+              unit_price: unitPrice || 0,
+              total_price: quantityFromStorage * (unitPrice || 0),
               files: "stripe_payment",
-              membership_id: null, // ❌ no usamos el viejo ID
+              membership_id: null,
             }),
           });
 
-          if (!res.ok) throw new Error("Error al registrar los vouchers");
-
-          const json = await res.json();
-          const newMembershipId = json?.data?.new_membership_id;
-
-          // 🔁 Esperar un momento para que la DB se actualice completamente
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-
-          // 🔁 Obtener datos frescos del partner directamente de la API (como lo hace partner-detail)
-          console.log(
-            "🔄 Obteniendo datos frescos del partner después del pago..."
-          );
-          const user = await getUser();
-          const freshPartnerData = await fetchFreshPartnerData(
-            String(user?.id)
-          );
-
-          if (freshPartnerData) {
-            console.log("🔄 Datos frescos del partner obtenidos:", {
-              newMembershipId,
-              freshMembershipName: freshPartnerData.membership_name,
-              finalMembershipToUse: newMembershipId,
-            });
-
-            // Actualizar la membresía mostrada usando el nombre directo de la API
-            if (
-              freshPartnerData.membership_name &&
-              freshPartnerData.membership_name !== "Sin asignar"
-            ) {
-              setMembershipName(freshPartnerData.membership_name);
-            }
-
-            // 🔄 Limpiar session storage
-            sessionStorage.removeItem("last_quantity");
-            // ❌ Removido: sessionStorage.removeItem("unit_price");
-            sessionStorage.setItem("vouchers_registered", "true");
-
-            // Forzar actualización del precio con la nueva membresía del response del pago
-            if (newMembershipId) {
-              console.log("🔄 Actualizando precio con nueva membresía...");
-              try {
-                const priceRes = await fetch("/api/checkout", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Cache-Control": "no-cache",
-                  },
-                  body: JSON.stringify({
-                    quantity: quantityFromStorage,
-                    membership_id: newMembershipId,
-                    onlyPrice: true,
-                  }),
-                });
-                const priceData = await priceRes.json();
-                if (typeof priceData.unit_price === "number") {
-                  setUnitPrice(priceData.unit_price);
-                  console.log(
-                    "✅ Nuevo precio unitario:",
-                    priceData.unit_price
-                  );
-                }
-              } catch (error) {
-                console.error(
-                  "Error al actualizar precio con nueva membresía:",
-                  error
-                );
-              }
-            }
-          } else {
-            console.error(
-              "❌ No se pudieron obtener datos frescos del partner"
-            );
+          if (res.ok) {
+            // Redirigir después de un momento para que el usuario vea el modal
+            setTimeout(() => {
+              window.location.href = "/dashboard/partner/buy-vouchers";
+            }, 2000);
           }
-
-          setShowSuccessModal(true);
-          toast.success("Vouchers asignados exitosamente.");
-
-          setTimeout(() => {
-            window.location.href = "/dashboard/partner/buy-vouchers";
-          }, 2000);
         } catch (error) {
           console.error("❌ Error en /api/payments:", error);
-          toast.error("Error al asignar los vouchers.");
+          // Mantener el modal de éxito ya que el pago de Stripe fue exitoso
         }
         return;
       }
@@ -533,12 +436,14 @@ export default function AssignVoucherForm() {
                 <Button
                   type="button"
                   onClick={handlePay}
-                  disabled={loading}
-                  className="w-full text-lg py-4 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-700 hover:from-purple-700 hover:via-violet-700 hover:to-indigo-800 text-white font-semibold rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30 border border-purple-400/20 transition-all duration-200 transform hover:scale-[1.02]"
+                  disabled={loading || priceLoading}
+                  className="w-full text-lg py-4 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-700 hover:from-purple-700 hover:via-violet-700 hover:to-indigo-800 text-white font-semibold rounded-lg flex items-center justify-center shadow-lg shadow-purple-500/30 border border-purple-400/20 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Banknote className="text-[24px] mr-3 shrink-0" />
                   {loading
                     ? "Procesando..."
+                    : priceLoading
+                    ? "Cargando precios..."
                     : `Pagar ${quantity} voucher${quantity > 1 ? "s" : ""}`}
                 </Button>
               </div>

@@ -9,6 +9,7 @@ import type { ProfileWithRole, UserRole } from "@/lib/types";
 import { getMenuForRole, getDefaultPageForRole } from "@/lib/navigation";
 import { GeneralLoader } from "@/components/general-loader";
 import StudentForm from "@/components/form-first-time-student";
+import { Toaster } from "sonner";
 
 export default function DashboardWrapper({
   children,
@@ -83,7 +84,9 @@ export default function DashboardWrapper({
     pathname.includes(item.path)
   );
   const currentModuleName = currentMenuItem ? currentMenuItem.title : "";
-  const showModuleName = currentMenuItem ? currentMenuItem.showModuleName : false;
+  const showModuleName = currentMenuItem
+    ? currentMenuItem.showModuleName
+    : false;
 
   return (
     <DashboardLayout
@@ -93,6 +96,7 @@ export default function DashboardWrapper({
       showModuleName={showModuleName}
     >
       {children}
+      <Toaster position="top-right" richColors closeButton expand={true} />
     </DashboardLayout>
   );
 }

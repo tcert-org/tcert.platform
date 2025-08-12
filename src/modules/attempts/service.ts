@@ -63,7 +63,7 @@ export default class AttemptService {
       correct_option_id: opt.id,
     }));
 
-    const result = ExamTool.gradeAttempt({
+    const result = await ExamTool.gradeAttempt({
       studentAnswers: answers,
       correctAnswers: formattedCorrectAnswers,
     });
