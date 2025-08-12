@@ -463,16 +463,18 @@ export default function FormExam() {
 
   if (!questions.length)
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 max-w-md w-full mx-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-6 sm:p-8 max-w-md w-full">
           <div className="text-center">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <HelpCircle className="w-8 h-8 text-blue-600" />
+            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <HelpCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
               {examName}
             </h2>
-            <p className="text-gray-600">No hay preguntas para mostrar.</p>
+            <p className="text-sm sm:text-base text-gray-600">
+              No hay preguntas para mostrar.
+            </p>
           </div>
         </div>
       </div>
@@ -495,28 +497,33 @@ export default function FormExam() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <HelpCircle className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <HelpCircle className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">{examName}</h1>
-                <p className="text-sm text-gray-600">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-sm sm:text-xl font-bold text-gray-900 truncate">
+                  {examName}
+                </h1>
+                <p className="text-xs sm:text-sm text-gray-600">
                   Pregunta {currentIndex + 1} de {questions.length}
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <Clock className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+              <span className="text-xs sm:text-sm text-gray-600 hidden sm:inline">
                 Progreso: {Math.round(progressPercentage)}%
               </span>
+              <span className="text-xs text-gray-600 sm:hidden">
+                {Math.round(progressPercentage)}%
+              </span>
               {timeRemaining !== null && (
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-5 h-5 text-orange-500" />
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
                   <span
-                    className={`text-sm font-medium ${
+                    className={`text-xs sm:text-sm font-medium ${
                       timeRemaining <= 300
                         ? "text-red-600"
                         : timeRemaining <= 900
@@ -562,8 +569,8 @@ export default function FormExam() {
 
       {/* Advertencia de seguridad */}
       {showWarning && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
-          <p className="text-sm font-medium">
+        <div className="fixed top-16 sm:top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-lg animate-pulse mx-4 max-w-[calc(100vw-2rem)]">
+          <p className="text-xs sm:text-sm font-medium text-center">
             ⚠️ Acción no permitida durante el examen
           </p>
         </div>
@@ -571,8 +578,10 @@ export default function FormExam() {
 
       {/* Advertencia de tiempo */}
       {showTimeWarning && timeRemaining !== null && (
-        <div className="fixed top-32 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-6 py-4 rounded-lg shadow-lg max-w-md text-center animate-pulse">
-          <p className="text-sm font-bold">⏰ ADVERTENCIA DE TIEMPO</p>
+        <div className="fixed top-32 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-lg shadow-lg max-w-[calc(100vw-2rem)] text-center animate-pulse">
+          <p className="text-xs sm:text-sm font-bold">
+            ⏰ ADVERTENCIA DE TIEMPO
+          </p>
           <p className="text-xs mt-1">
             Quedan menos de 5 minutos: {formatTime(timeRemaining)}
           </p>
@@ -584,8 +593,10 @@ export default function FormExam() {
 
       {/* Advertencia de cambio de pestaña */}
       {showTabWarning && (
-        <div className="fixed top-32 left-1/2 transform -translate-x-1/2 z-50 bg-orange-500 text-white px-6 py-4 rounded-lg shadow-lg max-w-md text-center">
-          <p className="text-sm font-bold">🚨 ADVERTENCIA DE SEGURIDAD</p>
+        <div className="fixed top-32 left-1/2 transform -translate-x-1/2 z-50 bg-orange-500 text-white px-4 sm:px-6 py-3 sm:py-4 rounded-lg shadow-lg max-w-[calc(100vw-2rem)] text-center">
+          <p className="text-xs sm:text-sm font-bold">
+            🚨 ADVERTENCIA DE SEGURIDAD
+          </p>
           <p className="text-xs mt-1">
             Cambio de pestaña detectado ({tabSwitchCount}{" "}
             {tabSwitchCount === 1 ? "vez" : "veces"})
@@ -603,10 +614,10 @@ export default function FormExam() {
       )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-8 min-h-[600px]">
-          {/* Question Sidebar */}
-          <div className="w-80 flex-shrink-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="flex gap-4 lg:gap-8 min-h-[calc(100vh-180px)] sm:min-h-[600px]">
+          {/* Desktop Question Sidebar */}
+          <div className="hidden lg:block w-80 flex-shrink-0">
             <QuestionSidebar
               questions={questions}
               currentIndex={currentIndex}
@@ -617,43 +628,51 @@ export default function FormExam() {
           </div>
 
           {/* Question Content */}
-          <div className="flex-1">
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="flex-1 min-w-0">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
               {/* Question Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-4 sm:px-8 py-4 sm:py-6">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold">
+                  <div className="flex items-center space-x-2 sm:space-x-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                      <span className="text-white font-bold text-sm sm:text-base">
                         {currentIndex + 1}
                       </span>
                     </div>
-                    <span className="text-white/90 font-medium">Pregunta</span>
+                    <span className="text-white/90 font-medium text-sm sm:text-base">
+                      Pregunta
+                    </span>
                   </div>
-                  <div className="text-white/90 text-sm">
-                    {questions.length - Object.keys(selectedOptions).length} sin
-                    responder
+                  <div className="text-white/90 text-xs sm:text-sm">
+                    <span className="hidden sm:inline">
+                      {questions.length - Object.keys(selectedOptions).length}{" "}
+                      sin responder
+                    </span>
+                    <span className="sm:hidden">
+                      {questions.length - Object.keys(selectedOptions).length}{" "}
+                      sin resp.
+                    </span>
                   </div>
                 </div>
               </div>
 
               {/* Question Content */}
-              <div className="p-8">
-                <h3 className="text-xl font-semibold text-gray-800 mb-8 leading-relaxed">
+              <div className="p-4 sm:p-8">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-6 sm:mb-8 leading-relaxed">
                   {currentQuestion.text}
                 </h3>
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {loadingOptions ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span className="ml-3 text-gray-600">
+                    <div className="flex items-center justify-center py-8 sm:py-12">
+                      <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-600"></div>
+                      <span className="ml-3 text-gray-600 text-sm sm:text-base">
                         Cargando opciones...
                       </span>
                     </div>
                   ) : options.length === 0 ? (
-                    <div className="text-center py-12">
-                      <p className="text-gray-500">
+                    <div className="text-center py-8 sm:py-12">
+                      <p className="text-gray-500 text-sm sm:text-base">
                         No hay opciones para esta pregunta.
                       </p>
                     </div>
@@ -667,15 +686,15 @@ export default function FormExam() {
                         <button
                           key={opt.id}
                           onClick={() => handleOptionSelect(i)}
-                          className={`w-full p-4 rounded-xl text-left transition-all duration-200 border-2 group hover:shadow-md ${
+                          className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl text-left transition-all duration-200 border-2 group hover:shadow-md ${
                             isSelected
                               ? "border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-500/20"
                               : "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50"
                           }`}
                         >
-                          <div className="flex items-start space-x-4">
+                          <div className="flex items-start space-x-3 sm:space-x-4">
                             <div
-                              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 transition-colors ${
+                              className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0 transition-colors ${
                                 isSelected
                                   ? "bg-blue-500 text-white"
                                   : "bg-gray-100 text-gray-600 group-hover:bg-blue-100 group-hover:text-blue-600"
@@ -683,7 +702,7 @@ export default function FormExam() {
                             >
                               {optionLetter}
                             </div>
-                            <span className="text-gray-800 leading-relaxed pt-0.5">
+                            <span className="text-gray-800 leading-relaxed pt-0.5 text-sm sm:text-base">
                               {opt.content}
                             </span>
                           </div>
@@ -692,39 +711,125 @@ export default function FormExam() {
                     })
                   )}
                 </div>
+
+                {/* Mobile Question Navigation */}
+                <div className="block lg:hidden mt-8 pt-6 border-t border-gray-100">
+                  <div className="mb-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                      Navegación de Preguntas
+                    </h4>
+                    <div className="flex items-center justify-between text-xs text-gray-600 mb-4">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2.5 h-2.5 bg-blue-400 rounded-full"></div>
+                        <span>Respondida</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2.5 h-2.5 bg-blue-600 rounded-full"></div>
+                        <span>Actual</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2.5 h-2.5 bg-gray-300 rounded-full"></div>
+                        <span>Pendiente</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Question Grid */}
+                  <div className="grid grid-cols-5 sm:grid-cols-6 gap-2 mb-4">
+                    {questions.map((q, idx) => {
+                      const isCurrent = idx === currentIndex;
+                      const isAnswered = selectedOptions.hasOwnProperty(q.id);
+
+                      let buttonClasses =
+                        "w-full aspect-square rounded-lg text-xs font-semibold transition-all duration-200 border-2 flex items-center justify-center ";
+
+                      if (isCurrent) {
+                        buttonClasses +=
+                          "bg-blue-600 text-white border-blue-600 shadow-lg ring-2 ring-blue-500/30";
+                      } else if (isAnswered) {
+                        buttonClasses +=
+                          "bg-blue-200 text-blue-800 border-blue-300 hover:bg-blue-300 hover:border-blue-400";
+                      } else {
+                        buttonClasses +=
+                          "bg-gray-100 text-gray-600 border-gray-300 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600";
+                      }
+
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setCurrentIndex(idx);
+                          }}
+                          className={buttonClasses}
+                        >
+                          {idx + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Progress Summary */}
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 mb-2">
+                      <span className="font-semibold text-blue-600">
+                        {Object.keys(selectedOptions).length}
+                      </span>{" "}
+                      de{" "}
+                      <span className="font-semibold">{questions.length}</span>{" "}
+                      respondidas
+                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${
+                            (Object.keys(selectedOptions).length /
+                              questions.length) *
+                            100
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Navigation Footer */}
-              <div className="bg-gray-50 px-8 py-6 border-t border-gray-100">
-                <div className="flex justify-between items-center">
+              <div className="bg-gray-50 px-4 sm:px-8 py-4 sm:py-6 border-t border-gray-100">
+                <div className="flex justify-between items-center gap-4">
                   <button
                     onClick={goBack}
                     disabled={currentIndex === 0}
-                    className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                    className={`flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-200 text-sm sm:text-base ${
                       currentIndex === 0
                         ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                         : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-gray-400 shadow-sm hover:shadow"
                     }`}
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span>Anterior</span>
+                    <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Anterior</span>
+                    <span className="sm:hidden">Ant.</span>
                   </button>
 
                   {isLast ? (
                     <button
                       onClick={() => setModalOpen(true)}
-                      className="flex items-center space-x-2 px-8 py-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      className="flex items-center space-x-1 sm:space-x-2 px-4 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white font-bold hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 text-sm sm:text-base"
                     >
-                      <Send className="w-4 h-4" />
-                      <span>Enviar Examen</span>
+                      <Send className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">Enviar Examen</span>
+                      <span className="sm:hidden">Enviar</span>
                     </button>
                   ) : (
                     <button
                       onClick={goNext}
-                      className="flex items-center space-x-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+                      className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 text-sm sm:text-base"
                     >
-                      <span>Siguiente</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <span className="hidden sm:inline">Siguiente</span>
+                      <span className="sm:hidden">Sig.</span>
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                     </button>
                   )}
                 </div>

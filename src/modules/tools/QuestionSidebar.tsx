@@ -61,7 +61,11 @@ export default function QuestionSidebar({
               ref={(el) => {
                 if (el) itemRefs.current[idx] = el;
               }}
-              onClick={() => onSelect(idx)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onSelect(idx);
+              }}
               className={buttonClasses}
             >
               <div className="flex items-center justify-center space-x-2">
