@@ -310,6 +310,7 @@ returns table (
   created_at timestamptz,
   expiration_date timestamptz,
   extension_date timestamptz,
+  extension_used boolean,
   total_count bigint
 )
 language plpgsql
@@ -341,7 +342,8 @@ begin
         p.total_price,
         p.created_at,
         p.expiration_date,
-        p.extension_date
+        p.extension_date,
+        p.extension_used
       from payments p
       left join users u on u.id = p.partner_id
       where u.role_id = 5

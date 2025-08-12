@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { FetchParams } from "@/lib/types";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 export interface PaymentDynamicTable {
   id: string;
@@ -13,6 +15,7 @@ export interface PaymentDynamicTable {
   created_at: string;
   expiration_date: string | null;
   extension_date: string | null;
+  extension_used?: boolean; // Campo para indicar si ya fue extendido
 }
 
 function formatUSD(value: number): string {
@@ -33,6 +36,13 @@ function addMonthsToDate(date: Date, months: number): Date {
 export default function PartnerReportsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [extensionPriceInfo, setExtensionPriceInfo] = useState<{
+    exists: boolean;
+    price?: number;
+    isValid?: boolean;
+  }>({ exists: false });
+  const [processedPayments, setProcessedPayments] = useState<Set<string>>(new Set());
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     const session = sessionStorage.getItem("user-data");
@@ -40,6 +50,96 @@ export default function PartnerReportsPage() {
     const id = parsed?.state?.decryptedUser?.id;
     if (id) setPartnerId(String(id));
   }, []);
+
+  // Verificar configuración de precio de extensión
+  useEffect(() => {
+    const checkExtensionPrice = async () => {
+      try {
+        const res = await fetch("/api/params/extension-price");
+        const data = await res.json();
+        setExtensionPriceInfo(data);
+      } catch (error) {
+        console.error("Error al verificar precio de extensión:", error);
+        setExtensionPriceInfo({ exists: false });
+      }
+    };
+
+    checkExtensionPrice();
+  }, []);
+
+  // Manejar éxito de extensión
+  useEffect(() => {
+    const extensionSuccess = searchParams.get("extension_success");
+    const paymentId = searchParams.get("payment_id");
+
+    if (extensionSuccess === "true" && paymentId && !processedPayments.has(paymentId)) {
+      // Marcar como procesado inmediatamente para evitar duplicados
+      setProcessedPayments(prev => new Set([...prev, paymentId]));
+      
+      const processExtension = async () => {
+        try {
+          // Procesar la extensión en el backend
+          const res = await fetch("/api/payments/extension/process", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ payment_id: paymentId }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            if (data.already_processed) {
+              toast.info(
+                "Esta extensión ya fue procesada anteriormente",
+                {
+                  duration: 3000,
+                  description: "No se realizaron cambios adicionales.",
+                }
+              );
+            } else {
+              toast.success(
+                "¡Extensión de 1 año procesada exitosamente! Las fechas de vencimiento han sido extendidas por 12 meses.",
+                {
+                  duration: 5000,
+                  description:
+                    "Todas las fechas han sido actualizadas correctamente.",
+                }
+              );
+            }
+          } else {
+            console.error("Error al procesar extensión:", data.error);
+            toast.error(`Error al procesar la extensión: ${data.error}`);
+            // Si hay error, quitar de la lista de procesados para permitir reintento
+            setProcessedPayments(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(paymentId);
+              return newSet;
+            });
+          }
+        } catch (error) {
+          console.error("Error al procesar extensión:", error);
+          toast.error("Error inesperado al procesar la extensión");
+          // Si hay error, quitar de la lista de procesados para permitir reintento
+          setProcessedPayments(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(paymentId);
+            return newSet;
+          });
+        } finally {
+          // Refrescar la tabla para mostrar los cambios
+          setRefreshKey((prev) => prev + 1);
+
+          // Limpiar los parámetros de la URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete("extension_success");
+          url.searchParams.delete("payment_id");
+          window.history.replaceState({}, "", url.toString());
+        }
+      };
+
+      processExtension();
+    }
+  }, [searchParams, processedPayments]);
 
   async function fetchPartnerPayments(
     params: FetchParams
@@ -249,6 +349,7 @@ export default function PartnerReportsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("extension_date");
+        const extensionUsed = row.original.extension_used;
         const formattedDate = val
           ? new Date(val as string).toLocaleDateString("es-ES", {
               year: "numeric",
@@ -257,13 +358,30 @@ export default function PartnerReportsPage() {
             })
           : null;
 
-        return val ? (
+        if (!val) {
+          return (
+            <div className="text-center">
+              <span className="text-gray-500">No programada</span>
+            </div>
+          );
+        }
+
+        return (
           <div className="text-center">
-            <span className="text-gray-700">{formattedDate}</span>
-          </div>
-        ) : (
-          <div className="text-center">
-            <span className="text-gray-500">No programada</span>
+            <span
+              className={`text-sm ${
+                extensionUsed ? "text-green-700 font-medium" : "text-gray-700"
+              }`}
+            >
+              {formattedDate}
+            </span>
+            {extensionUsed && (
+              <div className="mt-1">
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50">
+                  ✓ Consumida
+                </span>
+              </div>
+            )}
           </div>
         );
       },
@@ -276,43 +394,139 @@ export default function PartnerReportsPage() {
         const paymentId = row.original.id;
         const extensionRaw = row.original.extension_date;
         const expirationRaw = row.original.expiration_date;
+        const extensionUsed = row.original.extension_used;
 
         const extensionDate = extensionRaw ? new Date(extensionRaw) : null;
         const expirationDate = expirationRaw ? new Date(expirationRaw) : null;
         const today = new Date();
 
+        // Verificar si ya fue extendido (usando extension_used o lógica temporal)
+        const alreadyExtended = extensionUsed === true;
+
         const canExtend =
+          !alreadyExtended &&
           extensionDate &&
           expirationDate &&
           today >= new Date(extensionDate.toDateString()) &&
-          today <= new Date(expirationDate.toDateString());
+          today <= new Date(expirationDate.toDateString()) &&
+          extensionPriceInfo.exists &&
+          extensionPriceInfo.isValid;
+
+        const getButtonText = () => {
+          if (alreadyExtended) return "Ya Extendido";
+          if (!extensionPriceInfo.exists) return "Sin Config";
+          if (!extensionPriceInfo.isValid) return "Precio Inválido";
+          if (!canExtend) return "No Disponible";
+          return `Extender ($${extensionPriceInfo.price})`;
+        };
+
+        const getTooltipText = () => {
+          if (alreadyExtended) {
+            return "Este pago ya ha sido extendido y no puede volver a extenderse";
+          }
+          if (!extensionPriceInfo.exists) {
+            return "El parámetro de precio de extensión no está configurado";
+          }
+          if (!extensionPriceInfo.isValid) {
+            return "El precio de extensión no es válido";
+          }
+          if (!canExtend) {
+            return "Solo se puede extender durante el período de extensión";
+          }
+          return `Extender vencimiento por 1 AÑO COMPLETO (12 meses) - $${extensionPriceInfo.price} USD`;
+        };
 
         return (
           <div className="text-center">
             <button
               onClick={async () => {
                 try {
-                  const res = await fetch("/api/payments/", {
-                    method: "POST",
+                  // Primero obtener el precio de extensión
+                  const priceRes = await fetch("/api/payments/extension", {
+                    method: "GET",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ payment_id: paymentId }),
                   });
 
-                  if (!res.ok) throw new Error("Error al extender");
+                  const priceData = await priceRes.json();
 
-                  setRefreshKey((prev) => prev + 1);
+                  if (!priceRes.ok) {
+                    throw new Error(
+                      priceData.error || "Error al obtener precio de extensión"
+                    );
+                  }
+
+                  // Confirmar el pago con el usuario
+                  const confirmed = await new Promise((resolve) => {
+                    toast("Confirmar Extensión de Vouchers", {
+                      description: `¿Está seguro que desea extender este pago por $${priceData.extension_price} USD? Esto extenderá el vencimiento de todos los vouchers asociados por 1 AÑO COMPLETO (12 meses).`,
+                      action: {
+                        label: "Confirmar",
+                        onClick: () => resolve(true),
+                      },
+                      cancel: {
+                        label: "Cancelar",
+                        onClick: () => resolve(false),
+                      },
+                    });
+                  });
+                  if (!confirmed) {
+                    toast.info("Extensión cancelada por el usuario");
+                    return;
+                  }
+
+                  // Proceder al checkout
+                  const res = await fetch("/api/checkout/extension", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      payment_id: paymentId,
+                      onlyPrice: false,
+                    }),
+                  });
+
+                  const data = await res.json();
+
+                  if (!res.ok) {
+                    throw new Error(
+                      data.error || "Error al procesar extensión"
+                    );
+                  }
+
+                  // Redirigir a Stripe Checkout
+                  if (data.url) {
+                    toast.loading("Redirigiendo al pago...", {
+                      duration: 2000,
+                    });
+                    setTimeout(() => {
+                      window.location.href = data.url;
+                    }, 1000);
+                  } else {
+                    throw new Error("No se pudo obtener la URL de pago");
+                  }
                 } catch (err) {
-                  console.error("Extensión fallida:", err);
+                  console.error("Error al procesar extensión:", err);
+                  toast.error(
+                    `Error: ${
+                      err instanceof Error ? err.message : "Error desconocido"
+                    }`,
+                    {
+                      description:
+                        "No se pudo procesar la extensión. Inténtelo nuevamente.",
+                    }
+                  );
                 }
               }}
               disabled={!canExtend}
               className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                canExtend
-                  ? "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200"
+                alreadyExtended
+                  ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 cursor-not-allowed"
+                  : canExtend
+                  ? "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 cursor-pointer"
                   : "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-400 border border-gray-300/50 cursor-not-allowed"
               }`}
+              title={getTooltipText()}
             >
-              Extender
+              {getButtonText()}
             </button>
           </div>
         );
