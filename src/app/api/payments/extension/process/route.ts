@@ -52,10 +52,10 @@ export async function POST(req: NextRequest) {
     // ✅ VERIFICAR SI YA FUE PROCESADO PARA EVITAR DUPLICACIÓN
     if (payment.extension_used === true) {
       return NextResponse.json(
-        { 
-          success: true, 
+        {
+          success: true,
           message: "La extensión ya fue procesada anteriormente",
-          already_processed: true 
+          already_processed: true,
         },
         { status: 200 }
       );

@@ -41,7 +41,9 @@ export default function PartnerReportsPage() {
     price?: number;
     isValid?: boolean;
   }>({ exists: false });
-  const [processedPayments, setProcessedPayments] = useState<Set<string>>(new Set());
+  const [processedPayments, setProcessedPayments] = useState<Set<string>>(
+    new Set()
+  );
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -72,10 +74,14 @@ export default function PartnerReportsPage() {
     const extensionSuccess = searchParams.get("extension_success");
     const paymentId = searchParams.get("payment_id");
 
-    if (extensionSuccess === "true" && paymentId && !processedPayments.has(paymentId)) {
+    if (
+      extensionSuccess === "true" &&
+      paymentId &&
+      !processedPayments.has(paymentId)
+    ) {
       // Marcar como procesado inmediatamente para evitar duplicados
-      setProcessedPayments(prev => new Set([...prev, paymentId]));
-      
+      setProcessedPayments((prev) => new Set([...prev, paymentId]));
+
       const processExtension = async () => {
         try {
           // Procesar la extensión en el backend
@@ -89,13 +95,10 @@ export default function PartnerReportsPage() {
 
           if (res.ok) {
             if (data.already_processed) {
-              toast.info(
-                "Esta extensión ya fue procesada anteriormente",
-                {
-                  duration: 3000,
-                  description: "No se realizaron cambios adicionales.",
-                }
-              );
+              toast.info("Esta extensión ya fue procesada anteriormente", {
+                duration: 3000,
+                description: "No se realizaron cambios adicionales.",
+              });
             } else {
               toast.success(
                 "¡Extensión de 1 año procesada exitosamente! Las fechas de vencimiento han sido extendidas por 12 meses.",
@@ -110,7 +113,7 @@ export default function PartnerReportsPage() {
             console.error("Error al procesar extensión:", data.error);
             toast.error(`Error al procesar la extensión: ${data.error}`);
             // Si hay error, quitar de la lista de procesados para permitir reintento
-            setProcessedPayments(prev => {
+            setProcessedPayments((prev) => {
               const newSet = new Set(prev);
               newSet.delete(paymentId);
               return newSet;
@@ -120,7 +123,7 @@ export default function PartnerReportsPage() {
           console.error("Error al procesar extensión:", error);
           toast.error("Error inesperado al procesar la extensión");
           // Si hay error, quitar de la lista de procesados para permitir reintento
-          setProcessedPayments(prev => {
+          setProcessedPayments((prev) => {
             const newSet = new Set(prev);
             newSet.delete(paymentId);
             return newSet;
@@ -413,11 +416,11 @@ export default function PartnerReportsPage() {
           extensionPriceInfo.isValid;
 
         const getButtonText = () => {
-          if (alreadyExtended) return "Ya Extendido";
-          if (!extensionPriceInfo.exists) return "Sin Config";
+          if (alreadyExtended) return "Extensión ya utilizada";
+          if (!extensionPriceInfo.exists) return "Sin Configuración";
           if (!extensionPriceInfo.isValid) return "Precio Inválido";
           if (!canExtend) return "No Disponible";
-          return `Extender ($${extensionPriceInfo.price})`;
+          return `Extender (Calcular precio)`;
         };
 
         const getTooltipText = () => {
@@ -433,7 +436,7 @@ export default function PartnerReportsPage() {
           if (!canExtend) {
             return "Solo se puede extender durante el período de extensión";
           }
-          return `Extender vencimiento por 1 AÑO COMPLETO (12 meses) - $${extensionPriceInfo.price} USD`;
+          return "Extender vencimiento por 1 AÑO COMPLETO (12 meses). El precio se calculará según los vouchers sin asignar que necesiten más tiempo de venta.";
         };
 
         return (
@@ -441,24 +444,51 @@ export default function PartnerReportsPage() {
             <button
               onClick={async () => {
                 try {
-                  // Primero obtener el precio de extensión
+                  // Primero obtener el precio de extensión específico para este pago
                   const priceRes = await fetch("/api/payments/extension", {
-                    method: "GET",
+                    method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ payment_id: paymentId }),
                   });
 
                   const priceData = await priceRes.json();
 
                   if (!priceRes.ok) {
+                    if (
+                      priceData.info &&
+                      priceData.assigned_vouchers_count ===
+                        priceData.total_vouchers_in_payment
+                    ) {
+                      toast.info("No hay vouchers que extender", {
+                        description: `Este pago tiene ${priceData.total_vouchers_in_payment} vouchers y todos ya están asignados. No necesitan extensión.`,
+                        duration: 5000,
+                      });
+                      return;
+                    }
                     throw new Error(
                       priceData.error || "Error al obtener precio de extensión"
                     );
                   }
 
-                  // Confirmar el pago con el usuario
+                  const { voucher_breakdown } = priceData;
+                  const {
+                    total_vouchers_in_payment,
+                    assigned_vouchers_count,
+                    unassigned_vouchers_count,
+                    total_extension_price,
+                  } = voucher_breakdown;
+
+                  // Confirmar el pago con el usuario mostrando detalles
                   const confirmed = await new Promise((resolve) => {
-                    toast("Confirmar Extensión de Vouchers", {
-                      description: `¿Está seguro que desea extender este pago por $${priceData.extension_price} USD? Esto extenderá el vencimiento de todos los vouchers asociados por 1 AÑO COMPLETO (12 meses).`,
+                    toast("Confirmar Extensión de Vouchers Sin Asignar", {
+                      description: `
+                        • Total vouchers en pago: ${total_vouchers_in_payment}
+                        • Vouchers ya asignados: ${assigned_vouchers_count} (no necesitan extensión)
+                        • Vouchers sin asignar: ${unassigned_vouchers_count} (necesitan extensión)
+                        
+                        Precio: $${total_extension_price} USD (solo por vouchers sin asignar)
+                        Esto extenderá por 1 AÑO COMPLETO (12 meses).
+                      `,
                       action: {
                         label: "Confirmar",
                         onClick: () => resolve(true),
@@ -467,8 +497,10 @@ export default function PartnerReportsPage() {
                         label: "Cancelar",
                         onClick: () => resolve(false),
                       },
+                      duration: 10000,
                     });
                   });
+
                   if (!confirmed) {
                     toast.info("Extensión cancelada por el usuario");
                     return;

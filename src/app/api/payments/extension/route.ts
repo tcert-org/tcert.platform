@@ -85,6 +85,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verificar si ya fue extendido
+    if (payment.extension_used === true) {
+      return NextResponse.json(
+        { error: "Esta extensión ya fue utilizada" },
+        { status: 400 }
+      );
+    }
+
+    // Obtener información de vouchers asignados para este pago específico
+    const { data: voucherInfo, error: voucherError } = await supabase.rpc(
+      "get_assigned_vouchers_by_payment",
+      {
+        payment_id_param: payment_id,
+      }
+    );
+
+    console.log("🔍 DEBUG SQL Function Result:", {
+      voucherInfo,
+      voucherError,
+      payment_id,
+    });
+
+    if (voucherError || !voucherInfo || voucherInfo.length === 0) {
+      console.error("Error en función SQL:", voucherError);
+      return NextResponse.json(
+        { error: "No se pudo obtener información de vouchers del pago" },
+        { status: 500 }
+      );
+    }
+
+    const {
+      total_vouchers_in_payment,
+      assigned_vouchers_count,
+      unassigned_vouchers_count,
+      unit_price_per_voucher,
+      partner_id_info,
+    } = voucherInfo[0];
+
     // Obtener todos los parámetros y buscar el de precio de extensión
     const { data: allParams, error: allParamsError } = await supabase
       .from("params")
@@ -110,12 +148,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const extensionPrice = parseFloat(extensionPriceParam?.value || "0");
+    const extensionPricePerVoucher = parseFloat(
+      extensionPriceParam?.value || "0"
+    );
 
-    if (isNaN(extensionPrice) || extensionPrice <= 0) {
+    if (isNaN(extensionPricePerVoucher) || extensionPricePerVoucher <= 0) {
       return NextResponse.json(
         { error: "El precio de extensión no está configurado correctamente" },
         { status: 500 }
+      );
+    }
+
+    // 🎯 CALCULAR PRECIO SOLO POR VOUCHERS NO ASIGNADOS (los que necesitan extensión)
+    const totalExtensionPrice =
+      unassigned_vouchers_count * extensionPricePerVoucher;
+
+    // Debug logging para revisar los valores
+    console.log("🔍 DEBUG Extension Calculation:", {
+      payment_id,
+      total_vouchers_in_payment,
+      assigned_vouchers_count,
+      unassigned_vouchers_count,
+      extensionPricePerVoucher,
+      totalExtensionPrice,
+      calculation: `${unassigned_vouchers_count} × ${extensionPricePerVoucher} = ${totalExtensionPrice}`,
+    });
+
+    // Si no hay vouchers no asignados, no se cobra nada
+    if (unassigned_vouchers_count === 0) {
+      return NextResponse.json(
+        {
+          error:
+            "Este pago no tiene vouchers sin asignar, todos ya están siendo utilizados y no necesitan extensión",
+          info: true,
+          assigned_vouchers_count,
+          total_vouchers_in_payment,
+        },
+        { status: 400 }
       );
     }
 
@@ -123,8 +192,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       payment_id,
-      extension_price: extensionPrice,
+      extension_price: totalExtensionPrice,
+      extension_price_per_voucher: extensionPricePerVoucher,
       partner_id: payment.partner_id,
+      voucher_breakdown: {
+        total_vouchers_in_payment,
+        assigned_vouchers_count,
+        unassigned_vouchers_count,
+        unit_price_per_voucher,
+        total_extension_price: totalExtensionPrice,
+      },
     });
   } catch (error) {
     console.error("Error al procesar extensión:", error);

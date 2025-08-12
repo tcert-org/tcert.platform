@@ -58,9 +58,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const extensionPrice = parseFloat(extensionPriceParam?.value || "0");
+    const extensionPricePerVoucher = parseFloat(
+      extensionPriceParam?.value || "0"
+    );
 
-    if (isNaN(extensionPrice) || extensionPrice <= 0) {
+    if (isNaN(extensionPricePerVoucher) || extensionPricePerVoucher <= 0) {
       return new Response(
         JSON.stringify({
           error: "El precio de extensión no está configurado correctamente",
@@ -69,14 +71,69 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const unitAmountInCents = Math.round(extensionPrice * 100);
+    // 🎯 Obtener información específica de vouchers para este pago
+    const { data: voucherInfo, error: voucherError } = await supabase.rpc(
+      "get_assigned_vouchers_by_payment",
+      {
+        payment_id_param: payment_id,
+      }
+    );
+
+    if (voucherError || !voucherInfo || voucherInfo.length === 0) {
+      console.error("Error obteniendo vouchers para checkout:", voucherError);
+      return new Response(
+        JSON.stringify({
+          error: "No se pudo obtener información de vouchers del pago",
+        }),
+        { status: 500 }
+      );
+    }
+
+    const {
+      total_vouchers_in_payment,
+      assigned_vouchers_count,
+      unassigned_vouchers_count,
+    } = voucherInfo[0];
+
+    // Calcular el precio total basado en vouchers sin asignar
+    const totalExtensionPrice =
+      unassigned_vouchers_count * extensionPricePerVoucher;
+
+    console.log("🔍 DEBUG Checkout Calculation:", {
+      payment_id,
+      total_vouchers_in_payment,
+      assigned_vouchers_count,
+      unassigned_vouchers_count,
+      extensionPricePerVoucher,
+      totalExtensionPrice,
+      calculation: `${unassigned_vouchers_count} × ${extensionPricePerVoucher} = ${totalExtensionPrice}`,
+    });
+
+    // Verificar que hay vouchers para extender
+    if (unassigned_vouchers_count === 0) {
+      return new Response(
+        JSON.stringify({
+          error: "Este pago no tiene vouchers sin asignar para extender",
+        }),
+        { status: 400 }
+      );
+    }
+
+    const unitAmountInCents = Math.round(totalExtensionPrice * 100);
 
     // Si solo queremos consultar el precio, no creamos sesión en Stripe
     if (onlyPrice) {
       return new Response(
         JSON.stringify({
-          extension_price: extensionPrice,
+          extension_price: totalExtensionPrice,
+          extension_price_per_voucher: extensionPricePerVoucher,
           payment_id: payment_id,
+          voucher_breakdown: {
+            total_vouchers_in_payment,
+            assigned_vouchers_count,
+            unassigned_vouchers_count,
+            total_extension_price: totalExtensionPrice,
+          },
         }),
         { status: 200 }
       );
@@ -91,7 +148,7 @@ export async function POST(req: NextRequest) {
             currency: "usd",
             product_data: {
               name: `Extensión de Vouchers - Pago #${payment_id}`,
-              description: `Extensión de tiempo para los vouchers del pago #${payment_id}`,
+              description: `Extensión de ${unassigned_vouchers_count} vouchers sin asignar del pago #${payment_id}`,
             },
             unit_amount: unitAmountInCents,
           },
@@ -102,6 +159,8 @@ export async function POST(req: NextRequest) {
       metadata: {
         payment_id: payment_id.toString(),
         extension_type: "voucher_extension",
+        unassigned_vouchers_count: unassigned_vouchers_count.toString(),
+        total_extension_price: totalExtensionPrice.toString(),
       },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/partner/reports?extension_success=true&payment_id=${payment_id}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/partner/reports?extension_canceled=true`,
@@ -110,8 +169,15 @@ export async function POST(req: NextRequest) {
     return new Response(
       JSON.stringify({
         url: session.url,
-        extension_price: extensionPrice,
+        extension_price: totalExtensionPrice,
+        extension_price_per_voucher: extensionPricePerVoucher,
         payment_id: payment_id,
+        voucher_breakdown: {
+          total_vouchers_in_payment,
+          assigned_vouchers_count,
+          unassigned_vouchers_count,
+          total_extension_price: totalExtensionPrice,
+        },
       }),
       { status: 200 }
     );
