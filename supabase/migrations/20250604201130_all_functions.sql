@@ -152,20 +152,30 @@ RETURNS TABLE(voucher_purchased integer, voucher_asigned integer, voucher_availa
 BEGIN
     RETURN QUERY
     SELECT
-        COALESCE(SUM(voucher_data.voucher_quantity)::integer, 0) AS voucher_purchased,
-        COALESCE(COUNT(DISTINCT voucher_data.voucher_id)::integer, 0) AS voucher_asigned,
-        COALESCE(SUM(voucher_data.voucher_quantity)::integer, 0) - COALESCE(COUNT(DISTINCT voucher_data.voucher_id)::integer, 0) AS voucher_available
-    FROM (
-        SELECT
-            p.voucher_quantity,
-            v.id AS voucher_id
-        FROM
-            payments p
-        LEFT JOIN
-            vouchers v ON p.partner_id = v.partner_id
-        WHERE
-            p.partner_id = p_id
-    ) AS voucher_data;
+        -- Vouchers comprados: suma de todos los pagos
+        COALESCE((
+            SELECT SUM(p.voucher_quantity)::integer
+            FROM payments p
+            WHERE p.partner_id = p_id
+        ), 0) AS voucher_purchased,
+        
+        -- Vouchers asignados: contar vouchers únicos del partner
+        COALESCE((
+            SELECT COUNT(DISTINCT v.id)::integer
+            FROM vouchers v
+            WHERE v.partner_id = p_id
+        ), 0) AS voucher_asigned,
+        
+        -- Vouchers disponibles: comprados - asignados
+        COALESCE((
+            SELECT SUM(p.voucher_quantity)::integer
+            FROM payments p
+            WHERE p.partner_id = p_id
+        ), 0) - COALESCE((
+            SELECT COUNT(DISTINCT v.id)::integer
+            FROM vouchers v
+            WHERE v.partner_id = p_id
+        ), 0) AS voucher_available;
 END;
 $$ LANGUAGE plpgsql;
 

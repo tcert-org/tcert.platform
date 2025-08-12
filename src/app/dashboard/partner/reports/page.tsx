@@ -44,14 +44,6 @@ export default function PartnerReportsPage() {
   const [processedPayments, setProcessedPayments] = useState<Set<string>>(
     new Set()
   );
-  const [extensionPrices, setExtensionPrices] = useState<{
-    [paymentId: string]: {
-      totalPrice: number;
-      unassignedVouchers: number;
-      loading: boolean;
-      error?: string;
-    };
-  }>({});
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -60,11 +52,6 @@ export default function PartnerReportsPage() {
     const id = parsed?.state?.decryptedUser?.id;
     if (id) setPartnerId(String(id));
   }, []);
-
-  // Limpiar precios de extensión cuando se actualiza la tabla
-  useEffect(() => {
-    setExtensionPrices({});
-  }, [refreshKey]);
 
   // Verificar configuración de precio de extensión
   useEffect(() => {
@@ -157,73 +144,6 @@ export default function PartnerReportsPage() {
     }
   }, [searchParams, processedPayments]);
 
-  // Función para obtener el precio de extensión de un pago específico
-  const fetchExtensionPrice = async (paymentId: string) => {
-    try {
-      setExtensionPrices((prev) => ({
-        ...prev,
-        [paymentId]: {
-          ...prev[paymentId],
-          loading: true,
-          error: undefined,
-        },
-      }));
-
-      const response = await fetch("/api/payments/extension", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payment_id: paymentId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        const { voucher_breakdown } = data;
-        setExtensionPrices((prev) => ({
-          ...prev,
-          [paymentId]: {
-            totalPrice: voucher_breakdown.total_extension_price,
-            unassignedVouchers: voucher_breakdown.unassigned_vouchers_count,
-            loading: false,
-          },
-        }));
-      } else {
-        // Si es un error informativo (no hay vouchers para extender), no es realmente un error
-        if (data.info) {
-          setExtensionPrices((prev) => ({
-            ...prev,
-            [paymentId]: {
-              totalPrice: 0,
-              unassignedVouchers: 0,
-              loading: false,
-            },
-          }));
-        } else {
-          setExtensionPrices((prev) => ({
-            ...prev,
-            [paymentId]: {
-              totalPrice: 0,
-              unassignedVouchers: 0,
-              loading: false,
-              error: data.error,
-            },
-          }));
-        }
-      }
-    } catch (error) {
-      console.error("Error al obtener precio de extensión:", error);
-      setExtensionPrices((prev) => ({
-        ...prev,
-        [paymentId]: {
-          totalPrice: 0,
-          unassignedVouchers: 0,
-          loading: false,
-          error: "Error al cargar precio",
-        },
-      }));
-    }
-  };
-
   async function fetchPartnerPayments(
     params: FetchParams
   ): Promise<{ data: PaymentDynamicTable[]; totalCount: number }> {
@@ -259,18 +179,18 @@ export default function PartnerReportsPage() {
       )
     ).toString();
 
-    const [resPayments, resParams] = await Promise.all([
-      fetch(`/api/payments/details-partner?${search}`),
-      fetch("/api/params"),
-    ]);
+    // Solo hacer una llamada ahora, los parámetros ya están cargados
+    const resPayments = await fetch(`/api/payments/details-partner?${search}`);
 
-    if (!resPayments.ok || !resParams.ok) {
-      throw new Error("Error al cargar los pagos o parámetros");
+    if (!resPayments.ok) {
+      throw new Error("Error al cargar los pagos");
     }
 
     const { data, meta } = await resPayments.json();
-    const { data: paramsData } = await resParams.json();
 
+    // Usar parámetros del estado en lugar de hacer otra llamada
+    const paramsRes = await fetch("/api/params");
+    const { data: paramsData } = await paramsRes.json();
     const expirationMonths = parseInt(
       paramsData.find((p: any) => p.id === 1)?.value ?? "0",
       10
@@ -286,22 +206,6 @@ export default function PartnerReportsPage() {
         };
       }
       return item;
-    });
-
-    // Cargar precios de extensión para todos los pagos en paralelo
-    // Solo cargamos para pagos que pueden ser extendidos y no han sido extendidos ya
-    processedData.forEach((payment: any) => {
-      if (
-        !payment.extension_used &&
-        extensionPriceInfo.exists &&
-        extensionPriceInfo.isValid
-      ) {
-        // Solo cargar si no tenemos el precio ya cargado o si está en error
-        const currentPriceInfo = extensionPrices[payment.id];
-        if (!currentPriceInfo || currentPriceInfo.error) {
-          fetchExtensionPrice(payment.id);
-        }
-      }
     });
 
     return {
@@ -499,9 +403,10 @@ export default function PartnerReportsPage() {
         const expirationDate = expirationRaw ? new Date(expirationRaw) : null;
         const today = new Date();
 
-        // Verificar si ya fue extendido (usando extension_used o lógica temporal)
+        // Verificar si ya fue extendido
         const alreadyExtended = extensionUsed === true;
 
+        // Verificar si está en período de extensión
         const canExtend =
           !alreadyExtended &&
           extensionDate &&
@@ -511,49 +416,20 @@ export default function PartnerReportsPage() {
           extensionPriceInfo.exists &&
           extensionPriceInfo.isValid;
 
-        // Obtener información del precio para determinar si realmente puede extender
-        const priceInfo = extensionPrices[paymentId];
-        const canActuallyExtend =
-          canExtend &&
-          priceInfo &&
-          !priceInfo.loading &&
-          !priceInfo.error &&
-          priceInfo.unassignedVouchers > 0;
-
         const getButtonText = () => {
-          if (alreadyExtended) return "Extensión ya utilizada";
-          if (!extensionPriceInfo.exists) return "Sin Configuración";
-          if (!extensionPriceInfo.isValid) return "Precio Inválido";
-          if (!canExtend) return "No Disponible";
-
-          // Obtener información del precio de extensión para este pago
-          const priceInfo = extensionPrices[paymentId];
-
-          if (!priceInfo) {
-            return "Calculando precio...";
-          }
-
-          if (priceInfo.loading) {
-            return "Calculando precio...";
-          }
-
-          if (priceInfo.error) {
-            return "Error en precio";
-          }
-
-          if (priceInfo.unassignedVouchers === 0) {
-            return "Sin vouchers que extender";
-          }
-
-          return `Extender por $${priceInfo.totalPrice.toFixed(2)}`;
+          if (alreadyExtended) return "Ya extendido";
+          if (!extensionPriceInfo.exists) return "Sin config";
+          if (!extensionPriceInfo.isValid) return "Precio inválido";
+          if (!canExtend) return "No disponible";
+          return "Extender vouchers";
         };
 
         const getTooltipText = () => {
           if (alreadyExtended) {
-            return "Este pago ya ha sido extendido y no puede volver a extenderse";
+            return "Este pago ya ha sido extendido";
           }
           if (!extensionPriceInfo.exists) {
-            return "El parámetro de precio de extensión no está configurado";
+            return "El precio de extensión no está configurado";
           }
           if (!extensionPriceInfo.isValid) {
             return "El precio de extensión no es válido";
@@ -561,140 +437,64 @@ export default function PartnerReportsPage() {
           if (!canExtend) {
             return "Solo se puede extender durante el período de extensión";
           }
-
-          // Obtener información del precio de extensión para este pago
-          const priceInfo = extensionPrices[paymentId];
-
-          if (!priceInfo || priceInfo.loading) {
-            return "Calculando precio de extensión...";
-          }
-
-          if (priceInfo.error) {
-            return `Error al calcular precio: ${priceInfo.error}`;
-          }
-
-          if (priceInfo.unassignedVouchers === 0) {
-            return "Este pago no tiene vouchers sin asignar para extender. Todos los vouchers ya están siendo utilizados.";
-          }
-
-          return `Extender ${
-            priceInfo.unassignedVouchers
-          } vouchers sin asignar por 1 AÑO COMPLETO (12 meses). Precio total: $${priceInfo.totalPrice.toFixed(
-            2
-          )} USD`;
+          return "Extender vouchers sin asignar por 1 año. El precio se calculará en checkout.";
         };
 
         return (
           <div className="text-center">
-            <button
-              onClick={async () => {
-                try {
-                  // Ya tenemos toda la información del precio precargada
-                  const currentPriceInfo = extensionPrices[paymentId];
+            <span
+              onClick={
+                canExtend
+                  ? async () => {
+                      try {
+                        // Proceder directamente al checkout - Stripe calculará el precio
+                        const res = await fetch("/api/checkout/extension", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ payment_id: paymentId }),
+                        });
 
-                  if (!currentPriceInfo || currentPriceInfo.loading) {
-                    toast.loading("Cargando información del precio...");
-                    return;
-                  }
+                        const data = await res.json();
 
-                  if (currentPriceInfo.error) {
-                    toast.error(`Error: ${currentPriceInfo.error}`);
-                    return;
-                  }
+                        if (res.ok) {
+                          // Intentar diferentes nombres de propiedades que puede devolver la API
+                          const redirectUrl =
+                            data.checkout_url || data.url || data.checkoutUrl;
 
-                  if (currentPriceInfo.unassignedVouchers === 0) {
-                    toast.info("No hay vouchers que extender", {
-                      description:
-                        "Todos los vouchers de este pago ya están asignados y no necesitan extensión.",
-                      duration: 5000,
-                    });
-                    return;
-                  }
-
-                  // Confirmar el pago con el usuario mostrando detalles
-                  const confirmed = await new Promise<boolean>((resolve) => {
-                    toast("Confirmar Extensión de Vouchers Sin Asignar", {
-                      description: `
-                        • Vouchers sin asignar: ${
-                          currentPriceInfo.unassignedVouchers
+                          if (redirectUrl) {
+                            // Redirigir a Stripe checkout
+                            window.location.href = redirectUrl;
+                          } else {
+                            toast.error("No se generó URL de checkout");
+                          }
+                        } else {
+                          toast.error(
+                            data.error ||
+                              data.message ||
+                              "Error al crear checkout"
+                          );
                         }
-                        • Precio total: $${currentPriceInfo.totalPrice.toFixed(
-                          2
-                        )} USD
-                        
-                        Esto extenderá por 1 AÑO COMPLETO (12 meses).
-                      `,
-                      action: {
-                        label: "Confirmar",
-                        onClick: () => resolve(true),
-                      },
-                      cancel: {
-                        label: "Cancelar",
-                        onClick: () => resolve(false),
-                      },
-                      duration: 10000,
-                    });
-                  });
-
-                  if (!confirmed) {
-                    toast.info("Extensión cancelada por el usuario");
-                    return;
-                  }
-
-                  // Proceder al checkout
-                  const res = await fetch("/api/checkout/extension", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      payment_id: paymentId,
-                      onlyPrice: false,
-                    }),
-                  });
-
-                  const data = await res.json();
-
-                  if (!res.ok) {
-                    throw new Error(
-                      data.error || "Error al procesar extensión"
-                    );
-                  }
-
-                  // Redirigir a Stripe Checkout
-                  if (data.url) {
-                    toast.loading("Redirigiendo al pago...", {
-                      duration: 2000,
-                    });
-                    setTimeout(() => {
-                      window.location.href = data.url;
-                    }, 1000);
-                  } else {
-                    throw new Error("No se pudo obtener la URL de pago");
-                  }
-                } catch (err) {
-                  console.error("Error al procesar extensión:", err);
-                  toast.error(
-                    `Error: ${
-                      err instanceof Error ? err.message : "Error desconocido"
-                    }`,
-                    {
-                      description:
-                        "No se pudo procesar la extensión. Inténtelo nuevamente.",
+                      } catch (error) {
+                        console.error("Error al procesar extensión:", error);
+                        toast.error(
+                          "Error inesperado al procesar la extensión"
+                        );
+                      }
                     }
-                  );
-                }
-              }}
-              disabled={!canActuallyExtend}
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${
-                alreadyExtended
-                  ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 cursor-not-allowed"
-                  : canActuallyExtend
-                  ? "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 cursor-pointer"
-                  : "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-400 border border-gray-300/50 cursor-not-allowed"
-              }`}
+                  : undefined
+              }
               title={getTooltipText()}
+              className={`
+                inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200
+                ${
+                  canExtend
+                    ? "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 hover:shadow-sm cursor-pointer"
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                }
+              `}
             >
               {getButtonText()}
-            </button>
+            </span>
           </div>
         );
       },
