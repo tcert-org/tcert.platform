@@ -164,7 +164,11 @@ export default function StudentExamPage() {
         const res = await fetch(`/api/students/exam?voucher_id=${voucherId}`);
         const result = await res.json();
 
-        if (!res.ok || !Array.isArray(result.data) || result.data.length === 0) {
+        if (
+          !res.ok ||
+          !Array.isArray(result.data) ||
+          result.data.length === 0
+        ) {
           setExam(null);
         } else {
           // Verificamos si existe algún resultado para cualquiera de los exámenes
@@ -289,7 +293,9 @@ export default function StudentExamPage() {
       }
 
       // Obtener un examen aleatorio
-      const randomExamRes = await fetch(`/api/students/exam/random?voucher_id=${voucherId}`);
+      const randomExamRes = await fetch(
+        `/api/students/exam/random?voucher_id=${voucherId}`
+      );
       const randomExamData = await randomExamRes.json();
 
       if (!randomExamRes.ok) {
@@ -346,10 +352,16 @@ export default function StudentExamPage() {
       const studentId = studentData.data.id;
 
       // Obtener todos los exámenes de la certificación para verificar cuáles son exámenes (no simuladores)
-      const examsRes = await fetch(`/api/students/exam?voucher_id=${voucherId}`);
+      const examsRes = await fetch(
+        `/api/students/exam?voucher_id=${voucherId}`
+      );
       const examsData = await examsRes.json();
 
-      if (!examsRes.ok || !Array.isArray(examsData.data) || examsData.data.length === 0) {
+      if (
+        !examsRes.ok ||
+        !Array.isArray(examsData.data) ||
+        examsData.data.length === 0
+      ) {
         alert("No se encontraron exámenes disponibles.");
         return;
       }
@@ -368,25 +380,28 @@ export default function StudentExamPage() {
               // Los resultados ya vienen con best_attempt y last_attempt del examen específico
               // Necesitamos extraer los intentos individuales
               const examResults = resultsData.data;
-              
+
               // Agregar both attempts to our collection with additional info
               if (examResults.best_attempt) {
                 allResults.push({
                   ...examResults.best_attempt,
                   exam_name: examData.name_exam || "Examen",
                   exam_id: examData.id,
-                  student_name: examResults.student_name
+                  student_name: examResults.student_name,
                 });
               }
-              
+
               // Only add last_attempt if it's different from best_attempt
-              if (examResults.last_attempt && 
-                  examResults.last_attempt.attempt_date !== examResults.best_attempt?.attempt_date) {
+              if (
+                examResults.last_attempt &&
+                examResults.last_attempt.attempt_date !==
+                  examResults.best_attempt?.attempt_date
+              ) {
                 allResults.push({
                   ...examResults.last_attempt,
                   exam_name: examData.name_exam || "Examen",
                   exam_id: examData.id,
-                  student_name: examResults.student_name
+                  student_name: examResults.student_name,
                 });
               }
             }
@@ -398,29 +413,33 @@ export default function StudentExamPage() {
 
       if (allResults.length > 0) {
         // Ordenar todos los resultados por fecha
-        allResults.sort((a, b) => new Date(a.attempt_date).getTime() - new Date(b.attempt_date).getTime());
-        
+        allResults.sort(
+          (a, b) =>
+            new Date(a.attempt_date).getTime() -
+            new Date(b.attempt_date).getTime()
+        );
+
         // Encontrar el mejor intento (mayor puntaje) de todos los exámenes
-        const bestAttempt = allResults.reduce((best, current) => 
+        const bestAttempt = allResults.reduce((best, current) =>
           current.score > best.score ? current : best
         );
-        
+
         // El último intento es el más reciente
         const lastAttempt = allResults[allResults.length - 1];
-        
+
         // Construir el objeto en el formato que espera el modal original
         const consolidatedResults = {
           best_attempt: bestAttempt,
           last_attempt: lastAttempt,
           student_name: allResults[0].student_name,
-          total_attempts: allResults.length
+          total_attempts: allResults.length,
         };
-        
+
         setExamDetails(consolidatedResults);
         setIsModalOpen(true);
 
         // Actualizamos el estado del examen a "completed" si no lo estaba ya
-        setExam((prev) => 
+        setExam((prev) =>
           prev ? { ...prev, status: "completed" as ExamStatus } : prev
         );
       } else {
