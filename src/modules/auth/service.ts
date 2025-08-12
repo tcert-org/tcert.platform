@@ -83,7 +83,8 @@ export default class AuthService {
 
       if (authError || !authData?.user?.id || !authData.session) {
         throw {
-          message: `Error login user: ${authError?.message}`,
+          message:
+            "Credenciales incorrectas, por favor verifica tu email y contraseña e intenta nuevamente.",
           statusCode: 401,
         };
       }
