@@ -61,8 +61,8 @@ export default class PDFTool {
       const logoWidth = 120; // Ajusta el tamaño del logo
       const logoHeight = 120; // Ajusta el tamaño del logo
       firstPage.drawImage(logoImage, {
-        x: width - logoWidth - 80, // 10px de margen derecho
-        y: height - logoHeight - 35, // 10px de margen superior
+        x: width - logoWidth - 35, // 10px de margen derecho
+        y: height - logoHeight - 50, // 10px de margen superior
         width: logoWidth,
         height: logoHeight,
       });
@@ -72,7 +72,7 @@ export default class PDFTool {
       const studentNameX = (width - studentNameWidth) / 2; // Centrado
       firstPage.drawText(nameStudent, {
         x: studentNameX,
-        y: height - 250,
+        y: height - 315,
         size: fontSize,
         font,
         color: rgb(45 / 255, 25 / 255, 87 / 255),
@@ -82,7 +82,7 @@ export default class PDFTool {
       const courseNameX = (width - courseNameWidth) / 2; // Centrado
       firstPage.drawText(nameCourse, {
         x: courseNameX,
-        y: height - 370,
+        y: height - 470,
         size: fontSize,
         font,
         color: rgb(45 / 255, 25 / 255, 87 / 255),
@@ -92,17 +92,17 @@ export default class PDFTool {
       const titleX = (width - titleWidth) / 2; // Centrado
       firstPage.drawText(titleDiploma, {
         x: titleX,
-        y: height - 430,
+        y: height - 510,
         size: fontSize,
         font,
         color: rgb(45 / 255, 25 / 255, 87 / 255),
       });
 
       const codeWidth = font.widthOfTextAtSize(codeVocher, fontSize);
-      const codeX = (width - codeWidth + 75) / 2; // Centrado
+      const codeX = (width - codeWidth + 75) / 2.65; // Centrado
       firstPage.drawText(codeVocher, {
         x: codeX,
-        y: height - 508.5,
+        y: height - 575.5,
         size: 12,
         font,
         color: rgb(45 / 255, 25 / 255, 87 / 255),
@@ -111,8 +111,8 @@ export default class PDFTool {
       // Formatear la fecha y agregarla
       const formattedDate = formatDateToMonthFirst(expeditionDate); // Obtener la fecha formateada
       firstPage.drawText(formattedDate, {
-        x: 80,
-        y: height - 536,
+        x: 95,
+        y: height - 689,
         size: 18,
         font,
         color: rgb(1, 1, 1), // Color blanco
