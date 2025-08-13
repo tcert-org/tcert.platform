@@ -295,12 +295,11 @@ export default function CertificationManagementPage() {
           {certifications.map((cert, index) => (
             <div
               key={cert.id}
-              className="group bg-gradient-to-br from-white via-purple-50/20 to-violet-50/30 border border-purple-200/30 rounded-xl shadow-lg shadow-purple-100/40 hover:shadow-xl hover:shadow-purple-200/50 transition-all duration-200 hover:-translate-y-0.5 backdrop-blur-sm will-change-transform"
+              className="group bg-white border-2 border-purple-200 rounded-xl shadow-sm hover:shadow-md hover:border-purple-300 transition-all duration-200 hover:-translate-y-0.5 will-change-transform"
             >
               <div className="p-6 md:p-8 relative overflow-hidden">
-                {/* Decoración de fondo optimizada */}
-                <div className="absolute top-0 right-0 w-24 h-24 md:w-32 md:h-32 bg-gradient-to-br from-purple-100/30 to-violet-200/20 rounded-full blur-2xl transform translate-x-12 -translate-y-12 group-hover:scale-105 transition-transform duration-300 will-change-transform"></div>
-                <div className="absolute bottom-0 left-0 w-20 h-20 md:w-24 md:h-24 bg-gradient-to-tr from-orange-100/25 to-amber-200/20 rounded-full blur-xl transform -translate-x-10 translate-y-10 group-hover:scale-105 transition-transform duration-300 will-change-transform"></div>
+                {/* Elemento decorativo sutil */}
+                <div className="absolute top-4 right-4 w-12 h-12 bg-gradient-to-br from-purple-100/40 to-violet-100/30 rounded-full blur-sm opacity-60"></div>
 
                 <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                   {/* Información de certificación */}
@@ -353,8 +352,8 @@ export default function CertificationManagementPage() {
                           <div className="absolute right-3 bottom-3 w-2 h-2 bg-gradient-to-r from-violet-400 to-purple-500 rounded-full animate-pulse"></div>
                         </div>
                       ) : (
-                        <div className="bg-gradient-to-r from-purple-50/60 via-violet-50/40 to-purple-50/60 border border-purple-200/40 rounded-xl p-3 md:p-4">
-                          <p className="text-gray-700 leading-relaxed text-sm md:text-base break-words">
+                        <div className="bg-purple-50/50 border-2 border-purple-200 rounded-xl p-3 md:p-4 shadow-sm">
+                          <p className="text-gray-700 font-semibold leading-relaxed text-sm md:text-base break-words">
                             {cert.description}
                           </p>
                         </div>
@@ -362,7 +361,7 @@ export default function CertificationManagementPage() {
                     </div>
 
                     <div className="ml-0 md:ml-16 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                      <span className="text-sm font-semibold text-purple-700 bg-purple-100/80 px-3 py-1.5 rounded-full w-fit">
+                      <span className="text-sm font-semibold text-purple-700 bg-purple-100 border border-purple-200 px-3 py-1.5 rounded-full w-fit">
                         Estado:
                       </span>
                       {cert.isEditing ? (
