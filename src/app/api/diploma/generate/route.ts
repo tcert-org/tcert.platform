@@ -9,6 +9,7 @@ export async function POST(req: NextRequest) {
       expeditionDate,
       codigoVoucher,
       URL_logo,
+      documentNumber, // Nuevo parámetro agregado
     } = await req.json();
 
     // Llamamos al método que genera el PDF
@@ -17,12 +18,13 @@ export async function POST(req: NextRequest) {
       certificationName,
       expeditionDate,
       codigoVoucher,
-      URL_logo
+      URL_logo,
+      documentNumber // Pasamos el número de documento
     );
 
     if (status) {
       // Enviar el archivo PDF como una respuesta de descarga
-      return new NextResponse(pdfBytes, {
+      return new NextResponse(pdfBytes as BodyInit, {
         status: 200,
         headers: {
           "Content-Type": "application/pdf",
