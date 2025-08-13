@@ -20,10 +20,11 @@ export async function GET() {
       );
     }
 
-    // Obtener todas las certificaciones sin las columnas especificadas
+    // Obtener solo certificaciones activas (active = true)
     const { data: certifications, error: certificationsError } = await supabase
       .from("certifications")
-      .select("id, name, description, logo_url");
+      .select("id, name, description, logo_url, active")
+      .eq("active", true); // Solo certificaciones donde active = true
 
     if (certificationsError) {
       console.error("[GET_CERTIFICATIONS_ERROR]", certificationsError.message);
