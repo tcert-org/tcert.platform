@@ -72,6 +72,12 @@ const allMenuItems: Record<UserRole, MenuItem[]> = {
       showModuleName: false,
     },
     {
+      title: "Gestion de Certificaciones",
+      path: "/certification-management",
+      iconName: "Award",
+      showModuleName: false,
+    },
+    {
       title: "Pagos",
       path: "/reports",
       iconName: "BarChart",
