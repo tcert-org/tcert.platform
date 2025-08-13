@@ -86,27 +86,27 @@ function ParamsPage() {
       lowerName.includes("voucher") &&
       !lowerName.includes("estudiante")
     ) {
-      return "Establece el período de vigencia del voucher contado desde la fecha de compra.";
+      return "Establece en (meses) el período de vigencia del voucher contado desde la fecha de compra.";
     }
 
     // Expiración de membresía
     if (lowerName.includes("expiración") && lowerName.includes("membresía")) {
-      return "Tiempo en el cual las membresías deben renovarse.";
+      return "Tiempo en (meses) en el cual las membresías deben renovarse.";
     }
 
     // Tiempo de extensión
     if (lowerName.includes("tiempo") && lowerName.includes("extensión")) {
-      return "Alerta para habilitar la extensión de los vouchers antes de su vencimiento.";
+      return "Periodo restante en (meses) en el cual estará disponible la extensión del voucher.";
     }
 
     // Precio de extensión
     if (lowerName.includes("precio") && lowerName.includes("extensión")) {
-      return "Valor del voucher para extenderlo antes de su vencimiento.";
+      return "Valor del voucher en (USD) para extenderlo antes de su vencimiento.";
     }
 
     // Porcentaje de examen
     if (lowerName.includes("porcentaje") && lowerName.includes("examen")) {
-      return "Define el porcentaje mínimo requerido para aprobar simuladores y exámenes.";
+      return "Define el porcentaje (%) mínimo requerido para aprobar simuladores y exámenes.";
     }
 
     // Expiración de voucher de estudiante
@@ -115,7 +115,25 @@ function ParamsPage() {
       lowerName.includes("voucher") &&
       lowerName.includes("estudiante")
     ) {
-      return "Tiempo que tendrá el estudiante para utilizar su voucher antes de su vencimiento.";
+      return "Tiempo en (meses) que tendrá el estudiante para utilizar su voucher antes de su vencimiento.";
+    }
+
+    // Valor de Certificacion a estudiantes
+    if (
+      lowerName.includes("valor") &&
+      lowerName.includes("certificación") &&
+      lowerName.includes("estudiante")
+    ) {
+      return "Valor en (USD) que se le cobrará al estudiante por la certificación.";
+    }
+    // Porcentaje de descuento a estudiantes
+
+    if (
+      lowerName.includes("porcentaje") &&
+      lowerName.includes("descuento") &&
+      lowerName.includes("estudiantes")
+    ) {
+      return "Define el porcentaje (%) de descuento aplicado a los estudiantes.";
     }
   };
 

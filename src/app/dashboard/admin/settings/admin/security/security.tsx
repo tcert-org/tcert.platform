@@ -26,7 +26,7 @@ export default function SecurityForm() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("🔄 Iniciando cambio de contraseña...");
+    console.log("🔄 [ADMIN] Iniciando cambio de contraseña...");
 
     // Validación de contraseña actual
     if (!passwordData.currentPassword.trim()) {
@@ -81,13 +81,13 @@ export default function SecurityForm() {
 
     try {
       const user = await getUser();
-      console.log("👤 Usuario obtenido:", user?.id ? "✅" : "❌");
+      console.log("👤 [ADMIN] Usuario obtenido:", user?.id ? "✅" : "❌");
 
       if (!user?.id) {
         throw new Error("No se pudo obtener la información del usuario");
       }
 
-      console.log("🌐 Enviando petición a la API...");
+      console.log("🌐 [ADMIN] Enviando petición a la API...");
       const response = await fetch(`/api/auth/change-password`, {
         method: "PUT",
         headers: {
@@ -100,13 +100,13 @@ export default function SecurityForm() {
       });
 
       console.log(
-        "📡 Respuesta de la API:",
+        "📡 [ADMIN] Respuesta de la API:",
         response.status,
         response.statusText
       );
 
       const result = await response.json();
-      console.log("📄 Resultado de la API:", result);
+      console.log("📄 [ADMIN] Resultado de la API:", result);
 
       if (!response.ok) {
         // Manejo específico de errores de API
@@ -122,7 +122,7 @@ export default function SecurityForm() {
         throw new Error(result.error || "Error al cambiar la contraseña");
       }
 
-      console.log("✅ Contraseña cambiada exitosamente");
+      console.log("✅ [ADMIN] Contraseña cambiada exitosamente");
       toast.success("🎉 ¡Contraseña cambiada exitosamente!", {
         autoClose: 5000,
       });
@@ -134,7 +134,7 @@ export default function SecurityForm() {
         confirmPassword: "",
       });
     } catch (error) {
-      console.error("❌ Error al cambiar contraseña:", error);
+      console.error("❌ [ADMIN] Error al cambiar contraseña:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -144,7 +144,7 @@ export default function SecurityForm() {
       });
     } finally {
       setChangingPassword(false);
-      console.log("🏁 Proceso finalizado");
+      console.log("🏁 [ADMIN] Proceso finalizado");
     }
   };
 
