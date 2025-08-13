@@ -404,7 +404,17 @@ BEGIN
 END;
 $$;
 
----------------------------------------------------------------------------------------------------------------------------------------------
----------------------------------------Agregar columna slug a voucher_statuses----------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------
+-----------------------Agregar columna slug avoucher_statuses---------------------------------------------------------------
 ALTER TABLE voucher_statuses ADD COLUMN IF NOT EXISTS slug TEXT;
 
+----------------------Eliminar Columnas obsoletas de las certificaciones-----------------------------------
+
+alter table certifications
+drop column price;
+
+alter table certifications
+drop column duration;
+
+alter table certifications
+drop column expiration_period_months;
