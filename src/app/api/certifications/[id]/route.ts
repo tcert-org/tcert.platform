@@ -4,7 +4,7 @@ import { supabase } from "@/lib/database/conection";
 // PUT - Actualizar certificación específica
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const resolvedParams = await params;
@@ -75,7 +75,7 @@ export async function PUT(
 // GET - Obtener certificación específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const resolvedParams = await params;
