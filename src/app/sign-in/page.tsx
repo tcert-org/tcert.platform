@@ -21,7 +21,7 @@ export default function LoginPage() {
         <div className="w-2/3 h-full relative flex items-center justify-center">
           {/* Imagen de fondo */}
           <Image
-            src="/fondo-oscuro.jpg"
+            src="/reunion-de-equipo-para-startups.jpg"
             alt="Team Meeting"
             fill
             className="object-cover z-0"

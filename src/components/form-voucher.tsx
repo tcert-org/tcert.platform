@@ -192,6 +192,22 @@ export default function VoucherForm() {
         return;
       }
 
+      // Enviar email con el código del voucher
+      try {
+        if (result.data && result.data.code && result.data.email) {
+          await fetch("/api/vouchers/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: result.data.email,
+              code: result.data.code,
+            }),
+          });
+        }
+      } catch (err) {
+        toast.error("El voucher se creó pero no se pudo enviar el correo.");
+      }
+
       toast.success("Voucher creado exitosamente", {
         position: "top-center",
         theme: "colored",

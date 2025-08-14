@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,9 @@ import {
   EyeOff,
   Phone,
   Link as LinkIcon,
+  Copy,
+  RefreshCw,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -58,20 +61,93 @@ function CreatePartnerPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setError,
+    setValue, // <-- necesario para setear la contraseña generada
+    watch, // <-- para leer la contraseña actual
   } = useForm<PartnerFormData>({
     resolver: zodResolver(partnerSchema),
   });
 
+  const currentPassword = watch("password");
+
+  // --- Generador de contraseñas seguras (cliente) ---
+  const generatePassword = (length = 12) => {
+    // Grupos obligatorios
+    const uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowers = "abcdefghijklmnopqrstuvwxyz";
+    const numbers = "0123456789";
+    const specials = "!@#$%^&*";
+
+    // Conjunto completo
+    const all = uppers + lowers + numbers + specials;
+
+    // Asegurar al menos 1 de cada grupo
+    const pick = (chars: string) =>
+      chars[Math.floor(Math.random() * chars.length)];
+    let pwd = pick(uppers) + pick(lowers) + pick(numbers) + pick(specials);
+
+    // Relleno aleatorio usando Web Crypto (más seguro que Math.random)
+    const remaining = length - 4;
+    if (
+      remaining > 0 &&
+      typeof window !== "undefined" &&
+      window.crypto?.getRandomValues
+    ) {
+      const arr = new Uint32Array(remaining);
+      window.crypto.getRandomValues(arr);
+      for (let i = 0; i < remaining; i++) {
+        pwd += all[arr[i] % all.length];
+      }
+    } else {
+      for (let i = 0; i < remaining; i++) {
+        pwd += pick(all);
+      }
+    }
+
+    // Mezclar (Fisher–Yates)
+    const a = pwd.split("");
+    for (let i = a.length - 1; i > 0; i--) {
+      const j =
+        typeof window !== "undefined" && window.crypto?.getRandomValues
+          ? window.crypto.getRandomValues(new Uint32Array(1))[0] % (i + 1)
+          : Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a.join("");
+  };
+
+  // Generar automáticamente al montar
+  useEffect(() => {
+    const initial = generatePassword(14);
+    setValue("password", initial, { shouldValidate: true });
+  }, [setValue]);
+
+  const regeneratePassword = () => {
+    const next = generatePassword(14);
+    setValue("password", next, { shouldValidate: true });
+    setCopied(false);
+  };
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(currentPassword || "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Silencioso: algunos navegadores bloquean clipboard sin HTTPS/user gesture
+    }
+  };
+
   const onSubmit = async (data: PartnerFormData) => {
     setIsLoading(true);
     try {
-      // Primero obtener el role_id del rol "partner"
+      // Obtener el role_id del rol "partner"
       const roleResponse = await fetch("/api/roles");
       if (!roleResponse.ok) {
         throw new Error("Error al obtener roles");
@@ -88,13 +164,11 @@ function CreatePartnerPage() {
 
       const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
           role_id: partnerRole.id,
-          contact_number: data.contact, // Mapear contact a contact_number
+          contact_number: data.contact,
           logo_url: data.logo_url || "",
           page_url: data.page_url || "",
         }),
@@ -112,7 +186,6 @@ function CreatePartnerPage() {
         return;
       }
 
-      // Éxito - redirigir a la página de partners
       router.push("/dashboard/admin/partners");
       router.refresh();
     } catch (error) {
@@ -261,30 +334,58 @@ function CreatePartnerPage() {
               )}
             </div>
 
-            {/* Contraseña */}
+            {/* Contraseña - Generada automáticamente */}
             <div className="space-y-2">
               <Label htmlFor="password" className="text-purple-700 font-medium">
-                Contraseña *
+                Contraseña (Generada automáticamente)
               </Label>
               <div className="relative group">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
+                <Lock className="absolute left-3 top-3 w-4 h-4 text-purple-500" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Mín 8 caracteres, 1 mayúscula, 1 minúscula, 1 número, 1 especial"
-                  className="pl-10 pr-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
+                  readOnly
+                  value={currentPassword || ""}
+                  placeholder="Se generará automáticamente"
+                  className="pl-10 pr-24 border-purple-200 bg-gradient-to-r from-white to-purple-50/30"
                   {...register("password")}
                 />
+                {/* Mostrar/ocultar */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-purple-500 hover:text-orange-500 transition-colors duration-300"
+                  className="absolute right-20 top-3 text-purple-500 hover:text-orange-500 transition-colors duration-300"
+                  aria-label={showPassword ? "Ocultar" : "Mostrar"}
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
                   ) : (
                     <Eye className="w-4 h-4" />
                   )}
+                </button>
+                {/* Copiar */}
+                <button
+                  type="button"
+                  onClick={copyPassword}
+                  className="absolute right-11 top-3 text-purple-500 hover:text-orange-500 transition-colors duration-300"
+                  aria-label="Copiar contraseña"
+                  title="Copiar"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+                {/* Regenerar */}
+                <button
+                  type="button"
+                  onClick={regeneratePassword}
+                  className="absolute right-2 top-3 text-purple-500 hover:text-orange-500 transition-colors duration-300"
+                  aria-label="Regenerar contraseña"
+                  title="Regenerar"
+                >
+                  <RefreshCw className="w-4 h-4" />
                 </button>
               </div>
               {errors.password && (
@@ -293,9 +394,9 @@ function CreatePartnerPage() {
                 </p>
               )}
               <div className="text-xs text-gray-600 mt-1">
-                La contraseña debe contener al menos 8 caracteres, una letra
-                mayúscula, una minúscula, un número y un carácter especial
-                (!@#$%^&*)
+                Se genera automáticamente y cumple: mínimo 8 caracteres, al
+                menos 1 mayúscula, 1 minúscula, 1 número y 1 especial
+                (!@#$%^&*).
               </div>
             </div>
 
