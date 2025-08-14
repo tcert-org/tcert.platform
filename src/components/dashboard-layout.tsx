@@ -60,16 +60,7 @@ export function DashboardLayout({
             }))}
           />
           <SidebarInset>
-            <div className="w-[87%] mx-auto py-10 2xl:w-[90%]">
-              <div className="mb-8">
-                {showModuleName && currentModuleName && (
-                  <h1 className="text-3xl font-bold mb-2">
-                    {currentModuleName}
-                  </h1>
-                )}
-              </div>
-              {children}
-            </div>
+            <div className="w-[87%] mx-auto py-10 2xl:w-[90%]">{children}</div>
           </SidebarInset>
         </div>
       </SidebarProvider>

@@ -120,14 +120,23 @@ export default function CertificatePage() {
         sessionStorage.getItem("student-data") || "{}"
       );
       const studentName = session?.state?.decryptedStudent?.fullname;
+      const documentNumber = session?.state?.decryptedStudent?.document_number; // Agregar número de documento
       const voucherId = session?.state?.decryptedStudent?.voucher_id;
 
       console.log("Datos de la sesión", session);
       console.log("Nombre del estudiante: ", studentName);
+      console.log("Número de documento: ", documentNumber);
 
       if (!voucherId) {
         console.error("No se encontró el ID del voucher.");
         setError("No se encontró el ID del voucher.");
+        setLoading(false);
+        return;
+      }
+
+      if (!documentNumber) {
+        console.error("No se encontró el número de documento del estudiante.");
+        setError("No se encontró el número de documento del estudiante.");
         setLoading(false);
         return;
       }
@@ -226,6 +235,7 @@ export default function CertificatePage() {
             expeditionDate: new Date().toISOString().split("T")[0], // Fecha de expedición por defecto (hoy)
             codigoVoucher: voucherData.data.code,
             URL_logo: voucherData.data.certification_logo_url,
+            documentNumber: documentNumber, // Agregar número de documento
           }),
         });
 

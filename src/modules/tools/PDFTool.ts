@@ -141,6 +141,7 @@ export default class PDFTool {
     expeditionDate: string,
     codeVocher: string,
     URL_logo: string,
+    documentNumber: string, // Nuevo parámetro para número de documento
     titleDiploma: string = "Professional Certification",
     primaryFont: CustomFonts = CustomFonts.BAHNSCHRIFT,
     secondaryFont: CustomFonts = CustomFonts.BAHNSCHRIFT
@@ -170,7 +171,7 @@ export default class PDFTool {
       );
       const courseFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold); // HelveticaBold para el curso
 
-      const fontSize = 20;
+      const fontSize = 24;
       const courseFontSize = 24; // Tamaño más grande para el curso
       const titleFontSize = 22;
 
@@ -240,13 +241,25 @@ export default class PDFTool {
         color: rgb(45 / 255, 25 / 255, 87 / 255),
       });
 
+      // Insertar el número de documento debajo del nombre del estudiante
+      const documentText = documentNumber;
+      const documentWidth = mainFont.widthOfTextAtSize(documentText, 14);
+      const documentX = (width - documentWidth + 75) / 3.4; // Centrado
+      firstPage.drawText(documentText, {
+        x: documentX,
+        y: height - 576, // 25px debajo del nombre
+        size: 14,
+        font: mainFont,
+        color: rgb(45 / 255, 25 / 255, 87 / 255),
+      });
+
       // Código del voucher con fuente personalizada BAHNSCHRIFT
       const codeWidth = mainFont.widthOfTextAtSize(codeVocher, 12);
-      const codeX = (width - codeWidth + 75) / 2.65; // Centrado
+      const codeX = (width - codeWidth + 75) / 2.9; // Centrado
       firstPage.drawText(codeVocher, {
         x: codeX,
-        y: height - 575.5,
-        size: 12,
+        y: height - 600.5,
+        size: 14,
         font: mainFont,
         color: rgb(45 / 255, 25 / 255, 87 / 255),
       });
@@ -279,6 +292,7 @@ export default class PDFTool {
     expeditionDate: string,
     codeVocher: string,
     URL_logo: string,
+    documentNumber: string, // Nuevo parámetro para número de documento
     titleDiploma: string = "Professional Certification",
     fontConfig: {
       studentName?: CustomFonts;
@@ -286,6 +300,7 @@ export default class PDFTool {
       title?: CustomFonts;
       code?: CustomFonts;
       date?: CustomFonts;
+      document?: CustomFonts; // Nueva opción para fuente del documento
     } = {}
   ): Promise<{ status: boolean; pdfBytes: Uint8Array }> {
     try {
@@ -318,6 +333,10 @@ export default class PDFTool {
       const dateFont = await loadCustomFont(
         pdfDoc,
         fontConfig.date || CustomFonts.BAHNSCHRIFT
+      );
+      const documentFont = await loadCustomFont(
+        pdfDoc,
+        fontConfig.document || CustomFonts.BAHNSCHRIFT
       );
 
       // Cargar el logo
@@ -352,6 +371,17 @@ export default class PDFTool {
         y: height - 315,
         size: 20,
         font: studentNameFont,
+        color: rgb(45 / 255, 25 / 255, 87 / 255),
+      });
+
+      // Número de documento del estudiante
+      const documentText = documentNumber;
+      const documentWidth = documentFont.widthOfTextAtSize(documentText, 14);
+      firstPage.drawText(documentText, {
+        x: (width - documentWidth) / 2,
+        y: height - 340,
+        size: 14,
+        font: documentFont,
         color: rgb(45 / 255, 25 / 255, 87 / 255),
       });
 

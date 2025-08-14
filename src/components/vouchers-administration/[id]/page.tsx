@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import {
   Loader2,
@@ -11,6 +11,7 @@ import {
   User,
   IdCard,
   Contact2,
+  Download,
 } from "lucide-react";
 
 type Props = {
@@ -44,6 +45,9 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
   const [voucher, setVoucher] = useState<any | null>(null);
   const [student, setStudent] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [certificateLoading, setCertificateLoading] = useState(false);
+  const [certificateEligible, setCertificateEligible] = useState(false);
+  const [certificateError, setCertificateError] = useState<string | null>(null);
   const pathname = usePathname();
 
   // Detectar si estamos en la ruta de admin
@@ -56,6 +60,101 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
       return `/dashboard/admin/results?voucher_id=${voucher?.id}&student_id=${student.id}`;
     }
     return `/dashboard/partner/results?voucher_id=${voucher?.id}&student_id=${student.id}`;
+  };
+
+  // Verificar elegibilidad para certificado
+  const checkCertificateEligibility = useCallback(async () => {
+    if (!voucher?.code || !student) return;
+
+    try {
+      // Usar el mismo endpoint que usa la vista de estudiante para validar
+      const diplomaResponse = await fetch("/api/diploma", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          voucher_code: voucher.code,
+        }),
+      });
+
+      if (diplomaResponse.ok) {
+        // El estudiante es elegible para certificado
+        setCertificateEligible(true);
+        setCertificateError(null);
+        console.log("✅ Estudiante elegible para certificado");
+      } else {
+        // No es elegible
+        const errorText = await diplomaResponse.text();
+        setCertificateEligible(false);
+        setCertificateError(
+          "El estudiante debe aprobar un examen para generar el certificado"
+        );
+        console.log("❌ Estudiante no elegible:", errorText);
+      }
+    } catch (error) {
+      setCertificateEligible(false);
+      setCertificateError(
+        "Error al verificar elegibilidad para el certificado"
+      );
+      console.error("Error verificando elegibilidad:", error);
+    }
+  }, [voucher?.code, student]);
+
+  // Generar certificado
+  const generateCertificate = async () => {
+    if (!certificateEligible || !voucher || !student) return;
+
+    setCertificateLoading(true);
+    setCertificateError(null);
+
+    try {
+      console.log(
+        "🚀 Iniciando generación de certificado para:",
+        student.fullname
+      );
+
+      // Generar el certificado directamente (la validación ya se hizo en checkCertificateEligibility)
+      const certResponse = await fetch("/api/diploma/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studentName: student.fullname,
+          certificationName: voucher.certification_name,
+          expeditionDate: new Date().toISOString().split("T")[0],
+          codigoVoucher: voucher.code,
+          URL_logo: voucher.certification_logo_url,
+          documentNumber: student.document_number,
+        }),
+      });
+
+      if (!certResponse.ok) {
+        console.error("Error al generar el certificado");
+        setCertificateError("Error al generar el certificado.");
+        setCertificateLoading(false);
+        return;
+      }
+
+      console.log("✅ Certificado generado exitosamente");
+
+      // Descargar el PDF
+      const certBlob = await certResponse.blob();
+      const url = window.URL.createObjectURL(certBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${student.fullname}-certificado.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error en la generación del certificado:", error);
+      setCertificateError("Error al generar el certificado.");
+    } finally {
+      setCertificateLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -86,6 +185,13 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
 
     fetchData();
   }, [voucherId]);
+
+  // Verificar elegibilidad cuando se cargan voucher y student
+  useEffect(() => {
+    if (voucher && student) {
+      checkCertificateEligibility();
+    }
+  }, [voucher, student, checkCertificateEligibility]);
 
   if (loading) {
     return (
@@ -272,16 +378,47 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
           </div>
 
           {/* Botones de acción */}
-          <div className="flex justify-center gap-4">
-            {student && (
-              <a
-                href={getResultsUrl()}
-                className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 transition-all duration-200 shadow-sm"
-              >
-                <Contact2 className="w-4 h-4 mr-2" />
-                Ver Resultados del Estudiante
-              </a>
+          <div className="flex flex-col items-center gap-4">
+            {/* Mostrar error de certificado si existe */}
+            {certificateError && (
+              <div className="max-w-md text-center">
+                <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-300/50">
+                  <BadgeCheck className="w-4 h-4 mr-2" />
+                  {certificateError}
+                </div>
+              </div>
             )}
+
+            <div className="flex justify-center gap-4">
+              {student && (
+                <a
+                  href={getResultsUrl()}
+                  className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 transition-all duration-200 shadow-sm"
+                >
+                  <Contact2 className="w-4 h-4 mr-2" />
+                  Ver Resultados del Estudiante
+                </a>
+              )}
+
+              {student && (
+                <button
+                  onClick={generateCertificate}
+                  disabled={!certificateEligible || certificateLoading}
+                  className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm ${
+                    certificateEligible && !certificateLoading
+                      ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 hover:from-green-200 hover:to-emerald-200"
+                      : "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-500 border border-gray-300/50 cursor-not-allowed"
+                  }`}
+                >
+                  {certificateLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  {certificateLoading ? "Generando..." : "Generar Certificado"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

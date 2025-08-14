@@ -18,13 +18,16 @@ import {
   CreditCard,
   Cog,
   Sparkles,
+  Shield,
 } from "lucide-react";
 import MembershipForm from "./membership/membership";
 import ParamsPage from "./params/params";
+import SecurityForm from "./security";
 
 function SettingsAdmin() {
   const [showMembershipForm, setShowMembershipForm] = useState(false);
   const [showParamsForm, setShowParamsForm] = useState(false);
+  const [showSecurityForm, setShowSecurityForm] = useState(false);
 
   const settingsOptions = [
     {
@@ -59,6 +62,22 @@ function SettingsAdmin() {
         "Ajustes generales",
       ],
     },
+    {
+      id: "security",
+      title: "Configuración de Seguridad",
+      description:
+        "Administra la seguridad de la plataforma y gestiona cambios de contraseña",
+      icon: Shield,
+      color: "red",
+      isExpanded: showSecurityForm,
+      onToggle: () => setShowSecurityForm(!showSecurityForm),
+      component: <SecurityForm />,
+      features: [
+        "Cambio de contraseñas",
+        "Configuración de seguridad",
+        "Validaciones de acceso",
+      ],
+    },
   ];
 
   const getColorClasses = (
@@ -81,6 +100,14 @@ function SettingsAdmin() {
         icon: "text-orange-600 drop-shadow-sm",
         badge:
           "bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-300/50 shadow-sm",
+      },
+      red: {
+        card: "border-red-300/50 bg-gradient-to-br from-red-50 via-rose-50 to-red-100/70 hover:from-red-100/80 hover:via-rose-100/60 hover:to-red-200/50 shadow-red-100/50 hover:shadow-red-200/60",
+        button:
+          "bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:from-red-700 hover:via-rose-700 hover:to-red-800 text-white shadow-lg shadow-red-500/30 hover:shadow-red-600/40 border border-red-500/20",
+        icon: "text-red-600 drop-shadow-sm",
+        badge:
+          "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-red-300/50 shadow-sm",
       },
     };
     return colorMap[color as keyof typeof colorMap]?.[variant] || "";
