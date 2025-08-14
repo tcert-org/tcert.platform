@@ -47,8 +47,8 @@ export default function FormExam({
     formState: { errors, isSubmitting },
   } = useForm<ExamFormData>({
     defaultValues: {
-      active: "activo",
-      attempts: 1,
+      active: "desactivado",
+      attempts: 3,
       time_limit: 60,
       type: "simulador",
     },
@@ -86,7 +86,7 @@ export default function FormExam({
       setValue("attempts", 0, { shouldValidate: true });
       setValue("time_limit", 0, { shouldValidate: true });
     } else if (typeValue === "examen") {
-      setValue("attempts", 1, { shouldValidate: false });
+      setValue("attempts", 3, { shouldValidate: false });
       setValue("time_limit", 60, { shouldValidate: false });
     }
   }, [typeValue, setValue]);
@@ -116,7 +116,7 @@ export default function FormExam({
         return;
       }
       reset();
-      setValue("active", "activo");
+      setValue("active", "desactivado");
       toast.success("Examen creado correctamente");
       if (result.data && result.data.id) {
         onExamCreated(result.data.id);
@@ -171,10 +171,18 @@ export default function FormExam({
             </CardTitle>
             <form
               onSubmit={handleSubmit(onSubmit)}
-              className="grid grid-cols-1 md:grid-cols-3 gap-x-3 md:gap-x-6 xl:gap-x-10 gap-y-2 md:gap-y-4 xl:gap-y-6 w-full items-end"
+              className={`grid gap-x-3 md:gap-x-6 xl:gap-x-10 gap-y-2 md:gap-y-4 xl:gap-y-6 w-full items-end ${
+                typeValue === "examen"
+                  ? "grid-cols-1 md:grid-cols-4"
+                  : "grid-cols-1 md:grid-cols-3"
+              }`}
             >
               {/* Campo oculto para "activo" */}
-              <input type="hidden" {...register("active")} value="activo" />
+              <input
+                type="hidden"
+                {...register("active")}
+                value="desactivado"
+              />
 
               <div>
                 <Label className="text-base md:text-lg" htmlFor="name_exam">
@@ -245,29 +253,9 @@ export default function FormExam({
                   </span>
                 )}
               </div>
+              {/* Campo oculto para attempts cuando es examen */}
               {typeValue === "examen" && (
-                <div>
-                  <Label className="text-base md:text-lg" htmlFor="attempts">
-                    Intentos
-                  </Label>
-                  <Input
-                    id="attempts"
-                    type="number"
-                    min={1}
-                    {...register("attempts", {
-                      required:
-                        typeValue === "examen" ? "Campo obligatorio" : false,
-                      valueAsNumber: true,
-                      min: { value: 1, message: "Debe ser mínimo 1" },
-                    })}
-                    placeholder="Número de intentos"
-                  />
-                  {errors.attempts && (
-                    <span className="text-red-500 text-xs">
-                      {errors.attempts.message}
-                    </span>
-                  )}
-                </div>
+                <input type="hidden" {...register("attempts")} value={3} />
               )}
               {typeValue === "examen" && (
                 <div>
@@ -293,7 +281,11 @@ export default function FormExam({
                   )}
                 </div>
               )}
-              <div className="md:col-span-3 flex justify-center mt-2">
+              <div
+                className={`flex justify-center mt-2 ${
+                  typeValue === "examen" ? "md:col-span-4" : "md:col-span-3"
+                }`}
+              >
                 <Button
                   type="submit"
                   className="min-w-[220px] px-8 py-4 text-lg"
@@ -303,7 +295,11 @@ export default function FormExam({
                 </Button>
               </div>
               {errorMessage && (
-                <div className="md:col-span-3 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm text-center mt-2">
+                <div
+                  className={`bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm text-center mt-2 ${
+                    typeValue === "examen" ? "md:col-span-4" : "md:col-span-3"
+                  }`}
+                >
                   <strong className="font-bold">Error:</strong> {errorMessage}
                 </div>
               )}
