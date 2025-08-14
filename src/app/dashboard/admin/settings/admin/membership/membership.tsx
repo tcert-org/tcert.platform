@@ -297,7 +297,7 @@ function MembershipForm() {
                         <div className="space-y-1">
                           <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
-                            Precio
+                            Precio USD
                           </Label>
                           <Input
                             type="number"
@@ -331,7 +331,7 @@ function MembershipForm() {
                           vouchers
                           {membership.price !== "" && (
                             <span className="ml-3">
-                              <strong>Precio:</strong> ${membership.price}
+                              <strong>Precio:</strong> ${membership.price} USD
                             </span>
                           )}
                         </p>

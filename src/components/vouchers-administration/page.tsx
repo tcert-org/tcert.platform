@@ -19,35 +19,54 @@ import { Button } from "@/components/ui/button";
 const formatLocalDate = (iso: string) => {
   if (!iso) return "No hay fecha";
   const [year, month, day] = iso.split("T")[0].split("-");
-  return new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day)
-  ).toLocaleDateString("es-CO", {
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+  const formattedDate = date.toLocaleDateString("es-CO", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
+
+  // Remover las preposiciones "de" del formato
+  return formattedDate.replace(/\sde\s/g, " ");
 };
 
 const getStatusBadgeColor = (statusName: string) => {
   if (!statusName) return "text-gray-400";
 
-  const status = statusName.toLowerCase();
+  const status = statusName.toLowerCase().trim();
 
-  if (status.includes("activo") || status.includes("disponible")) {
-    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50";
-  }
-  if (status.includes("usado") || status.includes("utilizado")) {
+  // Azul para "Sin Presentar" - voucher disponible pero no usado
+  if (status === "sin presentar") {
     return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300/50";
   }
-  if (status.includes("expirado") || status.includes("vencido")) {
-    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50";
-  }
-  if (status.includes("pendiente")) {
-    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-300/50";
+
+  // Verde para "Aprobado" - examen aprobado
+  if (status === "aprobado") {
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50";
   }
 
+  // Rojo para "Perdido" - examen no aprobado
+  if (status === "perdido") {
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50";
+  }
+
+  // Naranja para "re-take-1" - primer reintento
+  if (status === "re-take-1") {
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300/50";
+  }
+
+  // Púrpura para "re-take-2" - segundo reintento
+  if (status === "re-take-2") {
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50";
+  }
+
+  // Gris oscuro para "vencido" - voucher expirado
+  if (status === "vencido") {
+    return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-gray-200 to-slate-200 text-gray-800 border border-gray-400/50";
+  }
+
+  // Gris por defecto para cualquier otro estado
   return "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-gray-100 to-slate-100 text-gray-700 border border-gray-300/50";
 };
 
@@ -241,9 +260,7 @@ export default function VoucherAdministrationPage() {
 
         return (
           <div className="text-center">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50">
-              {date}
-            </span>
+            <span className="text-gray-700">{date}</span>
           </div>
         );
       },
@@ -255,8 +272,6 @@ export default function VoucherAdministrationPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-orange-50/30 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <PartnerDetail partner={partnerData} />
-
         {!searchParams.get("partner_id") && (
           <div className="mb-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -300,26 +315,9 @@ export default function VoucherAdministrationPage() {
                 Asignar nuevo voucher
               </Button>
             </div>
-
-            {/* Descripción detallada */}
-            <div className="bg-gradient-to-r from-orange-100 via-amber-100 to-orange-200/80 rounded-lg p-4 border border-orange-300/60 shadow-lg shadow-orange-200/40">
-              <p className="text-sm text-gray-700 leading-relaxed">
-                Aquí puedes ver todos tus vouchers de certificación, verificar
-                su estado, fechas de compra y vencimiento. Los vouchers
-                disponibles pueden ser asignados a estudiantes, mientras que los
-                utilizados ya han sido canjeados.
-                {voucherAvailable !== null && (
-                  <span className="font-semibold text-orange-800">
-                    {" "}
-                    Tienes {voucherAvailable} voucher
-                    {voucherAvailable !== 1 ? "s" : ""} disponible
-                    {voucherAvailable !== 1 ? "s" : ""} para asignar.
-                  </span>
-                )}
-              </p>
-            </div>
           </div>
         )}
+        <PartnerDetail partner={partnerData} />
 
         {/* Contenedor de la tabla */}
         <div className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-lg p-6">

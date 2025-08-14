@@ -101,7 +101,7 @@ export default function PaymentsPage() {
         return val ? (
           <div className="text-center">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300/50">
-              USD ${parseFloat(val as string).toFixed(2)}
+              ${Math.round(parseFloat(val as string))} USD
             </span>
           </div>
         ) : (
@@ -119,7 +119,7 @@ export default function PaymentsPage() {
         return val ? (
           <div className="text-center">
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50">
-              USD ${parseFloat(val as string).toFixed(2)}
+              ${Math.round(parseFloat(val as string))} USD
             </span>
           </div>
         ) : (
@@ -145,9 +145,7 @@ export default function PaymentsPage() {
 
         return val ? (
           <div className="text-center">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-300/50">
-              {formattedDate}
-            </span>
+            <span>{formattedDate}</span>
           </div>
         ) : (
           <div className="text-center text-gray-400">-</div>
@@ -181,9 +179,7 @@ export default function PaymentsPage() {
 
         return (
           <div className="text-center">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50">
-              {formattedDate}
-            </span>
+            <span>{formattedDate}</span>
           </div>
         );
       },
@@ -222,17 +218,6 @@ export default function PaymentsPage() {
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* Descripción detallada */}
-          <div className="bg-gradient-to-r from-orange-100 via-amber-100 to-orange-200/80 rounded-lg p-4 border border-orange-300/60 shadow-lg shadow-orange-200/40">
-            <p className="text-sm text-gray-700 leading-relaxed">
-              En esta sección podrás visualizar todos los pagos realizados por
-              los partners, incluyendo información como la cantidad de vouchers
-              adquiridos, el precio unitario, el total pagado y la fecha de
-              compra. Puedes aplicar filtros y ordenar las columnas según lo
-              necesites.
-            </p>
           </div>
         </div>
 

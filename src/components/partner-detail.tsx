@@ -75,7 +75,7 @@ export default function PartnerDetail({ partner }: PartnerDetailProps) {
       : "bg-muted text-muted-foreground";
 
   return (
-    <section className="w-[70%] mx-auto">
+    <section className="w-[100%] mx-auto">
       <div>
         <Card className="relative">
           {/* Badge de membresía en la parte superior derecha */}

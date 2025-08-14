@@ -193,15 +193,14 @@ export function LoginForm({
         </CardHeader>
 
         <CardContent className="relative z-10 px-6 pb-6">
-          <div className="flex flex-col gap-3 mb-6">
+          <div className="flex flex-row gap-3 mb-6">
             <Button
-              variant={loginType === "student" ? "default" : "outline"}
+              variant="outline"
               className={cn(
-                "w-full h-14 text-base font-semibold transition-all duration-300 transform",
-                "border-2 rounded-xl relative overflow-hidden group",
+                "w-full h-14 text-base font-semibold transition-all duration-300 transform border-2 rounded-xl relative overflow-hidden group",
                 loginType === "student"
-                  ? "bg-gradient-to-r from-violet-950 to-violet-900 hover:from-violet-900 hover:to-violet-800 text-white border-violet-950 shadow-lg shadow-violet-950/25 scale-[1.02]"
-                  : "border-gray-200 hover:border-violet-300 hover:bg-gradient-to-r hover:from-violet-50 hover:to-violet-100/50 text-gray-700 hover:text-violet-900 hover:scale-[1.01] hover:shadow-md"
+                  ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-gray-500 shadow-lg shadow-gray-500/25 scale-[1.02] hover:from-gray-500 hover:to-gray-600"
+                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900 hover:scale-[1.01] hover:shadow-md"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -215,7 +214,7 @@ export function LoginForm({
                     "p-2 rounded-lg transition-colors duration-200",
                     loginType === "student"
                       ? "bg-white/15"
-                      : "bg-violet-100 group-hover:bg-violet-200"
+                      : "bg-gray-300 group-hover:bg-gray-400"
                   )}
                 >
                   <GraduationCap className="h-4 w-4" />
@@ -228,13 +227,12 @@ export function LoginForm({
             </Button>
 
             <Button
-              variant={loginType === "partner" ? "default" : "outline"}
+              variant="outline"
               className={cn(
-                "w-full h-14 text-base font-semibold transition-all duration-300 transform",
-                "border-2 rounded-xl relative overflow-hidden group",
+                "w-full h-14 text-base font-semibold transition-all duration-300 transform border-2 rounded-xl relative overflow-hidden group",
                 loginType === "partner"
-                  ? "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-orange-500 shadow-lg shadow-orange-500/25 scale-[1.02]"
-                  : "border-gray-200 hover:border-orange-300 hover:bg-gradient-to-r hover:from-orange-50 hover:to-orange-100/50 text-gray-700 hover:text-orange-900 hover:scale-[1.01] hover:shadow-md"
+                  ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-gray-500 shadow-lg shadow-gray-500/25 scale-[1.02] hover:from-gray-500 hover:to-gray-600"
+                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900 hover:scale-[1.01] hover:shadow-md"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -248,12 +246,12 @@ export function LoginForm({
                     "p-2 rounded-lg transition-colors duration-200",
                     loginType === "partner"
                       ? "bg-white/15"
-                      : "bg-orange-100 group-hover:bg-orange-200"
+                      : "bg-gray-300 group-hover:bg-gray-400"
                   )}
                 >
                   <Building2 className="h-4 w-4" />
                 </div>
-                <span className="font-semibold">Partner Institucional</span>
+                <span className="font-semibold">Partner</span>
               </div>
               {loginType === "partner" && (
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-pulse" />
@@ -448,13 +446,13 @@ function PartnerLoginForm({
           className="text-sm font-semibold text-orange-900 flex items-center"
         >
           <Building2 className="w-4 h-4 mr-2 text-orange-700" />
-          Correo Institucional
+          Correo
         </Label>
         <div className="relative group">
           <Input
             id="email"
             type="email"
-            placeholder="admin@institucion.com"
+            placeholder="partner@institucion.com"
             className={cn(
               "h-12 text-sm transition-all duration-300 border-2 rounded-xl pl-4",
               "border-orange-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-100/50",
@@ -482,7 +480,7 @@ function PartnerLoginForm({
             className="text-sm font-semibold text-orange-900 flex items-center"
           >
             <Shield className="w-4 h-4 mr-2 text-orange-700" />
-            Contraseña Segura
+            Contraseña
           </Label>
           <button
             type="button"
@@ -495,7 +493,7 @@ function PartnerLoginForm({
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
-            placeholder="Ingresa tu contraseña institucional"
+            placeholder="Ingresa tu contraseña"
             className={cn(
               "h-12 text-sm pr-12 transition-all duration-300 border-2 rounded-xl pl-4",
               "border-orange-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-100/50",
@@ -552,7 +550,7 @@ function PartnerLoginForm({
           ) : (
             <div className="flex items-center space-x-2 relative z-10">
               <Building2 className="h-4 w-4" />
-              <span>Acceder Panel Institucional</span>
+              <span>Acceder como Partner </span>
               <Shield className="h-4 w-4 text-violet-300" />
             </div>
           )}
@@ -563,7 +561,7 @@ function PartnerLoginForm({
             type="button"
             className="text-xs text-orange-600 hover:text-orange-700 underline-offset-4 hover:underline transition-colors font-medium bg-orange-50/50 px-3 py-1.5 rounded-lg hover:bg-orange-50"
           >
-            ¿Deseas ser Partner Institucional? Solicita información
+            ¿Deseas ser Partner? Solicita información
           </button>
         </div>
       </div>
