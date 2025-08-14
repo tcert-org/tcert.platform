@@ -9,6 +9,7 @@ export type DiamondUserData = {
   company_name: string | null;
   logo_url: string | null;
   page_url: string | null;
+  membership_id: number | null;
 };
 
 export default class DiamondUsers extends Table<"users"> {
@@ -20,11 +21,13 @@ export default class DiamondUsers extends Table<"users"> {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select("id, company_name, logo_url, page_url")
-        .eq("membership_id", 3);
+        .select("id, company_name, logo_url, page_url, membership_id")
+        .not("membership_id", "is", null)
+        .order("membership_id", { ascending: false })
+        .limit(5);
 
       if (error) {
-        console.error("Error fetching diamond users:", error);
+        console.error("Error fetching top membership users:", error);
         throw new Error(error.message);
       }
 
@@ -39,13 +42,13 @@ export default class DiamondUsers extends Table<"users"> {
     try {
       const { data, error } = await supabase
         .from("users")
-        .select("id, company_name, logo_url, page_url")
-        .eq("membership_id", 4)
+        .select("id, company_name, logo_url, page_url, membership_id")
+        .not("membership_id", "is", null)
         .eq("id", id)
         .single();
 
       if (error) {
-        console.error(`Error fetching diamond user by id ${id}:`, error);
+        console.error(`Error fetching user by id ${id}:`, error);
         throw new Error(error.message);
       }
 
