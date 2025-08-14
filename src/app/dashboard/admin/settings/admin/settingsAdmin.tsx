@@ -166,6 +166,31 @@ function SettingsAdmin() {
       </div>
 
       <Separator className="my-8" />
+      {/* Enhanced Footer info */}
+      <Card className="bg-gradient-to-r from-slate-50 via-gray-50 to-slate-100/80 border-slate-300/50 shadow-lg shadow-slate-200/40 backdrop-blur-sm">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-200/80 rounded-lg shadow-sm border border-amber-200/50">
+              <CreditCard className="h-5 w-5 text-amber-700 drop-shadow-sm" />
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold bg-gradient-to-r from-gray-800 to-slate-700 bg-clip-text text-transparent">
+                Información Importante
+              </h4>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Las configuraciones aplicadas en este panel afectarán a toda la
+                plataforma y a todos los usuarios. Asegúrate de revisar
+                cuidadosamente los cambios antes de confirmar cualquier
+                modificación.
+              </p>
+              <div className="flex gap-4 text-xs text-gray-500 mt-3">
+                <span>• Los cambios se aplican inmediatamente</span>
+                <span>• Se registran todas las modificaciones</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Enhanced Settings Grid */}
       <div className="grid gap-6">
@@ -259,32 +284,6 @@ function SettingsAdmin() {
           );
         })}
       </div>
-
-      {/* Enhanced Footer info */}
-      <Card className="bg-gradient-to-r from-slate-50 via-gray-50 to-slate-100/80 border-slate-300/50 shadow-lg shadow-slate-200/40 backdrop-blur-sm">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-200/80 rounded-lg shadow-sm border border-amber-200/50">
-              <CreditCard className="h-5 w-5 text-amber-700 drop-shadow-sm" />
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-semibold bg-gradient-to-r from-gray-800 to-slate-700 bg-clip-text text-transparent">
-                Información Importante
-              </h4>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Las configuraciones aplicadas en este panel afectarán a toda la
-                plataforma y a todos los usuarios. Asegúrate de revisar
-                cuidadosamente los cambios antes de confirmar cualquier
-                modificación.
-              </p>
-              <div className="flex gap-4 text-xs text-gray-500 mt-3">
-                <span>• Los cambios se aplican inmediatamente</span>
-                <span>• Se registran todas las modificaciones</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
