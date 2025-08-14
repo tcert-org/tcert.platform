@@ -4,6 +4,7 @@ import PartnerTable, {
   PartnerUpdateType,
   PartnerForDetail,
 } from "./table";
+import { sendCredentialsPartner } from "../../../tool-email/sendVoucherEmail";
 
 const partnerTable = new PartnerTable();
 

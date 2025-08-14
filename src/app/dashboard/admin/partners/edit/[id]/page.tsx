@@ -184,7 +184,7 @@ export default function EditPartnerPage() {
             Volver a Partners
           </Button>
 
-          <Card className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-xl max-w-4xl">
+          <Card className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-xl max-w-6xl">
             <CardHeader className="pb-6">
               <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent">
                 Información del Partner
@@ -194,14 +194,14 @@ export default function EditPartnerPage() {
               {/* Continuación del contenido... */}
               <form
                 onSubmit={handleSubmit}
-                className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                className="grid grid-cols-1 md:grid-cols-3 gap-6"
               >
                 <div className="space-y-2">
                   <Label
                     className="text-purple-700 font-semibold text-sm"
                     htmlFor="company_name"
                   >
-                    Nombre de la Empresa *
+                    Nombre de la Empresa
                   </Label>
                   <Input
                     id="company_name"

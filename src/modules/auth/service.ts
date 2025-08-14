@@ -4,6 +4,7 @@ import UserTable, { UserRowType } from "./table";
 import { Session } from "@supabase/supabase-js";
 import { ApiResponse } from "@/lib/types";
 import CryptoJS from "crypto-js";
+import { sendCredentialsPartner } from "../../../tool-email/sendVoucherEmail";
 
 const userTable = new UserTable();
 
@@ -56,6 +57,15 @@ export default class AuthService {
         throw {
           message: "Error creating user in database",
         };
+      }
+
+      // Enviar correo solo si es partner o admin (roles 5 o 4)
+      if ((role_id === 5 || role_id === 4) && email && password) {
+        try {
+          await sendCredentialsPartner(email, password);
+        } catch (err) {
+          console.error("No se pudo enviar el correo de credenciales:", err);
+        }
       }
 
       return {

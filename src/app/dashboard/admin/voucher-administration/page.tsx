@@ -181,7 +181,7 @@ export default function VoucherAdministrationPage() {
                 <div className="space-y-3">
                   <Label className="text-purple-700 font-semibold text-sm flex items-center gap-2">
                     <Users className="h-4 w-4 text-purple-500" />
-                    Partner *
+                    Partner
                   </Label>
                   <Select
                     options={partners.map((p) => ({
@@ -226,7 +226,7 @@ export default function VoucherAdministrationPage() {
                     className="text-purple-700 font-semibold text-sm flex items-center gap-2"
                   >
                     <Package className="h-4 w-4 text-purple-500" />
-                    Cantidad de Vouchers *
+                    Cantidad de Vouchers
                   </Label>
                   <Input
                     id="voucher_quantity"
@@ -247,7 +247,7 @@ export default function VoucherAdministrationPage() {
                     className="text-purple-700 font-semibold text-sm flex items-center gap-2"
                   >
                     <DollarSign className="h-4 w-4 text-purple-500" />
-                    Precio Unitario *
+                    Precio Unitario (USD)
                   </Label>
                   <Input
                     id="unit_price"
@@ -269,7 +269,7 @@ export default function VoucherAdministrationPage() {
                     className="text-purple-700 font-semibold text-sm flex items-center gap-2"
                   >
                     <DollarSign className="h-4 w-4 text-orange-500" />
-                    Precio Total
+                    Precio Total (USD)
                   </Label>
                   <div className="relative">
                     <Input
@@ -284,7 +284,7 @@ export default function VoucherAdministrationPage() {
                 </div>
 
                 {/* File Upload */}
-                <div className="space-y-3 md:col-span-2 lg:col-span-2">
+                <div className="space-y-2 md:col-span-2 lg:col-span-2">
                   <Label
                     htmlFor="file_url"
                     className="text-purple-700 font-semibold text-sm flex items-center gap-2"
@@ -292,15 +292,17 @@ export default function VoucherAdministrationPage() {
                     <Upload className="h-4 w-4 text-purple-500" />
                     Comprobante de Pago
                   </Label>
-                  <Input
-                    id="file_url"
-                    type="file"
-                    name="file_url"
-                    accept=".png,.jpg,.jpeg,.pdf"
-                    onChange={handleChange}
-                    className="border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-100 file:to-violet-100 file:text-purple-700 hover:file:from-purple-200 hover:file:to-violet-200"
-                  />
-                  <p className="text-xs text-gray-600 mt-1">
+                  <div className="relative">
+                    <Input
+                      id="file_url"
+                      type="file"
+                      name="file_url"
+                      accept=".png,.jpg,.jpeg,.pdf"
+                      onChange={handleChange}
+                      className="border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30 py-2 h-auto file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-100 file:to-violet-100 file:text-purple-700 hover:file:from-purple-200 hover:file:to-violet-200 file:cursor-pointer cursor-pointer"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-600">
                     Formatos aceptados: PNG, JPG, JPEG, PDF
                   </p>
                 </div>

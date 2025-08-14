@@ -527,7 +527,7 @@ export default function StudentExamPage() {
                     <div className="space-y-6">
                       <div className="flex items-center gap-3 text-gray-600">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                           <span className="font-medium">
                             Examen oficial de certificación
                           </span>
@@ -595,8 +595,7 @@ export default function StudentExamPage() {
                                 Examen Aprobado
                               </p>
                               <p className="text-sm text-green-600">
-                                ¡Felicitaciones! Ya has aprobado este examen
-                                exitosamente.
+                                ¡Felicitaciones! Has aprobado este examen.
                               </p>
                             </div>
                           </div>

@@ -22,7 +22,7 @@ const membershipColor: Record<string, string> = {
 };
 
 export default function AssignVoucherForm() {
-  const [quantity, setQuantity] = useState<number>(1);
+  const [quantity, setQuantity] = useState<string>("1");
   const [loading, setLoading] = useState(false);
   const [priceLoading, setPriceLoading] = useState(false);
   const { getUser } = useUserStore();
@@ -76,7 +76,8 @@ export default function AssignVoucherForm() {
   useEffect(() => {
     const fetchPrice = async () => {
       const user = await getUser();
-      if (!user?.id || quantity < 1) return;
+      const qty = Number(quantity);
+      if (!user?.id || !qty || qty < 1) return;
 
       setPriceLoading(true);
 
@@ -109,7 +110,7 @@ export default function AssignVoucherForm() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            quantity,
+            quantity: Number(quantity),
             membership_id: membership.id,
             onlyPrice: true,
           }),
@@ -145,7 +146,7 @@ export default function AssignVoucherForm() {
         const quantityFromStorage = Number(
           sessionStorage.getItem("last_quantity") || "1"
         );
-        setQuantity(quantityFromStorage);
+        setQuantity(String(quantityFromStorage));
 
         // ❌ Removido el uso del session storage para unit_price
         // const storedUnitPrice = Number(sessionStorage.getItem("unit_price") || "0");
@@ -306,7 +307,7 @@ export default function AssignVoucherForm() {
   }, [searchParams, getUser, unitPrice]);
 
   const handlePay = async () => {
-    if (quantity < 1) {
+    if (Number(quantity) < 1) {
       toast.error("La cantidad debe ser mayor a cero.");
       return;
     }
@@ -368,8 +369,9 @@ export default function AssignVoucherForm() {
   };
 
   const total = useMemo(() => {
-    if (unitPrice == null) return 0;
-    return quantity * unitPrice;
+    const qty = Number(quantity);
+    if (unitPrice == null || !qty || qty < 1) return null;
+    return qty * unitPrice;
   }, [quantity, unitPrice]);
 
   const badgeClass =
@@ -457,9 +459,6 @@ export default function AssignVoucherForm() {
                   <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent drop-shadow-sm">
                     Comprar Vouchers
                   </h1>
-                  <p className="text-lg text-gray-600 mt-1">
-                    Adquiere vouchers según tu membresía actual
-                  </p>
                 </div>
               </div>
               {membershipName && (
@@ -498,7 +497,13 @@ export default function AssignVoucherForm() {
                     type="number"
                     min={1}
                     value={quantity}
-                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Permitir vacío, solo números positivos
+                      if (val === "" || /^[0-9]+$/.test(val)) {
+                        setQuantity(val);
+                      }
+                    }}
                     className="text-lg py-3 border-purple-200 focus:border-purple-400 focus:ring-purple-400/20"
                   />
                 </div>
@@ -525,8 +530,11 @@ export default function AssignVoucherForm() {
                       Total a pagar:
                     </span>
                     <div className="text-center">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-lg font-semibold bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 shadow-sm">
-                        USD {unitPrice !== null ? total.toFixed(2) : "—"}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 shadow-sm">
+                        USD{" "}
+                        {unitPrice !== null && total !== null
+                          ? total.toFixed(2)
+                          : "—"}
                       </span>
                     </div>
                   </div>
@@ -535,7 +543,11 @@ export default function AssignVoucherForm() {
                     <span>Cantidad seleccionada:</span>
                     <div className="text-center">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50">
-                        {quantity} voucher{quantity > 1 ? "s" : ""}
+                        {quantity && Number(quantity) > 0
+                          ? `${quantity} voucher${
+                              Number(quantity) > 1 ? "s" : ""
+                            }`
+                          : "—"}
                       </span>
                     </div>
                   </div>
@@ -552,7 +564,13 @@ export default function AssignVoucherForm() {
                     ? "Procesando..."
                     : priceLoading
                     ? "Cargando precios..."
-                    : `Pagar ${quantity} voucher${quantity > 1 ? "s" : ""}`}
+                    : `Pagar ${
+                        quantity && Number(quantity) > 0
+                          ? `${quantity} voucher${
+                              Number(quantity) > 1 ? "s" : ""
+                            }`
+                          : ""
+                      }`}
                 </Button>
               </div>
             </form>

@@ -147,7 +147,7 @@ export default function ExamPage() {
     },
     {
       accessorKey: "name_exam",
-      header: "Nombre del Examen",
+      header: "Nombre del Examen / Simulador",
       size: 200,
       meta: { filterType: "text" },
     },

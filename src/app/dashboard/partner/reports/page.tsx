@@ -20,7 +20,7 @@ export interface PaymentDynamicTable {
 
 function formatUSD(value: number): string {
   const isInteger = Number.isInteger(value);
-  return `USD ${isInteger ? value : value.toFixed(2)}`;
+  return `$${isInteger ? value : value.toFixed(2)} USD`;
 }
 
 function addMonthsToDate(date: Date, months: number): Date {
@@ -245,7 +245,9 @@ export default function PartnerReportsPage() {
         const val = row.getValue("unit_price") as number;
         return val ? (
           <div className="text-center">
-            <span className="text-gray-800">{formatUSD(val)}</span>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-800 border border-blue-300/50">
+              {formatUSD(val)}
+            </span>
           </div>
         ) : (
           <div className="text-center text-gray-400">-</div>
@@ -532,16 +534,6 @@ export default function PartnerReportsPage() {
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* Descripción detallada */}
-          <div className="bg-gradient-to-r from-orange-100 via-amber-100 to-orange-200/80 rounded-lg p-4 border border-orange-300/60 shadow-lg shadow-orange-200/40">
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Aquí puedes ver un historial detallado de todas tus compras de
-              vouchers, incluyendo cantidad adquirida, precios, fechas de compra
-              y vencimiento. Puedes aplicar filtros y ordenar las columnas según
-              tus necesidades.
-            </p>
           </div>
         </div>
 
