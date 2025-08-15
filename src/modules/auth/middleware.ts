@@ -34,6 +34,7 @@ const RegisterUserSchema = z.object({
     .url({ message: "Invalid page URL format" })
     .optional()
     .or(z.literal("")),
+  membership_id: z.number().int().positive().optional(),
 });
 
 export const LoginUserSchema = RegisterUserSchema.omit({

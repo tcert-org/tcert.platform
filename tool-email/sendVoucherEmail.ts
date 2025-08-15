@@ -1,29 +1,56 @@
 import transporter from "./mailer";
+import ejs from "ejs";
+import path from "path";
+import { promises as fs } from "fs";
 
-export async function sendVoucherEmail(email: string, code: string) {
+export async function sendVoucherEmail(
+  email: string,
+  code: string,
+  nombre?: string
+) {
   if (!email || !code) throw new Error("Faltan datos para enviar el correo");
+
+  const templatePath = path.join(
+    process.cwd(),
+    "public",
+    "templates",
+    "voucher-email.ejs"
+  );
+  const template = await fs.readFile(templatePath, "utf-8");
+  const html = ejs.render(template, { codigo: code, nombre });
 
   const mailOptions = {
     from: process.env.MAILER_EMAIL,
     to: email,
     subject: "Tu código de voucher",
-    text: `¡Hola! Tu código de voucher es: ${code}`,
-    html: `<p>¡Hola!</p><p>Tu código de voucher es: <b>${code}</b></p>`,
+    html,
   };
 
   return transporter.sendMail(mailOptions);
 }
 
-export async function sendCredentialsPartner(email: string, password: string) {
+export async function sendCredentialsPartner(
+  email: string,
+  password: string,
+  nombre?: string
+) {
   if (!email || !password)
     throw new Error("Faltan datos para enviar el correo");
+
+  const templatePath = path.join(
+    process.cwd(),
+    "public",
+    "templates",
+    "credentials-email.ejs"
+  );
+  const template = await fs.readFile(templatePath, "utf-8");
+  const html = ejs.render(template, { email, password, nombre });
 
   const mailOptions = {
     from: process.env.MAILER_EMAIL,
     to: email,
     subject: "Tus credenciales de acceso",
-    text: `¡Hola! Tus credenciales de acceso son:\n\nEmail: ${email}\nContraseña: ${password}`,
-    html: `<p>¡Hola!</p><p>Tus credenciales de acceso son:</p><ul><li>Email: ${email}</li><li>Contraseña: ${password}</li></ul>`,
+    html,
   };
 
   return transporter.sendMail(mailOptions);
