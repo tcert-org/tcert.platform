@@ -174,8 +174,8 @@ export const users_InsertSchema = z.object({
   email: z.string().email(),
   role_id: z.number().int().positive(),
   user_uuid: z.string().uuid(),
+  membership_id: z.number().int().positive().optional(),
 });
-
 
 export const users_UpdateSchema = z.object({
   company_address: z.string().min(1).nullable().optional(),

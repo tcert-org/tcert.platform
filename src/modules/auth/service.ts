@@ -44,7 +44,7 @@ export default class AuthService {
         };
       }
 
-      const createdUser = await userTable.insert({
+      const userInsertData: any = {
         email,
         role_id,
         user_uuid: authData.user.id,
@@ -52,8 +52,11 @@ export default class AuthService {
         contact_number,
         logo_url,
         page_url,
-        membership_id,
-      });
+      };
+      if (role_id === 5 && membership_id !== undefined) {
+        userInsertData.membership_id = membership_id;
+      }
+      const createdUser = await userTable.insert(userInsertData);
 
       if (createdUser === null) {
         throw {
