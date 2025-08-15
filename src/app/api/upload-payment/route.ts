@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
   try {
     // Agregar timestamp al inicio del nombre del archivo
     const timestamp = Date.now();
-    // @ts-ignore
     const originalName = file.name || "file";
     const filename = `${timestamp}_${originalName}`;
     const blob = await put(`payments/${filename}`, file, {
