@@ -84,6 +84,25 @@ export default function VoucherAdministrationPage() {
     setError(null);
 
     try {
+      let comprobanteUrl = "";
+      // Subir archivo si existe
+      const fileInput = document.querySelector(
+        'input[type="file"][name="file_url"]'
+      ) as HTMLInputElement;
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        const file = fileInput.files[0];
+        const data = new FormData();
+        data.append("comprobante", file);
+        const uploadRes = await fetch("/api/upload-payment", {
+          method: "POST",
+          body: data,
+        });
+        const uploadResult = await uploadRes.json();
+        if (!uploadRes.ok)
+          throw new Error(uploadResult.error || "Error al subir comprobante");
+        comprobanteUrl = uploadResult.url;
+      }
+
       // 1. Enviar asignación de vouchers
       const res = await fetch("/api/payments", {
         method: "POST",
@@ -96,7 +115,7 @@ export default function VoucherAdministrationPage() {
           voucher_quantity: Number(formData.voucher_quantity),
           unit_price: Number(formData.unit_price),
           total_price: Number(formData.total_price),
-          files: formData.file_url,
+          file_url: comprobanteUrl,
         }),
       });
 

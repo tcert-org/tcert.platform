@@ -6,6 +6,13 @@ import { useState } from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { FetchParams } from "@/lib/types";
+import { createActionsColumn } from "@/components/data-table/action-menu";
+
+type ActionItem<T> = {
+  label: string;
+  onClick?: (row: T) => void;
+  hidden?: (row: T) => boolean;
+};
 
 export interface PaymentDynamicTable {
   id: string;
@@ -15,6 +22,7 @@ export interface PaymentDynamicTable {
   total_price: number;
   created_at: string;
   expiration_date: string | null;
+  file_url?: string | null;
 }
 
 async function fetchPayments(
@@ -63,7 +71,20 @@ async function fetchPayments(
 export default function PaymentsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
+  const paymentActions: ActionItem<PaymentDynamicTable>[] = [
+    {
+      label: "Comprobante",
+      onClick: (row) => {
+        if (row.file_url) {
+          window.open(row.file_url, "_blank");
+        }
+      },
+      hidden: (row) => !row.file_url,
+    },
+  ];
+
   const columns: ColumnDef<PaymentDynamicTable>[] = [
+    createActionsColumn(paymentActions),
     {
       accessorKey: "id",
       header: "ID",
