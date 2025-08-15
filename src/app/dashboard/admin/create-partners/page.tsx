@@ -15,13 +15,8 @@ import {
   Mail,
   Lock,
   Loader2,
-  Eye,
-  EyeOff,
   Phone,
   Link as LinkIcon,
-  Copy,
-  RefreshCw,
-  Check,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -60,39 +55,32 @@ type PartnerFormData = z.infer<typeof partnerSchema>;
 function CreatePartnerPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setError,
-    setValue, // <-- necesario para setear la contraseña generada
-    watch, // <-- para leer la contraseña actual
+    setValue,
   } = useForm<PartnerFormData>({
     resolver: zodResolver(partnerSchema),
   });
 
-  const currentPassword = watch("password");
-
-  // --- Generador de contraseñas seguras (cliente) ---
-  const generatePassword = (length = 12) => {
-    // Grupos obligatorios
+  // Generador seguro de contraseñas (cliente)
+  const generatePassword = (length = 14) => {
     const uppers = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const lowers = "abcdefghijklmnopqrstuvwxyz";
     const numbers = "0123456789";
     const specials = "!@#$%^&*";
-
-    // Conjunto completo
     const all = uppers + lowers + numbers + specials;
 
-    // Asegurar al menos 1 de cada grupo
     const pick = (chars: string) =>
       chars[Math.floor(Math.random() * chars.length)];
+
+    // al menos 1 de cada tipo
     let pwd = pick(uppers) + pick(lowers) + pick(numbers) + pick(specials);
 
-    // Relleno aleatorio usando Web Crypto (más seguro que Math.random)
+    // relleno con Web Crypto cuando esté disponible
     const remaining = length - 4;
     if (
       remaining > 0 &&
@@ -105,12 +93,10 @@ function CreatePartnerPage() {
         pwd += all[arr[i] % all.length];
       }
     } else {
-      for (let i = 0; i < remaining; i++) {
-        pwd += pick(all);
-      }
+      for (let i = 0; i < remaining; i++) pwd += pick(all);
     }
 
-    // Mezclar (Fisher–Yates)
+    // mezclar
     const a = pwd.split("");
     for (let i = a.length - 1; i > 0; i--) {
       const j =
@@ -122,52 +108,32 @@ function CreatePartnerPage() {
     return a.join("");
   };
 
-  // Generar automáticamente al montar
+  // Generar y setear la contraseña SIN mostrarla
   useEffect(() => {
     const initial = generatePassword(14);
     setValue("password", initial, { shouldValidate: true });
   }, [setValue]);
 
-  const regeneratePassword = () => {
-    const next = generatePassword(14);
-    setValue("password", next, { shouldValidate: true });
-    setCopied(false);
-  };
-
-  const copyPassword = async () => {
-    try {
-      await navigator.clipboard.writeText(currentPassword || "");
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Silencioso: algunos navegadores bloquean clipboard sin HTTPS/user gesture
-    }
-  };
-
   const onSubmit = async (data: PartnerFormData) => {
     setIsLoading(true);
     try {
-      // Obtener el role_id del rol "partner"
+      // Obtener role_id de "partner"
       const roleResponse = await fetch("/api/roles");
-      if (!roleResponse.ok) {
-        throw new Error("Error al obtener roles");
-      }
-
+      if (!roleResponse.ok) throw new Error("Error al obtener roles");
       const roleData = await roleResponse.json();
       const partnerRole = roleData.data?.find(
         (role: any) => role.name === "partner"
       );
+      if (!partnerRole) throw new Error("No se encontró el rol de partner");
 
-      if (!partnerRole) {
-        throw new Error("No se encontró el rol de partner");
-      }
-
+      // Crear partner con membership_id = 1
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
           role_id: partnerRole.id,
+          membership_id: 1, // <-- se crea con membresía 1
           contact_number: data.contact,
           logo_url: data.logo_url || "",
           page_url: data.page_url || "",
@@ -334,71 +300,8 @@ function CreatePartnerPage() {
               )}
             </div>
 
-            {/* Contraseña - Generada automáticamente */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-purple-700 font-medium">
-                Contraseña (Generada automáticamente)
-              </Label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-3 w-4 h-4 text-purple-500" />
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  readOnly
-                  value={currentPassword || ""}
-                  placeholder="Se generará automáticamente"
-                  className="pl-10 pr-24 border-purple-200 bg-gradient-to-r from-white to-purple-50/30"
-                  {...register("password")}
-                />
-                {/* Mostrar/ocultar */}
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-20 top-3 text-purple-500 hover:text-orange-500 transition-colors duration-300"
-                  aria-label={showPassword ? "Ocultar" : "Mostrar"}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-                {/* Copiar */}
-                <button
-                  type="button"
-                  onClick={copyPassword}
-                  className="absolute right-11 top-3 text-purple-500 hover:text-orange-500 transition-colors duration-300"
-                  aria-label="Copiar contraseña"
-                  title="Copiar"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </button>
-                {/* Regenerar */}
-                <button
-                  type="button"
-                  onClick={regeneratePassword}
-                  className="absolute right-2 top-3 text-purple-500 hover:text-orange-500 transition-colors duration-300"
-                  aria-label="Regenerar contraseña"
-                  title="Regenerar"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </button>
-              </div>
-              {errors.password && (
-                <p className="text-sm text-destructive font-medium">
-                  {errors.password.message}
-                </p>
-              )}
-              <div className="text-xs text-gray-600 mt-1">
-                Se genera automáticamente y cumple: mínimo 8 caracteres, al
-                menos 1 mayúscula, 1 minúscula, 1 número y 1 especial
-                (!@#$%^&*).
-              </div>
-            </div>
+            {/* Campo de contraseña oculto (no visible para el admin) */}
+            <input type="hidden" {...register("password")} />
 
             {/* Error general */}
             {errors.root && (

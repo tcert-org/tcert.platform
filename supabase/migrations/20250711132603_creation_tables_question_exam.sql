@@ -34,3 +34,12 @@ REFERENCES type_question(id)
 ON DELETE SET NULL;
 
 
+create table Feedback (
+certification_id bigint,
+name text,
+comment text,
+rating float,
+id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+CONSTRAINT feedback_pkey PRIMARY KEY (id),
+CONSTRAINT feedback_certification_id_fkey FOREIGN KEY (certification_id) REFERENCES certifications(id)
+);

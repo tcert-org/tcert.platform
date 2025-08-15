@@ -20,6 +20,7 @@ export default class AuthService {
       contact_number,
       logo_url,
       page_url,
+      membership_id,
     } = data;
 
     try {
@@ -51,6 +52,7 @@ export default class AuthService {
         contact_number,
         logo_url,
         page_url,
+        membership_id,
       });
 
       if (createdUser === null) {
