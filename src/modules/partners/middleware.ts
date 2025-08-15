@@ -13,6 +13,17 @@ export default class PartnerMiddleware {
     try {
       const body = await req.json();
       const validatedData = users_InsertSchema.parse(body) as PartnerInsertType;
+      // membership_id solo es obligatorio para partners (role_id 5)
+      if (validatedData.role_id === 5 && !validatedData.membership_id) {
+        return NextResponse.json(
+          {
+            statusCode: 400,
+            data: null,
+            error: `membership_id es obligatorio para partners (role_id 5)`,
+          },
+          { status: 400 }
+        );
+      }
       return next(validatedData);
     } catch (error) {
       return NextResponse.json(

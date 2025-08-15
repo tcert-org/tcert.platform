@@ -554,7 +554,7 @@ export type Database = {
           role_id: number;
           updated_at: string | null;
           user_uuid: string | null;
-          membership_id: number;
+          membership_id?: number;
         };
         Insert: {
           company_address?: string | null;
@@ -568,6 +568,7 @@ export type Database = {
           role_id: number;
           updated_at?: string | null;
           user_uuid?: string | null;
+          membership_id?: number;
         };
         Update: {
           company_address?: string | null;
@@ -581,6 +582,7 @@ export type Database = {
           role_id?: number;
           updated_at?: string | null;
           user_uuid?: string | null;
+          membership_id?: number;
         };
         Relationships: [
           {
