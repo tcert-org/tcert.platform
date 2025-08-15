@@ -24,16 +24,16 @@ export default function LoginPage() {
             src="/reunion-de-equipo-para-startups.jpg"
             alt="Team Meeting"
             fill
-            className="object-cover z-0"
+            className="object-cover"
             priority
           />
 
-          {/* Contenedor del formulario centrado */}
+          {/* Capa de desenfoque oscurecida */}
+          <div className="absolute inset-0 backdrop-blur-lg bg-black/20" />
+
+          {/* Contenedor del formulario sin sombra */}
           <div className="relative z-10 w-full max-w-md">
-            {/* Efecto vidrio premium y mejor contraste */}
             <div className="relative rounded-2xl overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-white/10 blur-md" />
-              <div className="absolute inset-0 bg-gradient-to-tr from-black/50 to-black/30 backdrop-blur-sm" />
               <div className="relative p-6">
                 <LoginForm />
               </div>
@@ -41,8 +41,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* Contenido principal posicionado y centrado en el lado derecho */}
     </div>
   );
 }
