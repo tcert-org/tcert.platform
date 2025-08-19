@@ -61,4 +61,14 @@ export default class QuestionTable extends Table<"questions"> {
       .single();
     return { data, error };
   }
+
+  async updateContent(id: number, content: string) {
+    const { data, error } = await supabase
+      .from("questions")
+      .update({ content })
+      .eq("id", id)
+      .select()
+      .single();
+    return { data, error };
+  }
 }
