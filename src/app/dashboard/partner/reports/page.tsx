@@ -212,7 +212,7 @@ export default function PartnerReportsPage() {
   const columns: ColumnDef<PaymentDynamicTable>[] = [
     // Columna de acciones como en admin
     createActionsColumn(paymentActions),
-
+  
     {
       accessorKey: "id",
       header: "ID",
@@ -454,6 +454,27 @@ export default function PartnerReportsPage() {
         );
       },
     },
+    {
+  id: "comprobante_status",
+  header: "Comprobante",
+  size: 80,
+  enableSorting: false,
+  cell: ({ row }) => {
+    const hasReceipt = Boolean(row.original.file_url);
+    return (
+      <div className="flex justify-center items-center">
+        <span
+          title={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+          aria-label={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+          className={`inline-block rounded-full ${
+            hasReceipt ? "bg-green-500" : "bg-gray-300"
+          } h-3.5 w-3.5`}
+        />
+      </div>
+    );
+  },
+}
+
   ];
 
   return (
