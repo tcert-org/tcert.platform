@@ -9,6 +9,7 @@ export type examType = {
 export type FilterParamsExam = {
   filter_name_exam?: string;
   filter_certification_id?: number;
+  filter_certification_name?: string; // 👈 NUEVO
   filter_simulator?: boolean;
   filter_active?: boolean;
   filter_created_at?: string;
