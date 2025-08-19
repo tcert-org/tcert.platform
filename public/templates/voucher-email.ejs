@@ -11,6 +11,9 @@
         margin: 0;
         padding: 0;
       }
+      a {
+        text-decoration: none !important;
+      }
       .container {
         max-width: 480px;
         margin: 40px auto;
@@ -25,7 +28,7 @@
       }
       .voucher-code {
         font-size: 2rem;
-        color: 98,25,212;
+        color: 98, 25, 212;
         font-weight: bold;
         letter-spacing: 2px;
         margin: 16px 0;
@@ -35,7 +38,6 @@
         margin: 32px auto 0;
         background: #e67e22;
         color: #fff;
-        text-decoration: none;
         padding: 12px 32px;
         border-radius: 6px;
         font-weight: 600;
@@ -57,10 +59,10 @@
           alt="Tcert Logo"
           style="height: 48px; margin-bottom: 12px"
         />
-        <h2>¡Felicidades! Has recibido un voucher para
-        <% if (certificacion) { %>
-          <span style="color:#e67e22"> <%= certificacion %></span>
-        <% } %>
+        <h2>
+          ¡Felicidades! Has recibido un voucher para <% if (certificacion) { %>
+          <span style="color: #e67e22"> <%= certificacion %></span>
+          <% } %>
         </h2>
       </div>
       <p>Hola <%= nombre || 'estudiante' %>,</p>
