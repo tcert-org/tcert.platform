@@ -1,16 +1,19 @@
 "use client";
 import { BookA, X } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import FlipbookStatic from "./FlipbookStatic";
 import { Button } from "@/components/ui/button";
 
 export default function FlipbookModal({ material }) {
   const [open, setOpen] = useState(false);
 
+  const handleOpen = useCallback(() => setOpen(true), []);
+  const handleClose = useCallback(() => setOpen(false), []);
+
   return (
     <>
       <div className="w-full flex justify-center">
-        <Button onClick={() => setOpen(true)} className="w-full bg-red-600">
+        <Button onClick={handleOpen} className="w-full bg-red-600">
           <BookA />
           Abrir material
         </Button>
@@ -26,7 +29,7 @@ export default function FlipbookModal({ material }) {
               </h2>
               <button
                 className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
-                onClick={() => setOpen(false)}
+                onClick={handleClose}
                 aria-label="Cerrar modal"
               >
                 <X className="w-5 h-5" />

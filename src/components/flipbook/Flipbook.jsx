@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-import pdf1 from "./materials/itil_dpi.pdf";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -62,22 +60,22 @@ export default function Flipbook({ material }) {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  const goNextPage = () => {
+  const goNextPage = useCallback(() => {
     if (flipBookRef.current) {
       flipBookRef.current.pageFlip().flipNext();
     }
-  };
+  }, []);
 
-  const goPrevPage = () => {
+  const goPrevPage = useCallback(() => {
     if (flipBookRef.current) {
       flipBookRef.current.pageFlip().flipPrev();
     }
-  };
+  }, []);
 
-  const handlePageChange = (e) => {
+  const handlePageChange = useCallback((e) => {
     const page = e.data; // contiene { page, pageElement }
     setCurrentPage(page + 1); // se indexa desde 0
-  };
+  }, []);
 
   return (
     <div
@@ -90,7 +88,11 @@ export default function Flipbook({ material }) {
           setNumPages(numPages);
           setCurrentPage(1);
         }}
-        loading={<p>Cargando PDF...</p>}
+        loading={
+          <div className="flex items-center justify-center p-8">
+            <p>Cargando PDF...</p>
+          </div>
+        }
       >
         {numPages && !isMobile && (
           <>
@@ -150,7 +152,8 @@ export default function Flipbook({ material }) {
         <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center">
           <button
             onClick={() => setShowModal(false)}
-            className="absolute top-4 right-4 text-white text-2xl"
+            className="absolute top-4 right-4 text-white text-2xl hover:bg-white hover:bg-opacity-20 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
+            aria-label="Cerrar modal"
           >
             ✕
           </button>
