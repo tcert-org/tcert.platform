@@ -48,6 +48,10 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
   const [certificateLoading, setCertificateLoading] = useState(false);
   const [certificateEligible, setCertificateEligible] = useState(false);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const pathname = usePathname();
 
   // Detectar si estamos en la ruta de admin
@@ -175,6 +179,7 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
         const studentData = await studentRes.json();
         if (studentRes.ok) {
           setStudent(studentData.data);
+          setEditName(studentData.data?.fullname || "");
         }
       } catch (err) {
         console.error("Error cargando datos:", err);
@@ -334,11 +339,57 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center space-x-3">
                   <User className="text-purple-700 w-5 h-5" />
-                  <p>
+                  <p className="flex items-center gap-2">
                     <strong className="text-gray-700">Nombre:</strong>{" "}
-                    <span className="text-gray-800 font-medium">
-                      {student.fullname}
-                    </span>
+                    {isAdminRoute ? (
+                      <>
+                        <input
+                          type="text"
+                          className="border rounded px-2 py-1 text-gray-800 font-medium focus:outline-none focus:ring focus:border-purple-400"
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          disabled={savingName}
+                          style={{ minWidth: 180 }}
+                        />
+                        <button
+                          className={`ml-2 px-3 py-1 rounded bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition disabled:opacity-60 disabled:cursor-not-allowed`}
+                          onClick={async () => {
+                            setSavingName(true);
+                            setNameError(null);
+                            try {
+                              const res = await fetch(`/api/students/${student.id}/update-name`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ fullname: editName })
+                              });
+                              if (!res.ok) {
+                                const err = await res.text();
+                                setNameError(err || "Error al guardar nombre");
+                              } else {
+                                setStudent({ ...student, fullname: editName });
+                                setShowSuccess(true);
+                                setTimeout(() => setShowSuccess(false), 2500);
+                              }
+                            } catch (err) {
+                              setNameError("Error de red al guardar nombre");
+                            } finally {
+                              setSavingName(false);
+                            }
+                          }}
+                          disabled={savingName || !editName || editName === student.fullname}
+                        >
+                          {savingName ? "Guardando..." : "Guardar"}
+                        </button>
+                        {nameError && (
+                          <span className="ml-2 text-xs text-red-600">{nameError}</span>
+                        )}
+                        {showSuccess && (
+                          <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded shadow">¡Nombre actualizado!</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-gray-800 font-medium">{student.fullname}</span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center space-x-3">
