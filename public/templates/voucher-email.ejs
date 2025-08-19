@@ -25,7 +25,7 @@
       }
       .voucher-code {
         font-size: 2rem;
-        color: #e67e22;
+        color: 98,25,212;
         font-weight: bold;
         letter-spacing: 2px;
         margin: 16px 0;
@@ -57,7 +57,11 @@
           alt="Tcert Logo"
           style="height: 48px; margin-bottom: 12px"
         />
-        <h2>¡Felicidades! Has recibido un voucher</h2>
+        <h2>¡Felicidades! Has recibido un voucher para
+        <% if (certificacion) { %>
+          <span style="color:#e67e22"> <%= certificacion %></span>
+        <% } %>
+        </h2>
       </div>
       <p>Hola <%= nombre || 'estudiante' %>,</p>
       <p>Tu código de voucher es:</p>
