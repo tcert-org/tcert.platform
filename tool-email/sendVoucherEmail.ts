@@ -2,6 +2,7 @@ import transporter from "./mailer";
 import ejs from "ejs";
 import path from "path";
 import { promises as fs } from "fs";
+import { getCertificationNameByVoucherCode } from "./getCertificationNameByVoucherCode";
 
 export async function sendVoucherEmail(
   email: string,
@@ -10,6 +11,9 @@ export async function sendVoucherEmail(
 ) {
   if (!email || !code) throw new Error("Faltan datos para enviar el correo");
 
+  // Obtener el nombre de la certificación asociada al voucher
+  const certificacion = await getCertificationNameByVoucherCode(code);
+
   const templatePath = path.join(
     process.cwd(),
     "public",
@@ -17,7 +21,7 @@ export async function sendVoucherEmail(
     "voucher-email.ejs"
   );
   const template = await fs.readFile(templatePath, "utf-8");
-  const html = ejs.render(template, { codigo: code, nombre });
+  const html = ejs.render(template, { codigo: code, nombre, certificacion });
 
   const mailOptions = {
     from: process.env.MAILER_EMAIL,
