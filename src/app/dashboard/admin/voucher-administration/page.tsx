@@ -115,7 +115,7 @@ export default function VoucherAdministrationPage() {
           voucher_quantity: Number(formData.voucher_quantity),
           unit_price: Number(formData.unit_price),
           total_price: Number(formData.total_price),
-          file_url: comprobanteUrl,
+          files: comprobanteUrl, // ✅ Corregido: era file_url, ahora es files
         }),
       });
 

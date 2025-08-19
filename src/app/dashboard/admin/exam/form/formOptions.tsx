@@ -46,26 +46,26 @@ export default function FormOptions({ questionId }: { questionId: number }) {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    // Validar que todas las opciones tengan contenido
-    const hasEmptyOptions = data.options.some(
-      (option) => !option.content.trim()
-    );
-    if (hasEmptyOptions) {
-      setErrorMessage("Todas las opciones deben tener contenido");
+    // Filtrar solo las opciones que tienen contenido
+    const validOptions = data.options.filter((option) => option.content.trim());
+
+    // Validar que al menos una opción tenga contenido
+    if (validOptions.length === 0) {
+      setErrorMessage("Debe completar al menos una opción");
       return;
     }
 
-    // Validar que al menos una opción sea correcta
-    const hasCorrectOption = data.options.some((option) => option.is_correct);
+    // Validar que al menos una opción sea correcta (solo entre las que tienen contenido)
+    const hasCorrectOption = validOptions.some((option) => option.is_correct);
     if (!hasCorrectOption) {
       setErrorMessage("Debe marcar al menos una opción como correcta");
       return;
     }
 
     try {
-      // Enviar cada opción por separado
-      for (let i = 0; i < data.options.length; i++) {
-        const option = data.options[i];
+      // Enviar solo las opciones que tienen contenido
+      for (let i = 0; i < validOptions.length; i++) {
+        const option = validOptions[i];
         const dataToSend = {
           question_id: Number(questionId),
           content: option.content.trim(),
@@ -90,7 +90,9 @@ export default function FormOptions({ questionId }: { questionId: number }) {
         }
       }
 
-      setSuccessMessage("Todas las opciones creadas correctamente");
+      setSuccessMessage(
+        `${validOptions.length} opciones creadas correctamente`
+      );
       setShowForm(false);
     } catch (e: any) {
       setErrorMessage(e.message || "Error desconocido");
@@ -107,32 +109,34 @@ export default function FormOptions({ questionId }: { questionId: number }) {
               ✓ Opciones Creadas
             </span>
             <span className="text-green-700 text-sm font-semibold">
-              Las 4 opciones se crearon correctamente
+              Las opciones se crearon correctamente
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {watchedOptions.map((option, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2 bg-white p-3 rounded border"
-              >
-                <span className="text-sm text-gray-600 font-medium">
-                  {index + 1}.
-                </span>
-                <span
-                  className={`inline-block rounded font-bold text-xs px-2 py-1 ${
-                    option.is_correct
-                      ? "bg-green-500 text-white"
-                      : "bg-gray-400 text-white"
-                  }`}
+            {watchedOptions
+              .filter((option) => option.content.trim()) // Solo mostrar opciones con contenido
+              .map((option, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 bg-white p-3 rounded border"
                 >
-                  {option.is_correct ? "Correcta" : "Incorrecta"}
-                </span>
-                <span className="text-sm text-gray-800 flex-1 truncate">
-                  {option.content}
-                </span>
-              </div>
-            ))}
+                  <span className="text-sm text-gray-600 font-medium">
+                    {index + 1}.
+                  </span>
+                  <span
+                    className={`inline-block rounded font-bold text-xs px-2 py-1 ${
+                      option.is_correct
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-400 text-white"
+                    }`}
+                  >
+                    {option.is_correct ? "Correcta" : "Incorrecta"}
+                  </span>
+                  <span className="text-sm text-gray-800 flex-1 truncate">
+                    {option.content}
+                  </span>
+                </div>
+              ))}
           </div>
         </div>
       </div>
@@ -166,10 +170,10 @@ export default function FormOptions({ questionId }: { questionId: number }) {
                       <Input
                         id={`option-${index}`}
                         type="text"
-                        {...register(`options.${index}.content`, {
-                          required: "Esta opción es requerida",
-                        })}
-                        placeholder={`Ingrese la opción ${index + 1}`}
+                        {...register(`options.${index}.content`)} // Removida la validación required
+                        placeholder={`Ingrese la opción ${
+                          index + 1
+                        } (opcional)`}
                         className="w-full"
                       />
                       {errors.options?.[index]?.content && (
@@ -215,12 +219,15 @@ export default function FormOptions({ questionId }: { questionId: number }) {
                   <strong>Instrucciones:</strong>
                 </p>
                 <ul className="text-blue-700 text-sm mt-2 list-disc list-inside space-y-1">
-                  <li>Complete todas las 4 opciones</li>
+                  <li>
+                    Complete al menos una opción (las demás son opcionales)
+                  </li>
                   <li>Marque al menos una opción como correcta</li>
                   <li>
                     Puede marcar múltiples opciones como correctas si es
                     necesario
                   </li>
+                  <li>Solo se crearán las opciones que tengan contenido</li>
                 </ul>
               </div>
 
@@ -248,7 +255,7 @@ export default function FormOptions({ questionId }: { questionId: number }) {
                   disabled={isSubmitting}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  {isSubmitting ? "Creando..." : "Crear Todas las Opciones"}
+                  {isSubmitting ? "Creando..." : "Crear Opciones"}
                 </Button>
               </div>
             </form>

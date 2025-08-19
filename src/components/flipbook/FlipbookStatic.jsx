@@ -19,20 +19,30 @@ export default function FlipbookStatic({ material }) {
   const handleLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
 
-    const savedPage = parseInt(
-      localStorage.getItem("flipbook_last_page") || "1",
-      10
-    );
-    const validPage = Math.min(Math.max(savedPage, 1), numPages);
+    try {
+      const savedPage = parseInt(
+        localStorage.getItem("flipbook_last_page") || "1",
+        10
+      );
+      const validPage = Math.min(Math.max(savedPage, 1), numPages);
 
-    setPageNumber(validPage);
-    setInputValue(String(validPage));
+      setPageNumber(validPage);
+      setInputValue(String(validPage));
+    } catch (error) {
+      console.warn("Error reading from localStorage:", error);
+      setPageNumber(1);
+      setInputValue("1");
+    }
   };
 
   // 🧠 Guardar en localStorage cada vez que cambie la página
   useEffect(() => {
     if (numPages) {
-      localStorage.setItem("flipbook_last_page", String(pageNumber));
+      try {
+        localStorage.setItem("flipbook_last_page", String(pageNumber));
+      } catch (error) {
+        console.warn("Error saving to localStorage:", error);
+      }
     }
   }, [pageNumber, numPages]);
 
@@ -54,7 +64,7 @@ export default function FlipbookStatic({ material }) {
 
   const handleInputSubmit = (e) => {
     e.preventDefault();
-    const page = parseInt(inputValue);
+    const page = parseInt(inputValue, 10);
     if (!isNaN(page) && page >= 1 && page <= numPages) {
       setPageNumber(page);
     } else {
@@ -73,7 +83,7 @@ export default function FlipbookStatic({ material }) {
           pageNumber={pageNumber}
           renderAnnotationLayer={false}
           renderTextLayer={false}
-          width={window.innerWidth * 0.9}
+          width={Math.min(window.innerWidth * 0.9, 800)}
         />
       </Document>
 

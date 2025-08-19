@@ -1,6 +1,6 @@
 "use client";
 import { BookA } from "lucide-react";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { Document, Page, pdfjs } from "react-pdf";
 import {
@@ -50,7 +50,7 @@ export default function FlipbookFullModal({ material }) {
     };
   }, [open]);
 
-  const handlePageChange = (e) => {
+  const handlePageChange = useCallback((e) => {
     const newPage = e.data + 1;
 
     if (isProgrammaticFlip.current) {
@@ -59,32 +59,39 @@ export default function FlipbookFullModal({ material }) {
 
     setCurrentPage(newPage);
     setPageInput(String(newPage));
-    localStorage.setItem("flipbook_last_page", String(newPage));
-  };
-
-  const goToPage = (page) => {
-    if (
-      flipbookRef.current &&
-      typeof flipbookRef.current.pageFlip === "function" &&
-      page >= 1 &&
-      page <= numPages
-    ) {
-      isProgrammaticFlip.current = true;
-      flipbookRef.current.pageFlip().flip(page - 1);
+    try {
+      localStorage.setItem("flipbook_last_page", String(newPage));
+    } catch (error) {
+      console.warn("Error saving to localStorage:", error);
     }
-  };
+  }, []);
 
-  const nextPage = () => {
+  const goToPage = useCallback(
+    (page) => {
+      if (
+        flipbookRef.current &&
+        typeof flipbookRef.current.pageFlip === "function" &&
+        page >= 1 &&
+        page <= numPages
+      ) {
+        isProgrammaticFlip.current = true;
+        flipbookRef.current.pageFlip().flip(page - 1);
+      }
+    },
+    [numPages]
+  );
+
+  const nextPage = useCallback(() => {
     if (currentPage < numPages) {
       goToPage(currentPage + 2);
     }
-  };
+  }, [currentPage, numPages, goToPage]);
 
-  const prevPage = () => {
+  const prevPage = useCallback(() => {
     if (currentPage > 1) {
       goToPage(currentPage - 1);
     }
-  };
+  }, [currentPage, goToPage]);
 
   const zoomIn = () => {
     const newZoom = Math.min(browserZoom + 0.1, 2);
@@ -103,40 +110,43 @@ export default function FlipbookFullModal({ material }) {
     document.body.style.zoom = "1";
   };
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setOpen(false);
     resetZoom();
-  };
+  }, []);
 
   useEffect(() => {
     if (open && numPages) {
-      const saved = parseInt(
-        localStorage.getItem("flipbook_last_page") || "1",
-        10
-      );
-      const validPage = Math.min(Math.max(saved, 1), numPages);
+      try {
+        const saved = parseInt(
+          localStorage.getItem("flipbook_last_page") || "1",
+          10
+        );
+        const validPage = Math.min(Math.max(saved, 1), numPages);
 
-      setCurrentPage(validPage); // sincroniza estado
-      setPageInput(String(validPage)); // sincroniza input
+        setCurrentPage(validPage); // sincroniza estado
+        setPageInput(String(validPage)); // sincroniza input
 
-      // Espera a que el libro esté listo para hacer el flip
-      const interval = setInterval(() => {
-        try {
-          if (
-            flipbookRef.current &&
-            typeof flipbookRef.current.pageFlip === "function"
-          ) {
-            isProgrammaticFlip.current = true;
-            flipbookRef.current.pageFlip().flip(validPage - 1);
-            clearInterval(interval); // detener intervalo cuando se haga el flip
+        // Espera a que el libro esté listo para hacer el flip
+        const interval = setInterval(() => {
+          try {
+            if (
+              flipbookRef.current &&
+              typeof flipbookRef.current.pageFlip === "function"
+            ) {
+              isProgrammaticFlip.current = true;
+              flipbookRef.current.pageFlip().flip(validPage - 1);
+              clearInterval(interval); // detener intervalo cuando se haga el flip
+            }
+          } catch (error) {
+            console.warn("Flipbook not ready yet:", error);
           }
-        } catch (error) {
-          console.log(
-            error,
-            "Es posible que el pageFlip() este llamando undefinded porque aun no esta listo"
-          );
-        }
-      }, 100);
+        }, 100);
+
+        return () => clearInterval(interval);
+      } catch (error) {
+        console.warn("Error reading from localStorage:", error);
+      }
     }
   }, [open, numPages]);
 
@@ -150,8 +160,9 @@ export default function FlipbookFullModal({ material }) {
       {open && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex flex-col items-center justify-center px-4">
           <button
-            className="absolute top-4 left-4 text-white text-2xl z-50"
+            className="absolute top-4 left-4 text-white text-2xl z-50 hover:bg-white hover:bg-opacity-20 rounded-full w-10 h-10 flex items-center justify-center transition-colors"
             onClick={handleClose}
+            aria-label="Cerrar modal"
           >
             <X />
           </button>
@@ -159,7 +170,11 @@ export default function FlipbookFullModal({ material }) {
           <Document
             file={`/materials/${material}`}
             onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-            loading={<p className="text-white">Cargando PDF...</p>}
+            loading={
+              <div className="text-white flex items-center justify-center p-8">
+                <p>Cargando PDF...</p>
+              </div>
+            }
           >
             <HTMLFlipBook
               ref={flipbookRef}
