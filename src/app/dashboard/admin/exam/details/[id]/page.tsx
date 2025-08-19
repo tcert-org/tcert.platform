@@ -35,6 +35,11 @@ export default function ExamDetailsPage() {
   const [newExamName, setNewExamName] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [showOptionsFor, setShowOptionsFor] = useState<number | null>(null);
+  
+  // Edición de preguntas
+  const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
+  const [newQuestionContent, setNewQuestionContent] = useState("");
+  const [savingQuestion, setSavingQuestion] = useState(false);
 
   // Filtros locales
   const [filterActive, setFilterActive] = useState<
@@ -106,6 +111,43 @@ export default function ExamDetailsPage() {
       alert("No se pudo actualizar el nombre.");
     }
     setSavingName(false);
+  }
+
+  // Edición de preguntas
+  async function handleSaveQuestion(questionId: number) {
+    setSavingQuestion(true);
+    try {
+      const res = await fetch(`/api/exam/question`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: questionId, content: newQuestionContent }),
+      });
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || "Error");
+      
+      // Actualizar la pregunta en el estado local
+      setQuestions((prev) =>
+        prev.map((q) => 
+          q.id === questionId ? { ...q, content: newQuestionContent } : q
+        )
+      );
+      setEditingQuestion(null);
+      setNewQuestionContent("");
+    } catch (e) {
+      alert("No se pudo actualizar la pregunta.");
+    }
+    setSavingQuestion(false);
+  }
+
+  function startEditingQuestion(questionId: number, currentContent: string) {
+    setEditingQuestion(questionId);
+    setNewQuestionContent(currentContent);
+    setShowOptionsFor(null); // Cerrar opciones si están abiertas
+  }
+
+  function cancelEditingQuestion() {
+    setEditingQuestion(null);
+    setNewQuestionContent("");
   }
 
   // -- FILTRADO Y BUSQUEDA --
@@ -221,47 +263,85 @@ export default function ExamDetailsPage() {
               className="flex flex-col gap-2 bg-gray-100 border border-gray-300 px-6 py-4 rounded-lg shadow-sm mb-3"
             >
               <div className="flex items-center gap-3">
-                <span className="text-base font-medium flex-1">
-                  {q.content}
-                </span>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    q.active
-                      ? "bg-green-200 text-green-800 border border-green-400"
-                      : "bg-red-200 text-red-600 border border-red-300"
-                  }`}
-                >
-                  {q.active ? "Activo" : "Inactivo"}
-                </span>
-                <Button
-                  size="sm"
-                  className={
-                    q.active
-                      ? "bg-red-500 hover:bg-red-600 text-white"
-                      : "bg-green-500 hover:bg-green-600 text-white"
-                  }
-                  disabled={updatingId === q.id}
-                  onClick={() => handleToggleActive(q.id, q.active)}
-                >
-                  {updatingId === q.id
-                    ? "Actualizando..."
-                    : q.active
-                    ? "Desactivar"
-                    : "Activar"}
-                </Button>
-                {/* Cambia el botón Editar por Opciones */}
-                <Button
-                  size="sm"
-                  variant={showOptionsFor === q.id ? "default" : "outline"}
-                  onClick={() =>
-                    setShowOptionsFor((prev) => (prev === q.id ? null : q.id))
-                  }
-                >
-                  {showOptionsFor === q.id ? "Cerrar opciones" : "Opciones"}
-                </Button>
+                {editingQuestion === q.id ? (
+                  <>
+                    <Input
+                      value={newQuestionContent}
+                      onChange={(e) => setNewQuestionContent(e.target.value)}
+                      className="flex-1"
+                      placeholder="Contenido de la pregunta"
+                    />
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleSaveQuestion(q.id)}
+                      disabled={savingQuestion || newQuestionContent.trim() === ""}
+                    >
+                      {savingQuestion ? "Guardando..." : "Guardar"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={cancelEditingQuestion}
+                      disabled={savingQuestion}
+                    >
+                      Cancelar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-base font-medium flex-1">
+                      {q.content}
+                    </span>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        q.active
+                          ? "bg-green-200 text-green-800 border border-green-400"
+                          : "bg-red-200 text-red-600 border border-red-300"
+                      }`}
+                    >
+                      {q.active ? "Activo" : "Inactivo"}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEditingQuestion(q.id, q.content)}
+                      disabled={editingQuestion !== null || showOptionsFor === q.id}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className={
+                        q.active
+                          ? "bg-red-500 hover:bg-red-600 text-white"
+                          : "bg-green-500 hover:bg-green-600 text-white"
+                      }
+                      disabled={updatingId === q.id || editingQuestion !== null}
+                      onClick={() => handleToggleActive(q.id, q.active)}
+                    >
+                      {updatingId === q.id
+                        ? "Actualizando..."
+                        : q.active
+                        ? "Desactivar"
+                        : "Activar"}
+                    </Button>
+                    {/* Cambia el botón Editar por Opciones */}
+                    <Button
+                      size="sm"
+                      variant={showOptionsFor === q.id ? "default" : "outline"}
+                      onClick={() =>
+                        setShowOptionsFor((prev) => (prev === q.id ? null : q.id))
+                      }
+                      disabled={editingQuestion !== null}
+                    >
+                      {showOptionsFor === q.id ? "Cerrar opciones" : "Opciones"}
+                    </Button>
+                  </>
+                )}
               </div>
               {/* Panel de opciones embebido */}
-              {showOptionsFor === q.id && (
+              {showOptionsFor === q.id && editingQuestion === null && (
                 <QuestionOptionsInline
                   questionId={q.id}
                   onClose={() => setShowOptionsFor(null)}

@@ -17,6 +17,7 @@ import {
   Loader2,
   Phone,
   Link as LinkIcon,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -38,11 +39,7 @@ const partnerSchema = z.object({
       /[!@#$%^&*]/,
       "La contraseña debe contener al menos un carácter especial (!@#$%^&*)"
     ),
-  logo_url: z
-    .string()
-    .url("Ingrese una URL válida para el logo")
-    .optional()
-    .or(z.literal("")),
+  logo_url: z.string().optional(), // Campo para la URL del logo subido
   page_url: z
     .string()
     .url("Ingrese una URL válida para la página web")
@@ -117,6 +114,30 @@ function CreatePartnerPage() {
   const onSubmit = async (data: PartnerFormData) => {
     setIsLoading(true);
     try {
+      let logoUrl = "";
+
+      // Subir logo si existe
+      const logoInput = document.querySelector(
+        'input[type="file"][name="logo_file"]'
+      ) as HTMLInputElement;
+
+      if (logoInput && logoInput.files && logoInput.files[0]) {
+        const file = logoInput.files[0];
+        const formData = new FormData();
+        formData.append("logo", file);
+
+        const uploadRes = await fetch("/api/upload-logo", {
+          method: "POST",
+          body: formData,
+        });
+
+        const uploadResult = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(uploadResult.error || "Error al subir logo");
+        }
+        logoUrl = uploadResult.url;
+      }
+
       // Obtener role_id de "partner"
       const roleResponse = await fetch("/api/roles");
       if (!roleResponse.ok) throw new Error("Error al obtener roles");
@@ -135,7 +156,7 @@ function CreatePartnerPage() {
           role_id: partnerRole.id,
           membership_id: 1, // <-- se crea con membresía 1
           contact_number: data.contact,
-          logo_url: data.logo_url || "",
+          logo_url: logoUrl || "", // URL del logo subido
           page_url: data.page_url || "",
         }),
       });
@@ -256,26 +277,27 @@ function CreatePartnerPage() {
               )}
             </div>
 
-            {/* URL del Logo */}
+            {/* Logo del Partner */}
             <div className="space-y-2">
-              <Label htmlFor="logo_url" className="text-purple-700 font-medium">
-                URL del Logo (Opcional)
+              <Label
+                htmlFor="logo_file"
+                className="text-purple-700 font-medium"
+              >
+                Logo del Partner (Opcional)
               </Label>
               <div className="relative group">
-                <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
+                <Upload className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
                 <Input
-                  id="logo_url"
-                  type="url"
-                  placeholder="https://ejemplo.com/logo.png"
-                  className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
-                  {...register("logo_url")}
+                  id="logo_file"
+                  type="file"
+                  name="logo_file"
+                  accept=".png,.jpg,.jpeg,.svg,.webp"
+                  className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30 py-2 h-auto file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-100 file:to-violet-100 file:text-purple-700 hover:file:from-purple-200 hover:file:to-violet-200 file:cursor-pointer cursor-pointer"
                 />
               </div>
-              {errors.logo_url && (
-                <p className="text-sm text-destructive font-medium">
-                  {errors.logo_url.message}
-                </p>
-              )}
+              <p className="text-xs text-gray-600">
+                Formatos aceptados: PNG, JPG, JPEG, SVG, WebP
+              </p>
             </div>
 
             {/* URL de la Página Web */}
