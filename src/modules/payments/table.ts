@@ -107,7 +107,8 @@ export default class PaymentTable extends Table<"payments"> {
         created_at,
         expiration_date,
         extension_date,
-        extension_used
+        extension_used,
+        files
       `
       )
       .eq("partner_id", partnerId)
