@@ -19,7 +19,7 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     const { id, active, content } = body;
-    
+
     if (!id) {
       return NextResponse.json(
         { error: "El id es requerido" },
@@ -38,13 +38,18 @@ export async function PUT(req: NextRequest) {
     }
     // Actualizar content si se proporciona
     else if (typeof content === "string" && content.trim() !== "") {
-      const result = await questionTable.updateContent(Number(id), content.trim());
+      const result = await questionTable.updateContent(
+        Number(id),
+        content.trim()
+      );
       data = result.data;
       error = result.error;
-    }
-    else {
+    } else {
       return NextResponse.json(
-        { error: "Debes enviar 'active' (boolean) o 'content' (string no vacío)" },
+        {
+          error:
+            "Debes enviar 'active' (boolean) o 'content' (string no vacío)",
+        },
         { status: 400 }
       );
     }
@@ -52,7 +57,7 @@ export async function PUT(req: NextRequest) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    
+
     return NextResponse.json({ data }, { status: 200 });
   } catch (error) {
     return NextResponse.json(
