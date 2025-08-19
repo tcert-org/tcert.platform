@@ -402,6 +402,7 @@ returns table (
   expiration_date timestamptz,
   extension_date timestamptz,
   extension_used boolean,
+  files text,           -- <--- AGREGA ESTA LÍNEA
   total_count bigint
 )
 language plpgsql
@@ -434,7 +435,8 @@ begin
         p.created_at,
         p.expiration_date,
         p.extension_date,
-        p.extension_used
+        p.extension_used,
+        p.files           -- <--- AGREGA ESTA LÍNEA
       from payments p
       left join users u on u.id = p.partner_id
       where u.role_id = 5
@@ -457,6 +459,8 @@ begin
       f.created_at::timestamptz,
       f.expiration_date::timestamptz,
       f.extension_date::timestamptz,
+      f.extension_used::boolean,   -- <--- AGREGA ESTA LÍNEA
+      f.files::text,               -- <--- AGREGA ESTA LÍNEA
       f.total_count::bigint
     from filtered f
     order by %I %s
