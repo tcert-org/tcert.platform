@@ -27,6 +27,7 @@ export default class VoucherTable extends Table<"vouchers"> {
         filter_purchase_date,
         filter_expiration_date,
         filter_partner_id,
+        filter_status_name,
         order_by = "created_at",
         order_dir = "desc",
         page = 1,
@@ -45,7 +46,8 @@ export default class VoucherTable extends Table<"vouchers"> {
         filter_expiration_date: filter_expiration_date ?? null,
         filter_partner_id: filter_partner_id ? Number(filter_partner_id) : null,
         filter_purchase_date: filter_purchase_date ?? null,
-        filter_status_id: null, // SIEMPRE envía null
+        filter_status_id: null, // SIEMPRE envía null ya que no lo usamos
+        filter_status_name: filter_status_name ?? null, // 👈 NUEVO
         order_by: order_by ?? "created_at",
         order_dir: order_dir ?? "desc",
         page: page ?? 1,

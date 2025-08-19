@@ -189,6 +189,7 @@ export default function VoucherAdministrationPage() {
       accessorKey: "code",
       header: "Código único",
       size: 150,
+      meta: { filterType: "text" }, // 👈 NUEVO: Agregado filtro de texto
       cell: ({ row }) => {
         const code = row.getValue("code") as string;
         return (

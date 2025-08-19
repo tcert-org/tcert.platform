@@ -92,14 +92,16 @@ export default class PartnerTable extends Table<"users"> {
     try {
       const { data: userData, error: userError } = await supabase
         .from("users")
-        .select(`
+        .select(
+          `
           id,
           email,
           created_at,
           company_name,
           contact_number,
           membership:membership_id ( name )
-        `)
+        `
+        )
         .eq("id", id)
         .single();
 
