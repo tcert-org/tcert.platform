@@ -83,7 +83,7 @@ export default function Flipbook({ material }) {
       className="w-full flex flex-col items-center px-4 overflow-x-hidden overflow-y-hidden"
     >
       <Document
-        file={`/materials/${material}`}
+        file={`https://e48bssyezdxaxnzg.public.blob.vercel-storage.com/materials/${material}`}
         onLoadSuccess={({ numPages }) => {
           setNumPages(numPages);
           setCurrentPage(1);
