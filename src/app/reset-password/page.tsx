@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -48,16 +49,29 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-orange-50 to-violet-50">
-      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 mt-10">
-        <h2 className="text-2xl font-bold mb-4 text-center text-violet-900">
+      <div className="w-full max-w-md relative overflow-hidden transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/80 shadow-2xl shadow-violet-950/10 backdrop-blur-sm ring-1 ring-gray-200/50 rounded-xl p-8 mt-10">
+        {/* Elementos decorativos */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-100/20 to-transparent rounded-full -translate-y-16 translate-x-16" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-100/15 to-transparent rounded-full translate-y-12 -translate-x-12" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-950 via-violet-800 to-orange-500" />
+        <div className="flex items-center justify-center mb-4 relative z-10 pt-6 pb-2">
+          <Image
+            src="/sm-full-color.png"
+            alt="T-cert logo"
+            width={70}
+            height={70}
+            className="drop-shadow-lg"
+          />
+        </div>
+        <h2 className="text-2xl font-bold mb-4 text-center bg-gradient-to-r from-violet-950 via-violet-800 to-violet-900 bg-clip-text text-transparent tracking-tight relative z-10">
           Restablecer contraseña
         </h2>
         {success ? (
-          <div className="text-green-700 text-center font-semibold">
+          <div className="text-green-700 text-center font-semibold relative z-10">
             ¡Contraseña actualizada! Redirigiendo al login...
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
             <div>
               <Label htmlFor="new-password">Nueva contraseña</Label>
               <div className="relative">
@@ -113,7 +127,11 @@ export default function ResetPasswordPage() {
             {error && (
               <div className="text-red-600 text-sm text-center">{error}</div>
             )}
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white font-semibold shadow-md hover:from-violet-800 hover:to-orange-600 focus:ring-2 focus:ring-violet-400 focus:outline-none"
+              disabled={loading}
+            >
               {loading ? "Actualizando..." : "Cambiar contraseña"}
             </Button>
           </form>

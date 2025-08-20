@@ -23,8 +23,10 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error || !user) {
-    // No revelar si existe o no
-    return NextResponse.json({ ok: true });
+    return NextResponse.json(
+      { error: "El correo no está registrado." },
+      { status: 404 }
+    );
   }
 
   // Genera un token único

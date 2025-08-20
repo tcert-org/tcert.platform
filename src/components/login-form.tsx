@@ -461,7 +461,7 @@ function PartnerLoginForm({
               });
               if (res.ok) {
                 setForgotMessage(
-                  "Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña."
+                  "Por favor, revisa tu correo electrónico. Hemos enviado un enlace para que puedas restablecer tu contraseña de manera segura."
                 );
               } else {
                 const data = await res.json();
@@ -642,12 +642,14 @@ function PartnerLoginForm({
             </Button>
 
             <div className="text-center pt-1">
-              <button
-                type="button"
+              <a
+                href="https://t-cert.us/#contact"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-xs text-orange-600 hover:text-orange-700 underline-offset-4 hover:underline transition-colors font-medium bg-orange-50/50 px-3 py-1.5 rounded-lg hover:bg-orange-50"
               >
                 ¿Deseas ser Partner? Solicita información
-              </button>
+              </a>
             </div>
           </div>
         </form>
