@@ -175,12 +175,20 @@ export default class PDFTool {
       const courseFontSize = 24; // Tamaño más grande para el curso
       const titleFontSize = 22;
 
-      // Cargar el logo usando process.cwd()
-      const logoPath = path.join(
-        process.cwd(),
-        `public/assets/certificates/logos/${URL_logo}`
-      );
-      const logoBytes = fs.readFileSync(logoPath);
+      // Cargar el logo desde URL remota o ruta local
+      let logoBytes: Buffer | Uint8Array;
+      if (/^https?:\/\//.test(URL_logo)) {
+        // Si es una URL completa, descargarla
+        const response = await fetch(URL_logo);
+        if (!response.ok) throw new Error("No se pudo descargar el logo");
+        logoBytes = new Uint8Array(await response.arrayBuffer());
+      } else {
+        // Si es solo el nombre del archivo, armar la URL completa de blob
+        const logoUrl = `https://e48bssyezdxaxnzg.public.blob.vercel-storage.com/logos_insignias/${URL_logo}`;
+        const response = await fetch(logoUrl);
+        if (!response.ok) throw new Error("No se pudo descargar el logo");
+        logoBytes = new Uint8Array(await response.arrayBuffer());
+      }
       const logoImage = await pdfDoc.embedPng(logoBytes);
 
       // Obtener la primera página del PDF
@@ -339,12 +347,18 @@ export default class PDFTool {
         fontConfig.document || CustomFonts.BAHNSCHRIFT
       );
 
-      // Cargar el logo
-      const logoPath = path.join(
-        process.cwd(),
-        `public/assets/certificates/logos/${URL_logo}`
-      );
-      const logoBytes = fs.readFileSync(logoPath);
+      // Cargar el logo desde URL remota o ruta local
+      let logoBytes: Buffer | Uint8Array;
+      if (/^https?:\/\//.test(URL_logo)) {
+        const response = await fetch(URL_logo);
+        if (!response.ok) throw new Error("No se pudo descargar el logo");
+        logoBytes = new Uint8Array(await response.arrayBuffer());
+      } else {
+        const logoUrl = `https://e48bssyezdxaxnzg.public.blob.vercel-storage.com/logos_insignias/${URL_logo}`;
+        const response = await fetch(logoUrl);
+        if (!response.ok) throw new Error("No se pudo descargar el logo");
+        logoBytes = new Uint8Array(await response.arrayBuffer());
+      }
       const logoImage = await pdfDoc.embedPng(logoBytes);
 
       const pages = pdfDoc.getPages();
