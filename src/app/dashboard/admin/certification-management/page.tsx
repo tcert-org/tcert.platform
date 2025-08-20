@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Settings,
   Edit,
@@ -20,6 +22,7 @@ interface Certification {
   name: string;
   description: string;
   logo_url: string;
+  study_material_url?: string;
   active: boolean | null;
 }
 
@@ -29,6 +32,7 @@ interface EditingCertification extends Certification {
 }
 
 export default function CertificationManagementPage() {
+  const router = useRouter();
   const [certifications, setCertifications] = useState<EditingCertification[]>(
     []
   );
@@ -36,6 +40,45 @@ export default function CertificationManagementPage() {
   const [saving, setSaving] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Estado para el formulario de creación
+  const [newCert, setNewCert] = useState({
+    name: "",
+    description: "",
+    logo_url: "",
+    study_material_url: "",
+    active: true,
+  });
+  const [creating, setCreating] = useState(false);
+  // Crear nueva certificación
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setCreating(true);
+    try {
+      const response = await fetch("/api/certifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCert),
+      });
+      if (!response.ok) throw new Error("Error al crear la certificación");
+      setSuccess("Certificación creada exitosamente");
+      setNewCert({
+        name: "",
+        description: "",
+        logo_url: "",
+        study_material_url: "",
+        active: true,
+      });
+      fetchCertifications();
+    } catch (err) {
+      setError("Error al crear la certificación");
+    } finally {
+      setCreating(false);
+      setTimeout(() => setSuccess(null), 3000);
+    }
+  };
 
   const fetchCertifications = useCallback(async () => {
     try {
@@ -250,20 +293,30 @@ export default function CertificationManagementPage() {
               </div>
             </div>
 
-            <button
-              onClick={fetchCertifications}
-              disabled={loading}
-              className="relative inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-violet-800 transition-all duration-200 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none font-semibold text-sm md:text-base w-full sm:w-auto justify-center flex-shrink-0"
-            >
-              {loading ? (
-                <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 md:w-5 h-4 md:h-5" />
-              )}
-              Actualizar
-            </button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                onClick={fetchCertifications}
+                disabled={loading}
+                className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-purple-600 via-violet-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-violet-800 transition-all duration-200 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none font-semibold text-sm md:text-base w-full sm:w-auto justify-center flex-shrink-0"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 md:w-5 h-4 md:h-5 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 md:w-5 h-4 md:h-5" />
+                )}
+                Actualizar
+              </button>
+            </div>
           </div>
 
+          <Link href={"/dashboard/admin/certification-management/create"}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg shadow-green-500/25 hover:shadow-green-500/40 font-semibold text-sm md:text-base w-full sm:w-auto justify-center"
+            >
+              Crear
+            </button>
+          </Link>
           {/* Alertas */}
           {error && (
             <div className="mb-6 relative">

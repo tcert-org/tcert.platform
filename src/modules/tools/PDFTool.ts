@@ -177,19 +177,27 @@ export default class PDFTool {
 
       // Cargar el logo desde URL remota o ruta local
       let logoBytes: Buffer | Uint8Array;
+      let ext = "";
       if (/^https?:\/\//.test(URL_logo)) {
-        // Si es una URL completa, descargarla
         const response = await fetch(URL_logo);
         if (!response.ok) throw new Error("No se pudo descargar el logo");
         logoBytes = new Uint8Array(await response.arrayBuffer());
+        const urlParts = URL_logo.split("?")[0].split(".");
+        ext = urlParts[urlParts.length - 1].toLowerCase();
       } else {
-        // Si es solo el nombre del archivo, armar la URL completa de blob
         const logoUrl = `https://e48bssyezdxaxnzg.public.blob.vercel-storage.com/logos_insignias/${URL_logo}`;
         const response = await fetch(logoUrl);
         if (!response.ok) throw new Error("No se pudo descargar el logo");
         logoBytes = new Uint8Array(await response.arrayBuffer());
+        const urlParts = URL_logo.split("?")[0].split(".");
+        ext = urlParts[urlParts.length - 1].toLowerCase();
       }
-      const logoImage = await pdfDoc.embedPng(logoBytes);
+      let logoImage;
+      if (["jpg", "jpeg"].includes(ext)) {
+        logoImage = await pdfDoc.embedJpg(logoBytes);
+      } else {
+        logoImage = await pdfDoc.embedPng(logoBytes);
+      }
 
       // Obtener la primera página del PDF
       const pages = pdfDoc.getPages();
@@ -349,17 +357,27 @@ export default class PDFTool {
 
       // Cargar el logo desde URL remota o ruta local
       let logoBytes: Buffer | Uint8Array;
+      let ext = "";
       if (/^https?:\/\//.test(URL_logo)) {
         const response = await fetch(URL_logo);
         if (!response.ok) throw new Error("No se pudo descargar el logo");
         logoBytes = new Uint8Array(await response.arrayBuffer());
+        const urlParts = URL_logo.split("?")[0].split(".");
+        ext = urlParts[urlParts.length - 1].toLowerCase();
       } else {
         const logoUrl = `https://e48bssyezdxaxnzg.public.blob.vercel-storage.com/logos_insignias/${URL_logo}`;
         const response = await fetch(logoUrl);
         if (!response.ok) throw new Error("No se pudo descargar el logo");
         logoBytes = new Uint8Array(await response.arrayBuffer());
+        const urlParts = URL_logo.split("?")[0].split(".");
+        ext = urlParts[urlParts.length - 1].toLowerCase();
       }
-      const logoImage = await pdfDoc.embedPng(logoBytes);
+      let logoImage;
+      if (["jpg", "jpeg"].includes(ext)) {
+        logoImage = await pdfDoc.embedJpg(logoBytes);
+      } else {
+        logoImage = await pdfDoc.embedPng(logoBytes);
+      }
 
       const pages = pdfDoc.getPages();
       const firstPage = pages[0];
