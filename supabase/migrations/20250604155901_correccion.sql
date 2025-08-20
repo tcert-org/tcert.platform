@@ -421,3 +421,95 @@ drop column expiration_period_months;
 
 alter table certifications
 add column active boolean;
+-----------------Funcion para contar los pagos y cantidades de un partner en un tiempo determinado para la variable params---------
+create or replace function public.update_membership_from_recent_vouchers(
+  p_partner_id bigint,
+  p_now timestamptz default now()
+)
+returns table(
+  partner_id bigint,
+  window_months int,
+  window_start timestamptz,
+  window_end timestamptz,
+  total_vouchers bigint,
+  matched_membership_id bigint,
+  matched_membership_name text,
+  previous_membership_id bigint,
+  updated boolean
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_months int;
+  v_start  timestamptz;
+  v_total  bigint;
+  v_match_id bigint;
+  v_match_name text;
+  v_prev_id bigint;
+begin
+  -- 1) Leer meses (params.id = 2)
+  select coalesce(nullif(trim(value), '')::int, 0)
+    into v_months
+  from public.params
+  where id = 2;
+
+  if v_months is null or v_months < 0 then
+    v_months := 0;
+  end if;
+
+  -- 2) Ventana
+  v_start := p_now - make_interval(months => v_months);
+
+  -- 3) Total de vouchers en la ventana para el partner
+  select coalesce(sum(p.voucher_quantity)::bigint, 0)
+    into v_total
+  from public.payments as p
+  where p.partner_id = p_partner_id
+    and p.created_at >= v_start
+    and p.created_at <  p_now;
+
+  -- 4) Membership que aplica (count_from <= total <= count_up)
+  select m.id, m.name
+    into v_match_id, v_match_name
+  from public.membership m
+  where v_total >= m.count_from
+    and v_total <= m.count_up
+  order by m.count_from desc
+  limit 1;
+
+  -- 5) Obtener membresía anterior y bloquear fila
+  select u.membership_id
+    into v_prev_id
+  from public.users u
+  where u.id = p_partner_id
+  for update;
+
+  -- 6) Actualizar si hay cambio y hay match
+  if v_match_id is not null and v_prev_id is distinct from v_match_id then
+    update public.users
+       set membership_id = v_match_id
+     where id = p_partner_id;
+    updated := true;
+  else
+    updated := false;
+  end if;
+
+  -- 7) Devolver detalle
+  partner_id := p_partner_id;
+  window_months := v_months;
+  window_start := v_start;
+  window_end := p_now;
+  total_vouchers := v_total;
+  matched_membership_id := v_match_id;
+  matched_membership_name := v_match_name;
+  previous_membership_id := v_prev_id;
+
+  return next;
+end
+$$;
+
+-- Índice recomendado
+create index if not exists idx_payments_partner_created_at
+  on public.payments (partner_id, created_at);
