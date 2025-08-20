@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
+type Certification = { id: number; name: string };
 import { usePathname } from "next/navigation";
 import {
   Loader2,
@@ -52,7 +53,29 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [savingCertification, setSavingCertification] = useState(false);
+  const [certificationError, setCertificationError] = useState<string | null>(
+    null
+  );
+  const [showCertificationSuccess, setShowCertificationSuccess] =
+    useState(false);
   const pathname = usePathname();
+  // Cargar certificaciones
+  useEffect(() => {
+    async function fetchCertifications() {
+      try {
+        const res = await fetch("/api/vouchers/certifications");
+        const result = await res.json();
+        if (res.ok && result.data) {
+          setCertifications(result.data);
+        }
+      } catch (err) {
+        // Silenciar error
+      }
+    }
+    fetchCertifications();
+  }, []);
 
   // Detectar si estamos en la ruta de admin
   const isAdminRoute = pathname.includes("/dashboard/admin");
@@ -268,9 +291,88 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
                   <BookOpen className="text-purple-700 w-5 h-5" />
                   <p>
                     <strong className="text-gray-700">Certificación:</strong>{" "}
-                    <span className="text-gray-800 font-medium">
-                      {voucher?.certification_name || "N/A"}
-                    </span>
+                    {isAdminRoute ? (
+                      <>
+                        <select
+                          className="border rounded px-2 py-1 text-gray-800 font-medium focus:outline-none focus:ring focus:border-purple-400"
+                          value={voucher?.certification_id || ""}
+                          onChange={async (e) => {
+                            setSavingCertification(true);
+                            setCertificationError(null);
+                            setShowCertificationSuccess(false);
+                            const newId = e.target.value;
+                            try {
+                              const res = await fetch(
+                                `/api/vouchers/${voucher.id}`,
+                                {
+                                  method: "PATCH",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    certification_id: newId,
+                                  }),
+                                }
+                              );
+                              if (!res.ok) {
+                                const err = await res.text();
+                                setCertificationError(
+                                  err || "Error al actualizar certificación"
+                                );
+                              } else {
+                                const selected = certifications.find(
+                                  (c) => c.id === Number(newId)
+                                );
+                                setVoucher({
+                                  ...voucher,
+                                  certification_id: Number(newId),
+                                  certification_name: selected?.name,
+                                });
+                                setShowCertificationSuccess(true);
+                                setTimeout(
+                                  () => setShowCertificationSuccess(false),
+                                  2500
+                                );
+                              }
+                            } catch (err) {
+                              setCertificationError(
+                                "Error de red al actualizar certificación"
+                              );
+                            } finally {
+                              setSavingCertification(false);
+                            }
+                          }}
+                          disabled={savingCertification}
+                          style={{ minWidth: 180 }}
+                        >
+                          <option value="">Selecciona una certificación</option>
+                          {certifications.map((cert) => (
+                            <option key={cert.id} value={cert.id}>
+                              {cert.name}
+                            </option>
+                          ))}
+                        </select>
+                        {savingCertification && (
+                          <span className="ml-2 text-xs text-purple-600">
+                            Guardando...
+                          </span>
+                        )}
+                        {certificationError && (
+                          <span className="ml-2 text-xs text-red-600">
+                            {certificationError}
+                          </span>
+                        )}
+                        {showCertificationSuccess && (
+                          <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded shadow">
+                            ¡Certificación actualizada!
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-gray-800 font-medium">
+                        {voucher?.certification_name || "N/A"}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -347,7 +449,7 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
                           type="text"
                           className="border rounded px-2 py-1 text-gray-800 font-medium focus:outline-none focus:ring focus:border-purple-400"
                           value={editName}
-                          onChange={e => setEditName(e.target.value)}
+                          onChange={(e) => setEditName(e.target.value)}
                           disabled={savingName}
                           style={{ minWidth: 180 }}
                         />
@@ -357,11 +459,16 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
                             setSavingName(true);
                             setNameError(null);
                             try {
-                              const res = await fetch(`/api/students/${student.id}/update-name`, {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ fullname: editName })
-                              });
+                              const res = await fetch(
+                                `/api/students/${student.id}/update-name`,
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({ fullname: editName }),
+                                }
+                              );
                               if (!res.ok) {
                                 const err = await res.text();
                                 setNameError(err || "Error al guardar nombre");
@@ -376,19 +483,29 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
                               setSavingName(false);
                             }
                           }}
-                          disabled={savingName || !editName || editName === student.fullname}
+                          disabled={
+                            savingName ||
+                            !editName ||
+                            editName === student.fullname
+                          }
                         >
                           {savingName ? "Guardando..." : "Guardar"}
                         </button>
                         {nameError && (
-                          <span className="ml-2 text-xs text-red-600">{nameError}</span>
+                          <span className="ml-2 text-xs text-red-600">
+                            {nameError}
+                          </span>
                         )}
                         {showSuccess && (
-                          <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded shadow">¡Nombre actualizado!</span>
+                          <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded shadow">
+                            ¡Nombre actualizado!
+                          </span>
                         )}
                       </>
                     ) : (
-                      <span className="text-gray-800 font-medium">{student.fullname}</span>
+                      <span className="text-gray-800 font-medium">
+                        {student.fullname}
+                      </span>
                     )}
                   </p>
                 </div>
