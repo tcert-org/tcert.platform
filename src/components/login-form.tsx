@@ -162,9 +162,9 @@ export function LoginForm({
       <Card
         className={cn(
           "relative overflow-hidden transition-all duration-300 w-full",
-          "border-0 bg-gradient-to-br from-white to-gray-50/80",
+          "bg-gradient-to-br from-white to-gray-50/80",
           "shadow-2xl shadow-violet-950/10 backdrop-blur-sm",
-          "ring-1 ring-gray-200/50"
+          "border-2 border-violet-700"
         )}
       >
         {/* Elementos decorativos elegantes */}
@@ -199,8 +199,8 @@ export function LoginForm({
               className={cn(
                 "w-full h-14 text-base font-semibold transition-all duration-300 transform border-2 rounded-xl relative overflow-hidden group",
                 loginType === "student"
-                  ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-gray-500 shadow-lg shadow-gray-500/25 scale-[1.02] hover:from-gray-500 hover:to-gray-600"
-                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900 hover:scale-[1.01] hover:shadow-md"
+                  ? "bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white border-violet-700 shadow-lg shadow-violet-700/25 scale-[1.02] hover:from-violet-800 hover:to-orange-600 hover:text-white"
+                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-700 hover:scale-[1.01] hover:shadow-md"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -231,8 +231,8 @@ export function LoginForm({
               className={cn(
                 "w-full h-14 text-base font-semibold transition-all duration-300 transform border-2 rounded-xl relative overflow-hidden group",
                 loginType === "partner"
-                  ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-gray-500 shadow-lg shadow-gray-500/25 scale-[1.02] hover:from-gray-500 hover:to-gray-600"
-                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900 hover:scale-[1.01] hover:shadow-md"
+                  ? "bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white border-violet-700 shadow-lg shadow-violet-700/25 scale-[1.02] hover:from-violet-800 hover:to-orange-600 hover:text-white"
+                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-700 hover:scale-[1.01] hover:shadow-md"
               )}
               onClick={(e) => {
                 e.preventDefault();
