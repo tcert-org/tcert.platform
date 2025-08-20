@@ -116,7 +116,15 @@ export async function middleware(req: NextRequest) {
     }
 
     if (!studentAuthResult.authenticated && !userAuthResult.authenticated) {
-      return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
+      // Limpiar cookies de sesión inválidas
+      const response = NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
+      response.cookies.set("access_token", "", { path: "/", maxAge: 0 });
+      response.cookies.set("refresh_token", "", { path: "/", maxAge: 0 });
+      response.cookies.set("student_access_token", "", {
+        path: "/",
+        maxAge: 0,
+      });
+      return response;
     }
 
     // Headers para rutas API autenticadas como usuario
