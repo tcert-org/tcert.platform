@@ -197,10 +197,10 @@ export function LoginForm({
             <Button
               variant="outline"
               className={cn(
-                "w-full h-14 text-base font-semibold transition-all duration-300 transform border-2 rounded-xl relative overflow-hidden group",
+                "w-full h-14 text-base font-semibold transition-all duration-300 transform rounded-xl relative overflow-hidden group",
                 loginType === "student"
-                  ? "bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white border-violet-700 shadow-lg shadow-violet-700/25 scale-[1.02] hover:from-violet-800 hover:to-orange-600 hover:text-white"
-                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-700 hover:scale-[1.01] hover:shadow-md"
+                  ? "bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white shadow-lg shadow-violet-700/25 scale-[1.02] hover:from-violet-800 hover:to-orange-600 hover:text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-700 hover:scale-[1.01] hover:shadow-md"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -229,10 +229,10 @@ export function LoginForm({
             <Button
               variant="outline"
               className={cn(
-                "w-full h-14 text-base font-semibold transition-all duration-300 transform border-2 rounded-xl relative overflow-hidden group",
+                "w-full h-14 text-base font-semibold transition-all duration-300 transform rounded-xl relative overflow-hidden group",
                 loginType === "partner"
-                  ? "bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white border-violet-700 shadow-lg shadow-violet-700/25 scale-[1.02] hover:from-violet-800 hover:to-orange-600 hover:text-white"
-                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-700 hover:scale-[1.01] hover:shadow-md"
+                  ? "bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white shadow-lg shadow-violet-700/25 scale-[1.02] hover:from-violet-800 hover:to-orange-600 hover:text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-700 hover:scale-[1.01] hover:shadow-md"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -488,7 +488,7 @@ function PartnerLoginForm({
             <Input
               id="forgot-email"
               type="email"
-              placeholder="partner@institucion.com"
+              placeholder="user@example.com"
               className="h-12 text-sm border-orange-200 rounded-xl pl-4 bg-gradient-to-r from-white to-orange-50/30"
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
@@ -532,7 +532,7 @@ function PartnerLoginForm({
               <Input
                 id="email"
                 type="email"
-                placeholder="partner@institucion.com"
+                placeholder="user@example.com"
                 className={cn(
                   "h-12 text-sm transition-all duration-300 border-2 rounded-xl pl-4",
                   "border-orange-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-100/50",
