@@ -17,7 +17,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, active } = body;
+    const { name, description, active, logo_url, study_material_url } = body;
 
     // Validar campos requeridos
     if (!name || !description) {
@@ -28,16 +28,21 @@ export async function PUT(
     }
 
     // Actualizar certificación
+    const updateFields: any = {
+      name: name.trim(),
+      description: description.trim(),
+      active: active,
+      updated_at: new Date().toISOString(),
+    };
+    if (logo_url !== undefined) updateFields.logo_url = logo_url;
+    if (study_material_url !== undefined)
+      updateFields.study_material_url = study_material_url;
+
     const { data, error } = await supabase
       .from("certifications")
-      .update({
-        name: name.trim(),
-        description: description.trim(),
-        active: active,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateFields)
       .eq("id", id)
-      .select("id, name, description, logo_url, active")
+      .select("id, name, description, logo_url, study_material_url, active")
       .single();
 
     if (error) {
