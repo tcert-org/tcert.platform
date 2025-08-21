@@ -386,6 +386,9 @@ export default function CertificationManagementPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {/* Descripción - ocupa 2/3 en md+ */}
                         <div className="md:col-span-2">
+                          <Label className="text-purple-700 font-medium">
+                            Descripción
+                          </Label>
                           {cert.isEditing ? (
                             <div>
                               <div className="flex items-end justify-between gap-3 mb-1">
