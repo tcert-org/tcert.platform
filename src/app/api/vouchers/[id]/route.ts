@@ -8,7 +8,34 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const accessToken = req.cookies.get("access_token")?.value;
+  if (!accessToken) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
 
+  // Obtener usuario actual
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser(accessToken);
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Usuario no encontrado" },
+      { status: 401 }
+    );
+  }
+
+  // Buscar usuario en tabla interna y verificar rol
+  const userTable = new UserTable();
+  const dbUser = await userTable.getByUuid(user.id);
+  if (!dbUser) {
+    return NextResponse.json(
+      { error: "Usuario no encontrado en base de datos interna" },
+      { status: 401 }
+    );
+  }
+
+  // Obtener el voucher y validar que pertenezca al partner autenticado
   const { data, error } = await supabase
     .from("vouchers")
     .select(
@@ -21,6 +48,7 @@ export async function GET(
       expiration_date,
       certification_id,
       status_id,
+      partner_id,
       certification:certifications ( name, logo_url ),
       voucher_status:voucher_statuses ( name )
     `
@@ -32,6 +60,15 @@ export async function GET(
     return new Response(JSON.stringify({ error: "Voucher no encontrado" }), {
       status: 404,
     });
+  }
+
+  // Solo el partner dueño del voucher o un admin puede acceder
+  if (dbUser.role_id !== 4 && data.partner_id !== dbUser.id) {
+    // 4 = admin
+    return NextResponse.json(
+      { error: "No autorizado para ver este voucher" },
+      { status: 403 }
+    );
   }
 
   const certification = Array.isArray(data.certification)
