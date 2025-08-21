@@ -23,6 +23,7 @@ export default function CreateCertificationPage() {
   const [form, setForm] = useState({
     name: "",
     description: "",
+    audience: "",
     active: true,
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -219,7 +220,7 @@ export default function CreateCertificationPage() {
               </div>
             </div>
 
-            {/* Descripción con mejor distribución */}
+            {/* Descripción */}
             <div className="space-y-2">
               <div className="flex items-end justify-between gap-3">
                 <Label
@@ -232,16 +233,14 @@ export default function CreateCertificationPage() {
                   {descCount}/{DESCRIPTION_MAX}
                 </div>
               </div>
-
               <div className="relative">
-                {/* Caja contenedora estilizada para un look tipo editor */}
                 <div className="rounded-xl border-2 border-purple-200 bg-white focus-within:ring-2 focus-within:ring-purple-500/20 focus-within:border-purple-500 transition-colors">
                   <textarea
                     ref={textareaRef}
                     id="description"
                     name="description"
                     required
-                    placeholder="Describe brevemente el objetivo, alcance y público de la certificación."
+                    placeholder="Describe brevemente el objetivo y alcance de la certificación."
                     className="w-full min-h-[120px] max-h-[320px] px-3 py-3 rounded-xl outline-none resize-none leading-relaxed"
                     value={form.description}
                     onChange={handleChange}
@@ -249,8 +248,6 @@ export default function CreateCertificationPage() {
                     maxLength={DESCRIPTION_MAX}
                   />
                 </div>
-
-                {/* Ayuda/Guidelines al pie derecho */}
                 <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
                   <span>
                     Sugerencia: usa 2–4 frases claras. Evita repetir el nombre.
@@ -259,6 +256,32 @@ export default function CreateCertificationPage() {
                     Te quedan {remaining} caracteres
                   </span>
                 </div>
+              </div>
+            </div>
+
+            {/* Audiencia */}
+            <div className="space-y-2">
+              <Label htmlFor="audience" className="text-purple-700 font-medium">
+                Audiencia objetivo *
+              </Label>
+              <div className="text-xs text-slate-600 mb-1">
+                Separar con <span className="font-bold">;</span>
+              </div>
+              <Input
+                id="audience"
+                name="audience"
+                type="text"
+                required
+                placeholder="Indica a quién está dirigida la certificación."
+                className="border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 bg-white"
+                value={form.audience}
+                onChange={handleChange}
+              />
+              <div className="text-xs text-slate-600 mt-2">
+                Ejemplo:{" "}
+                <span className="italic">
+                  Ingenieros;Investigadores;Lideres de Proyectos
+                </span>
               </div>
             </div>
 

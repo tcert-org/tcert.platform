@@ -17,12 +17,19 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, description, active, logo_url, study_material_url } = body;
+    const {
+      name,
+      description,
+      audience,
+      active,
+      logo_url,
+      study_material_url,
+    } = body;
 
     // Validar campos requeridos
-    if (!name || !description) {
+    if (!name || !description || !audience) {
       return NextResponse.json(
-        { error: "Nombre y descripción son requeridos" },
+        { error: "Nombre, descripción y audiencia son requeridos" },
         { status: 400 }
       );
     }
@@ -31,6 +38,7 @@ export async function PUT(
     const updateFields: any = {
       name: name.trim(),
       description: description.trim(),
+      audience: audience.trim(),
       active: active,
       updated_at: new Date().toISOString(),
     };
@@ -42,7 +50,9 @@ export async function PUT(
       .from("certifications")
       .update(updateFields)
       .eq("id", id)
-      .select("id, name, description, logo_url, study_material_url, active")
+      .select(
+        "id, name, description, audience, logo_url, study_material_url, active"
+      )
       .single();
 
     if (error) {
@@ -94,7 +104,7 @@ export async function GET(
 
     const { data, error } = await supabase
       .from("certifications")
-      .select("id, name, description, logo_url, active")
+      .select("id, name, description, audience, logo_url, active")
       .eq("id", id)
       .single();
 

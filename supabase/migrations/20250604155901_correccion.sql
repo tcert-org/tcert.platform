@@ -513,3 +513,8 @@ $$;
 -- Índice recomendado
 create index if not exists idx_payments_partner_created_at
   on public.payments (partner_id, created_at);
+
+
+------------------Agregar Columna para  gestionar el publico dirigido en cetifications----------------------
+alter table certifications
+add column audience text;

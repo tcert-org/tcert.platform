@@ -26,6 +26,7 @@ interface Certification {
   id: number;
   name: string;
   description: string;
+  audience: string;
   logo_url: string;
   study_material_url?: string;
   active: boolean | null;
@@ -172,6 +173,7 @@ export default function CertificationManagementPage() {
             name: certification.name,
             description:
               certification.description?.slice(0, DESCRIPTION_MAX) || "",
+            audience: certification.audience,
             active: certification.active,
             logo_url,
             study_material_url,
@@ -192,6 +194,7 @@ export default function CertificationManagementPage() {
                     id: cert.id,
                     name: cert.name,
                     description: cert.description,
+                    audience: cert.audience,
                     logo_url,
                     study_material_url,
                     active: cert.active,
@@ -384,57 +387,99 @@ export default function CertificationManagementPage() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* Descripción - ocupa 2/3 en md+ */}
-                        <div className="md:col-span-2">
-                          <Label className="text-purple-700 font-medium">
-                            Descripción
-                          </Label>
-                          {cert.isEditing ? (
-                            <div>
-                              <div className="flex items-end justify-between gap-3 mb-1">
-                                <Label className="text-purple-700 font-medium">
-                                  Descripción *
-                                </Label>
-                                <div className="text-xs tabular-nums text-purple-600/80">
-                                  {descCount}/{DESCRIPTION_MAX}
+                        {/* Descripción y Audiencia - ocupa 2/3 en md+ */}
+                        <div className="md:col-span-2 space-y-4">
+                          <div>
+                            <Label className="text-purple-700 font-medium">
+                              Descripción
+                            </Label>
+                            {cert.isEditing ? (
+                              <div>
+                                <div className="flex items-end justify-between gap-3 mb-1">
+                                  <div className="text-xs tabular-nums text-purple-600/80">
+                                    {descCount}/{DESCRIPTION_MAX}
+                                  </div>
+                                </div>
+                                <div className="rounded-xl border border-purple-200 bg-white focus-within:ring-2 focus-within:ring-purple-500/20 focus-within:border-purple-500">
+                                  <textarea
+                                    ref={(el) => {
+                                      descRefs.current[cert.id] = el;
+                                    }}
+                                    value={cert.description}
+                                    onChange={(e) =>
+                                      updateField(
+                                        cert.id,
+                                        "description",
+                                        e.target.value.slice(0, DESCRIPTION_MAX)
+                                      )
+                                    }
+                                    onInput={() => autoResize(cert.id)}
+                                    placeholder="Describe el objetivo, alcance y público de la certificación."
+                                    className="w-full min-h-[120px] max-h-[320px] px-3 py-3 rounded-xl outline-none resize-none leading-relaxed"
+                                  />
+                                </div>
+                                <div className="mt-1.5 flex items-center justify-between text-xs text-slate-600">
+                                  <span>
+                                    Sugerencia: usa 2–4 frases claras.
+                                  </span>
+                                  <span
+                                    className={
+                                      remaining <= 40 ? "text-amber-600" : ""
+                                    }
+                                  >
+                                    Te quedan {remaining} caracteres
+                                  </span>
                                 </div>
                               </div>
-                              <div className="rounded-xl border border-purple-200 bg-white focus-within:ring-2 focus-within:ring-purple-500/20 focus-within:border-purple-500">
-                                <textarea
-                                  ref={(el) => {
-                                    descRefs.current[cert.id] = el;
-                                  }}
-                                  value={cert.description}
+                            ) : (
+                              <div className="bg-purple-50/50 border border-purple-200 rounded-xl p-3 md:p-4">
+                                <p className="text-gray-700 leading-relaxed text-sm md:text-base break-words">
+                                  {cert.description}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <div>
+                            <Label className="text-purple-700 font-medium">
+                              Audiencia objetivo
+                            </Label>
+                            {cert.isEditing ? (
+                              <>
+                                <div className="text-xs text-slate-600 mb-1">
+                                  Separar con{" "}
+                                  <span className="font-bold">;</span>
+                                </div>
+                                <Input
+                                  value={cert.audience}
                                   onChange={(e) =>
                                     updateField(
                                       cert.id,
-                                      "description",
-                                      e.target.value.slice(0, DESCRIPTION_MAX)
+                                      "audience",
+                                      e.target.value
                                     )
                                   }
-                                  onInput={() => autoResize(cert.id)}
-                                  placeholder="Describe el objetivo, alcance y público de la certificación."
-                                  className="w-full min-h-[120px] max-h-[320px] px-3 py-3 rounded-xl outline-none resize-none leading-relaxed"
+                                  placeholder="Ej: Profesionales de TI;Estudiantes universitarios;Gerentes"
+                                  className="mt-1 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 bg-white"
                                 />
+                                <div className="text-xs text-slate-600 mt-2">
+                                  Ejemplo:{" "}
+                                  <span className="italic">
+                                    Ingenieros
+                                    <span className="font-bold">;</span>
+                                    Investigadores
+                                    <span className="font-bold">;</span>Lideres
+                                    de Proyectos
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="bg-orange-50/50 border border-orange-200 rounded-xl p-3 md:p-4 mt-1">
+                                <p className="text-orange-800 leading-relaxed text-sm md:text-base break-words">
+                                  {cert.audience}
+                                </p>
                               </div>
-                              <div className="mt-1.5 flex items-center justify-between text-xs text-slate-600">
-                                <span>Sugerencia: usa 2–4 frases claras.</span>
-                                <span
-                                  className={
-                                    remaining <= 40 ? "text-amber-600" : ""
-                                  }
-                                >
-                                  Te quedan {remaining} caracteres
-                                </span>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="bg-purple-50/50 border border-purple-200 rounded-xl p-3 md:p-4">
-                              <p className="text-gray-700 leading-relaxed text-sm md:text-base break-words">
-                                {cert.description}
-                              </p>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
 
                         {/* Files + status (lado derecho compacto) */}

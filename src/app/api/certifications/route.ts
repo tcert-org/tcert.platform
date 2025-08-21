@@ -6,7 +6,9 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from("certifications")
-      .select("id, name, description, logo_url, active, study_material_url")
+      .select(
+        "id, name, description, audience, logo_url, active, study_material_url"
+      )
       .order("id", { ascending: true });
 
     if (error) {
@@ -34,11 +36,19 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, description, logo_url, active, study_material_url } = body;
+    const {
+      name,
+      description,
+      audience,
+      logo_url,
+      active,
+      study_material_url,
+    } = body;
 
     if (
       !name ||
       !description ||
+      !audience ||
       !logo_url ||
       typeof active !== "boolean" ||
       !study_material_url
@@ -51,7 +61,9 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from("certifications")
-      .insert([{ name, description, logo_url, active, study_material_url }])
+      .insert([
+        { name, description, audience, logo_url, active, study_material_url },
+      ])
       .select();
 
     if (error) {
