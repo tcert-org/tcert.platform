@@ -14,6 +14,8 @@ import {
   Clock,
   HelpCircle,
 } from "lucide-react";
+import ProgressBar from "@/modules/tools/ProgressBar";
+import ActionWarning from "@/modules/tools/ActionWarning";
 
 interface Question {
   id: number;
@@ -549,23 +551,15 @@ export default function FormExam() {
       {/* Progress Bar */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="w-full bg-gray-200 h-1">
-            <div
-              className="bg-gradient-to-r from-blue-500 to-purple-600 h-1 transition-all duration-300 ease-out"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
+          <ProgressBar progress={progressPercentage} />
         </div>
       </div>
 
       {/* Advertencia de seguridad */}
-      {showWarning && (
-        <div className="fixed top-16 sm:top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-lg animate-pulse mx-4 max-w-[calc(100vw-2rem)]">
-          <p className="text-xs sm:text-sm font-medium text-center">
-            ⚠️ Acción no permitida durante el examen
-          </p>
-        </div>
-      )}
+      <ActionWarning
+        show={showWarning}
+        message="⚠️ Acción no permitida durante el examen"
+      />
 
       {/* Advertencia de tiempo */}
       {showTimeWarning && timeRemaining !== null && (
