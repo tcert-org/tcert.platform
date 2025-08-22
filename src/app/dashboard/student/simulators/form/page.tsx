@@ -198,16 +198,23 @@ export default function FormSimulador() {
     };
   }, []);
 
-  const handleOptionSelect = (optionIndex: number) => {
+  const handleOptionSelect = async (optionIndex: number) => {
     if (!currentQuestion) return;
     const optionId = options[optionIndex]?.id;
     if (!optionId) return;
 
     setSelectedOptions((prev) => {
       const updated = { ...prev, [currentQuestion.id]: optionId };
-      autosaveAttempt(questions, updated);
       return updated;
     });
+
+    // Usar autosaveAttempt utilitario
+    autosaveAttempt(
+      currentQuestion.id,
+      optionId,
+      questions.length,
+      Object.keys({ ...selectedOptions, [currentQuestion.id]: optionId }).length
+    );
   };
 
   const goNext = () => {
@@ -234,28 +241,19 @@ export default function FormSimulador() {
       if (Object.keys(selectedOptions).length === 0)
         return alert("No seleccionaste ninguna respuesta.");
 
-      const payload = questions.map((q) => ({
-        exam_attempt_id: Number(attemptId),
-        question_id: q.id,
-        selected_option_id: selectedOptions[q.id] ?? null,
-      }));
+      // No enviar unanswered, solo las respondidas ya están guardadas
 
-      const response = await fetch("/api/answers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: payload }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        return alert(error?.error || "Error al guardar respuestas.");
-      }
-
+      // Calificar final, enviando total y respondidas
       const gradeRes = await fetch("/api/attempts/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
+        body: JSON.stringify({
+          attempt_id: attemptId,
+          final_submit: true,
+          total_questions: questions.length,
+          answered_questions: Object.keys(selectedOptions).length,
+        }),
       });
 
       if (gradeRes.ok) {

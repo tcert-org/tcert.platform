@@ -10,7 +10,10 @@ export default class AttemptService {
   }
 
   // Método para calificar el examen
-  async gradeExamAttempt(attemptId: number) {
+  async gradeExamAttempt(
+    attemptId: number,
+    options?: { totalQuestions?: number; unanswered?: number }
+  ) {
     // Obtener el intento de examen
     const { data: attempt } = await this.table.getExamAttemptById(attemptId);
     if (!attempt) throw new Error("Intento no encontrado");
@@ -63,9 +66,12 @@ export default class AttemptService {
       correct_option_id: opt.id,
     }));
 
+    // Pasar totalQuestions y/o unanswered si están en options
     const result = await ExamTool.gradeAttempt({
       studentAnswers: answers,
       correctAnswers: formattedCorrectAnswers,
+      totalQuestions: options?.totalQuestions,
+      unanswered: options?.unanswered,
     });
 
     const updatePayload = {
