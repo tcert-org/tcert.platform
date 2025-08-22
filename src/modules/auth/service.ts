@@ -110,9 +110,12 @@ export default class AuthService {
           statusCode: 404,
         };
       }
-      // Si es partner, ejecutar la función SQL de actualización de membresía
+      // Si es partner, ejecutar la función SQL de actualización de membresía y refrescar pagos expirados
       if (user.role_id === 5) {
         await supabase.rpc("update_membership_from_recent_vouchers", {
+          p_partner_id: user.id,
+        });
+        await supabase.rpc("refresh_payment_expirated", {
           p_partner_id: user.id,
         });
       }

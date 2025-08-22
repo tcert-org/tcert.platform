@@ -147,37 +147,53 @@ END;
 $$;
 
 -------------funcion para hacer el conteo de vouchers de cada partner------------------------------
-CREATE OR REPLACE FUNCTION get_voucher_counts(p_id bigint)
-RETURNS TABLE(voucher_purchased integer, voucher_asigned integer, voucher_available integer) AS $$
+CREATE OR REPLACE FUNCTION public.get_voucher_counts(p_id bigint)
+RETURNS TABLE(
+  voucher_purchased integer,
+  voucher_asigned   integer,
+  voucher_expired   integer,
+  voucher_available integer
+) AS $$
 BEGIN
-    RETURN QUERY
+  RETURN QUERY
+  WITH p AS (
     SELECT
-        -- Vouchers comprados: suma de todos los pagos
-        COALESCE((
-            SELECT SUM(p.voucher_quantity)::integer
-            FROM payments p
-            WHERE p.partner_id = p_id
-        ), 0) AS voucher_purchased,
-        
-        -- Vouchers asignados: contar vouchers únicos del partner
-        COALESCE((
-            SELECT COUNT(DISTINCT v.id)::integer
-            FROM vouchers v
-            WHERE v.partner_id = p_id
-        ), 0) AS voucher_asigned,
-        
-        -- Vouchers disponibles: comprados - asignados
-        COALESCE((
-            SELECT SUM(p.voucher_quantity)::integer
-            FROM payments p
-            WHERE p.partner_id = p_id
-        ), 0) - COALESCE((
-            SELECT COUNT(DISTINCT v.id)::integer
-            FROM vouchers v
-            WHERE v.partner_id = p_id
-        ), 0) AS voucher_available;
+      id,
+      voucher_quantity,
+      expiration_date,
+      COALESCE(payment_expirated, FALSE) AS expirated
+    FROM public.payments
+    WHERE partner_id = p_id
+  ),
+  used AS (
+    SELECT payment_id, COUNT(*)::int AS used
+    FROM public.vouchers
+    WHERE partner_id = p_id
+    GROUP BY payment_id
+  ),
+  expired_slots AS (
+    /* Vencidos = cupos NO usados en pagos vencidos */
+    SELECT
+      COALESCE(SUM(GREATEST(p.voucher_quantity - COALESCE(u.used, 0), 0)), 0)::int AS expired_unassigned
+    FROM p
+    LEFT JOIN used u ON u.payment_id = p.id
+    WHERE p.expirated = TRUE
+       OR (p.expiration_date IS NOT NULL AND p.expiration_date <= NOW())
+  ),
+  totals AS (
+    SELECT
+      COALESCE((SELECT SUM(voucher_quantity) FROM p), 0)::int AS purchased,
+      COALESCE((SELECT COUNT(*) FROM public.vouchers v WHERE v.partner_id = p_id), 0)::int AS assigned,
+      COALESCE((SELECT expired_unassigned FROM expired_slots), 0)::int AS expired_unassigned
+  )
+  SELECT
+    purchased                       AS voucher_purchased,
+    assigned                        AS voucher_asigned,
+    expired_unassigned              AS voucher_expired,
+    GREATEST(purchased - assigned - expired_unassigned, 0) AS voucher_available
+  FROM totals;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql STABLE;
 
 -------------funcion para contar vouchers asignados de un pago específico-----------------------
 CREATE OR REPLACE FUNCTION get_assigned_vouchers_by_payment(payment_id_param bigint)
@@ -476,3 +492,218 @@ begin
   );
 end;
 $$;
+
+-- ========== 1.1 Columna y FK ==========
+ALTER TABLE public.vouchers
+  ADD COLUMN IF NOT EXISTS payment_id int4;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'public.vouchers'::regclass
+      AND conname = 'fk_vouchers_payment'
+  ) THEN
+    ALTER TABLE public.vouchers
+      ADD CONSTRAINT fk_vouchers_payment
+      FOREIGN KEY (payment_id)
+      REFERENCES public.payments(id)
+      ON UPDATE CASCADE
+      ON DELETE RESTRICT;
+  END IF;
+END$$;
+
+-- ========== 1.2 Índices ==========
+CREATE INDEX IF NOT EXISTS idx_vouchers_payment_id
+  ON public.vouchers(payment_id);
+
+CREATE INDEX IF NOT EXISTS idx_payments_partner_created_at
+  ON public.payments(partner_id, created_at, id);
+
+-- ========== 1.3 Trigger: asignar el payment más viejo con cupo ==========
+-- Reemplaza la función del trigger para filtrar pagos vigentes
+CREATE OR REPLACE FUNCTION public.set_payment_id_on_voucher_insert()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  chosen_payment_id int4;
+BEGIN
+  IF NEW.partner_id IS NULL THEN
+    RAISE EXCEPTION 'vouchers.partner_id no puede ser NULL para asignar payment_id';
+  END IF;
+
+  /*
+    Toma el pago MÁS VIEJO del mismo partner que:
+    - NO esté vencido (expiration_date > NOW()) y
+    - payment_expirated = false (por si ya lo refrescaste en login),
+    - y aún tenga cupo.
+    Se usa FOR UPDATE SKIP LOCKED para seguridad en concurrencia.
+  */
+  SELECT p.id
+    INTO chosen_payment_id
+  FROM public.payments p
+  WHERE p.partner_id = NEW.partner_id
+    AND (p.expiration_date IS NOT NULL AND p.expiration_date > NOW())
+    AND COALESCE(p.payment_expirated, FALSE) = FALSE
+    AND p.voucher_quantity >
+        COALESCE((SELECT COUNT(*) FROM public.vouchers v WHERE v.payment_id = p.id), 0)
+  ORDER BY p.created_at ASC, p.id ASC
+  FOR UPDATE SKIP LOCKED
+  LIMIT 1;
+
+  IF chosen_payment_id IS NULL THEN
+    RAISE EXCEPTION
+      'No hay pagos VIGENTES con cupo para partner_id=%.', NEW.partner_id;
+  END IF;
+
+  NEW.payment_id := chosen_payment_id;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_payment_id_on_voucher_insert ON public.vouchers;
+
+CREATE TRIGGER trg_set_payment_id_on_voucher_insert
+BEFORE INSERT ON public.vouchers
+FOR EACH ROW
+EXECUTE FUNCTION public.set_payment_id_on_voucher_insert();
+
+
+
+BEGIN;
+
+WITH used_per_payment AS (
+  SELECT payment_id, COUNT(*) AS used_cnt
+  FROM public.vouchers
+  WHERE payment_id IS NOT NULL
+  GROUP BY payment_id
+),
+
+payment_free_slots AS (
+  SELECT
+    p.id AS payment_id,
+    p.partner_id,
+    p.created_at,
+    gs AS slot_num
+  FROM public.payments p
+  LEFT JOIN used_per_payment u ON u.payment_id = p.id
+  CROSS JOIN LATERAL generate_series(COALESCE(u.used_cnt,0)+1, p.voucher_quantity) AS gs
+  WHERE (p.expiration_date IS NOT NULL AND p.expiration_date > NOW())
+    AND COALESCE(p.payment_expirated, FALSE) = FALSE
+),
+
+numbered_vouchers AS (
+  SELECT
+    v.id AS voucher_id,
+    v.partner_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY v.partner_id
+      ORDER BY v.created_at ASC, v.id ASC
+    ) AS rn
+  FROM public.vouchers v
+  WHERE v.payment_id IS NULL
+    AND v.partner_id IS NOT NULL
+),
+
+numbered_slots AS (
+  SELECT
+    payment_id,
+    partner_id,
+    ROW_NUMBER() OVER (
+      PARTITION BY partner_id
+      ORDER BY created_at ASC, payment_id ASC, slot_num ASC
+    ) AS rn
+  FROM payment_free_slots
+)
+
+UPDATE public.vouchers v
+SET payment_id = s.payment_id
+FROM numbered_vouchers nv
+JOIN numbered_slots s
+  ON s.partner_id = nv.partner_id
+ AND s.rn = nv.rn
+WHERE v.id = nv.voucher_id;
+
+COMMIT;
+
+-- Verificación
+SELECT COUNT(*) AS vouchers_sin_payment
+FROM public.vouchers
+WHERE payment_id IS NULL;
+
+
+-- Verificación rápida: cuántos vouchers siguen sin payment_id
+SELECT COUNT(*) AS vouchers_sin_payment
+FROM public.vouchers
+WHERE payment_id IS NULL;
+
+
+
+
+
+-- Cupos por pago
+SELECT
+  p.id AS payment_id,
+  p.partner_id,
+  p.created_at,
+  p.voucher_quantity,
+  COUNT(v.id) AS used_count,
+  (p.voucher_quantity - COUNT(v.id)) AS remaining
+FROM public.payments p
+LEFT JOIN public.vouchers v ON v.payment_id = p.id
+GROUP BY p.id
+ORDER BY p.partner_id, p.created_at;
+
+-- Trazabilidad voucher -> pago
+SELECT
+  v.id AS voucher_id,
+  v.code,
+  v.partner_id,
+  v.created_at AS voucher_created_at,
+  p.id AS payment_id,
+  p.created_at AS payment_created_at
+FROM public.vouchers v
+LEFT JOIN public.payments p ON p.id = v.payment_id
+ORDER BY v.partner_id, p.created_at, v.created_at
+
+--------------------------------------------
+
+
+-- Columna (si aún no existe)
+ALTER TABLE public.payments
+  ADD COLUMN IF NOT EXISTS payment_expirated boolean NOT NULL DEFAULT false;
+
+-- Función: marca payment_expirated según expiration_date (<= NOW())
+CREATE OR REPLACE FUNCTION public.refresh_payment_expirated(p_partner_id int4 DEFAULT NULL)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  rows_updated integer := 0;
+BEGIN
+  IF p_partner_id IS NULL THEN
+    UPDATE public.payments p
+       SET payment_expirated = (p.expiration_date IS NOT NULL AND p.expiration_date <= NOW())
+     WHERE payment_expirated IS DISTINCT FROM (p.expiration_date IS NOT NULL AND p.expiration_date <= NOW());
+  ELSE
+    UPDATE public.payments p
+       SET payment_expirated = (p.expiration_date IS NOT NULL AND p.expiration_date <= NOW())
+     WHERE p.partner_id = p_partner_id
+       AND payment_expirated IS DISTINCT FROM (p.expiration_date IS NOT NULL AND p.expiration_date <= NOW());
+  END IF;
+
+  GET DIAGNOSTICS rows_updated = ROW_COUNT;
+  RETURN rows_updated;
+END;
+$$;
+
+-- Permiso para llamarla como RPC en Supabase
+GRANT EXECUTE ON FUNCTION public.refresh_payment_expirated(int4) TO authenticated;
+
+-- Índice recomendado para acelerar actualizaciones/consultas
+CREATE INDEX IF NOT EXISTS idx_payments_partner_expdate
+  ON public.payments(partner_id, expiration_date, payment_expirated);

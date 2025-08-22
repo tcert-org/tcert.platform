@@ -13,6 +13,7 @@ export default class VoucherController {
           voucher_purchased: data.voucher_purchased,
           voucher_asigned: data.voucher_asigned,
           voucher_available: data.voucher_available,
+          voucher_expired: data.voucher_expired,
         },
       });
     } catch (error) {
