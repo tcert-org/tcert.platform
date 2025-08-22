@@ -163,32 +163,17 @@ export default function FormExam() {
         return;
       }
 
-      // Paso 1: Obtener las respuestas
-      const payload = questions.map((q) => ({
-        exam_attempt_id: Number(attemptId),
-        question_id: q.id,
-        selected_option_id: selectedOptions[q.id] ?? null,
-      }));
-
-      const res = await fetch("/api/answers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: payload }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        console.error("Error al guardar respuestas:", error);
-        alert(error?.error || "Error al guardar respuestas");
-        return;
-      }
-
-      // Paso 2: Calificar el examen
+      // Solo calificar, no enviar unanswered
       const gradeRes = await fetch("/api/attempts/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
+        body: JSON.stringify({
+          attempt_id: attemptId,
+          final_submit: true,
+          total_questions: questions.length,
+          answered_questions: Object.keys(selectedOptions).length,
+        }),
       });
 
       if (!gradeRes.ok) {
@@ -447,7 +432,13 @@ export default function FormExam() {
 
     setSelectedOptions((prev) => {
       const updated = { ...prev, [currentQuestion.id]: optionId };
-      autosaveAttempt(questions, updated);
+      // Usar autosaveAttempt igual que en simulador
+      autosaveAttempt(
+        currentQuestion.id,
+        optionId,
+        questions.length,
+        Object.keys({ ...prev, [currentQuestion.id]: optionId }).length
+      );
       return updated;
     });
   };
