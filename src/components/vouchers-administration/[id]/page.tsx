@@ -163,8 +163,8 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
       let expirationDate = new Date();
       if (diplomaByVoucherRes.ok) {
         const diplomaByVoucherData = await diplomaByVoucherRes.json();
-        const expirationDateRaw = diplomaByVoucherData?.data?.diploma
-          ?.expiration_date;
+        const expirationDateRaw =
+          diplomaByVoucherData?.data?.diploma?.expiration_date;
         if (typeof expirationDateRaw === "string") {
           expirationDate = new Date(expirationDateRaw.split("T")[0]);
         }
