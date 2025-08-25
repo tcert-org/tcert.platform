@@ -1,3 +1,26 @@
+// Utilidad para hacer wrap de texto en varias líneas según el ancho máximo
+function wrapText(
+  font: any,
+  text: string,
+  fontSize: number,
+  maxWidth: number
+): string[] {
+  const words = text.split(" ");
+  let lines: string[] = [];
+  let currentLine = "";
+  for (let word of words) {
+    const testLine = currentLine ? currentLine + " " + word : word;
+    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
+    if (testWidth > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
 import fs from "fs";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import path from "path";
@@ -120,25 +143,34 @@ async function loadCustomFont(pdfDoc: PDFDocument, fontName: CustomFonts) {
 }
 
 // Función de formato de fecha
-function formatDateToMonthFirst(dateString: string): string {
+function formatDateToMonthFirst(dateString: string | undefined | null): string {
+  console.log("[PDFTool] Fecha recibida:", dateString);
+  if (!dateString || typeof dateString !== "string") return "";
+  // Forzar formato YYYY-MM-DD
+  const cleanDateString = dateString.split("T")[0];
+  // Validar que sea un string tipo 2027-08-22
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleanDateString)) return "";
+  const [year, month, day] = cleanDateString.split("-");
+  // Formato: DD MMM YYYY (ej: 22 Aug 2027)
+  const dateObj = new Date(Number(year), Number(month) - 1, Number(day));
+  if (isNaN(dateObj.getTime())) return "";
   const options: Intl.DateTimeFormatOptions = {
-    month: "short", // Abreviación del mes (en inglés)
-    day: "2-digit", // Día con 2 dígitos
-    year: "numeric", // Año completo
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
   };
-
-  const date = new Date(dateString);
-
-  // Formateamos la fecha y removemos la coma entre el día y el año
-  const formattedDate = date.toLocaleDateString("en-US", options);
-  return formattedDate.replace(",", ""); // Eliminamos la coma
+  const formattedDate = dateObj
+    .toLocaleDateString("en-US", options)
+    .replace(",", "");
+  console.log("[PDFTool] Fecha formateada:", formattedDate);
+  return formattedDate;
 }
 
 export default class PDFTool {
   public static async CreateCertificate(
     nameStudent: string,
     nameCourse: string,
-    expeditionDate: string,
+    expirationDate: string, // Ahora es fecha de expiración
     codeVocher: string,
     URL_logo: string,
     documentNumber: string, // Nuevo parámetro para número de documento
@@ -214,48 +246,91 @@ export default class PDFTool {
         height: logoHeight,
       });
 
-      // Insertar el nombre del estudiante con fuente personalizada
-      const studentNameWidth = mainFont.widthOfTextAtSize(
+      // Insertar el nombre del estudiante con ajuste de salto de línea automático
+      const maxStudentNameWidth = width - 120; // Margen horizontal de 60px a cada lado
+      const studentNameLines = wrapText(
+        mainFont,
         nameStudent,
-        fontSize
+        fontSize,
+        maxStudentNameWidth
       );
-      const studentNameX = (width - studentNameWidth) / 2; // Centrado
-      firstPage.drawText(nameStudent, {
-        x: studentNameX,
-        y: height - 315,
-        size: fontSize,
-        font: mainFont,
-        color: rgb(45 / 255, 25 / 255, 87 / 255),
-      });
+      const lineSpacing = 1.1; // Espaciado entre líneas
+      const totalBlockHeight = studentNameLines.length * fontSize * lineSpacing;
+      const studentNameY =
+        height -
+        315 +
+        (studentNameLines.length === 1
+          ? 0
+          : totalBlockHeight / 2 - (fontSize * lineSpacing) / 2);
+      for (let i = 0; i < studentNameLines.length; i++) {
+        const line = studentNameLines[i];
+        const lineWidth = mainFont.widthOfTextAtSize(line, fontSize);
+        const lineX = (width - lineWidth) / 2;
+        firstPage.drawText(line, {
+          x: lineX,
+          y: studentNameY - i * fontSize * lineSpacing,
+          size: fontSize,
+          font: mainFont,
+          color: rgb(45 / 255, 25 / 255, 87 / 255),
+        });
+      }
 
-      // Insertar el nombre del curso en MAYÚSCULAS con HelveticaBold
+      // Insertar el nombre del curso (certificación) con ajuste de salto de línea automático
+      const maxCourseNameWidth = width - 120; // Margen horizontal de 60px a cada lado
       const courseNameUpperCase = nameCourse.toUpperCase();
-      const courseNameWidth = courseFont.widthOfTextAtSize(
+      const courseNameLines = wrapText(
+        courseFont,
         courseNameUpperCase,
-        courseFontSize
+        courseFontSize,
+        maxCourseNameWidth
       );
-      const courseNameX = (width - courseNameWidth) / 2; // Centrado
-      firstPage.drawText(courseNameUpperCase, {
-        x: courseNameX,
-        y: height - 470,
-        size: courseFontSize,
-        font: courseFont,
-        color: rgb(45 / 255, 25 / 255, 87 / 255),
-      });
+      const courseLineSpacing = 1.1;
+      const totalCourseBlockHeight =
+        courseNameLines.length * courseFontSize * courseLineSpacing;
+      const courseNameY =
+        height -
+        450 +
+        (courseNameLines.length === 1
+          ? 0
+          : totalCourseBlockHeight / 2 -
+            (courseFontSize * courseLineSpacing) / 2);
+      for (let i = 0; i < courseNameLines.length; i++) {
+        const line = courseNameLines[i];
+        const lineWidth = courseFont.widthOfTextAtSize(line, courseFontSize);
+        const lineX = (width - lineWidth) / 2;
+        firstPage.drawText(line, {
+          x: lineX,
+          y: courseNameY - i * courseFontSize * courseLineSpacing,
+          size: courseFontSize,
+          font: courseFont,
+          color: rgb(45 / 255, 25 / 255, 87 / 255),
+        });
+      }
 
-      // Insertar el título del diploma con fuente diferente
-      const titleWidth = titleFont.widthOfTextAtSize(
+      // Insertar el título del diploma justo debajo del bloque del nombre del curso
+      const titleFontSpacing = 1.1;
+      const titleY =
+        courseNameY -
+        courseNameLines.length * courseFontSize * courseLineSpacing -
+        10; // 10px de separación visual
+      const titleLines = wrapText(
+        titleFont,
         titleDiploma,
-        titleFontSize
+        titleFontSize,
+        maxCourseNameWidth
       );
-      const titleX = (width - titleWidth) / 2; // Centrado
-      firstPage.drawText(titleDiploma, {
-        x: titleX,
-        y: height - 510,
-        size: titleFontSize,
-        font: titleFont,
-        color: rgb(45 / 255, 25 / 255, 87 / 255),
-      });
+      for (let i = 0; i < titleLines.length; i++) {
+        const line = titleLines[i];
+        const lineWidth = titleFont.widthOfTextAtSize(line, titleFontSize);
+        const lineX = (width - lineWidth) / 2;
+        firstPage.drawText(line, {
+          x: lineX,
+          y: titleY - i * titleFontSize * titleFontSpacing,
+          size: titleFontSize,
+          font: titleFont,
+          color: rgb(45 / 255, 25 / 255, 87 / 255),
+        });
+      }
 
       // Insertar el número de documento debajo del nombre del estudiante
       const documentText = documentNumber;
@@ -280,8 +355,8 @@ export default class PDFTool {
         color: rgb(45 / 255, 25 / 255, 87 / 255),
       });
 
-      // Formatear la fecha y agregarla con fuente personalizada BAHNSCHRIFT
-      const formattedDate = formatDateToMonthFirst(expeditionDate);
+      // Formatear la fecha de expiración y agregarla con fuente personalizada BAHNSCHRIFT
+      const formattedDate = formatDateToMonthFirst(expirationDate);
       firstPage.drawText(formattedDate, {
         x: 95,
         y: height - 689,
@@ -305,7 +380,7 @@ export default class PDFTool {
   public static async CreateCertificateWithCustomFonts(
     nameStudent: string,
     nameCourse: string,
-    expeditionDate: string,
+    expirationDate: string, // Ahora es fecha de expiración
     codeVocher: string,
     URL_logo: string,
     documentNumber: string, // Nuevo parámetro para número de documento
@@ -447,8 +522,8 @@ export default class PDFTool {
         color: rgb(45 / 255, 25 / 255, 87 / 255),
       });
 
-      // Fecha
-      const formattedDate = formatDateToMonthFirst(expeditionDate);
+      // Fecha de expiración
+      const formattedDate = formatDateToMonthFirst(expirationDate);
       firstPage.drawText(formattedDate, {
         x: 95,
         y: height - 689,

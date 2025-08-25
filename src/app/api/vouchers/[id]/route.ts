@@ -3,6 +3,11 @@ import { supabase } from "@/lib/database/conection";
 import { NextResponse } from "next/server";
 import UserTable from "@/modules/auth/table";
 
+// NOTA IMPORTANTE:
+// Esta ruta solo debe ser usada por partners o administradores.
+// Los estudiantes deben usar exclusivamente /api/vouchers/by-student para acceder a sus propios vouchers.
+// Si un estudiante intenta acceder aquí, recibirá 403 Forbidden aunque el voucher sea suyo.
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -35,8 +35,21 @@ export default class DiplomaController {
         });
       }
 
-      // Si no existe, insertamos el nuevo diploma
-      const inserted = await table.insertDiploma(data); // Insertamos el diploma
+      // Si no existe, calculamos la fecha de expiración si no viene en data
+      let diplomaData = { ...data };
+      if (!diplomaData.expiration_date) {
+        const completionDate = diplomaData.completion_date
+          ? new Date(diplomaData.completion_date)
+          : new Date();
+        const expirationDate = new Date(completionDate);
+        expirationDate.setFullYear(expirationDate.getFullYear() + 2);
+        diplomaData.expiration_date = expirationDate
+          .toISOString()
+          .split("T")[0];
+      }
+
+      // Insertamos el diploma con la fecha de expiración calculada
+      const inserted = await table.insertDiploma(diplomaData); // Insertamos el diploma
 
       return NextResponse.json({
         statusCode: 201,

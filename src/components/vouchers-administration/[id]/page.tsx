@@ -156,9 +156,19 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
     try {
       // Usar el intento aprobado más reciente
       const examAttemptId = approvedAttempts[0].id;
-      // Calcular la fecha de expiración (2 años después)
-      const expirationDate = new Date();
-      expirationDate.setFullYear(expirationDate.getFullYear() + 2);
+      // Obtener el diploma para extraer la fecha de expiración real
+      const diplomaByVoucherRes = await fetch(
+        `/api/diploma/by-voucher-code?voucher_code=${voucher.code}`
+      );
+      let expirationDate = new Date();
+      if (diplomaByVoucherRes.ok) {
+        const diplomaByVoucherData = await diplomaByVoucherRes.json();
+        const expirationDateRaw = diplomaByVoucherData?.data?.diploma
+          ?.expiration_date;
+        if (typeof expirationDateRaw === "string") {
+          expirationDate = new Date(expirationDateRaw.split("T")[0]);
+        }
+      }
       const expirationDateString = expirationDate.toISOString().split("T")[0];
       // Validar o crear el registro del diploma antes de generar el PDF
       const diplomaResponse = await fetch("/api/diploma", {
@@ -191,7 +201,7 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
         body: JSON.stringify({
           studentName: student.fullname,
           certificationName: voucher.certification_name,
-          expeditionDate: new Date().toISOString().split("T")[0],
+          expeditionDate: expirationDateString,
           codigoVoucher: voucher.code,
           URL_logo: voucher.certification_logo_url,
           documentNumber: student.document_number,
