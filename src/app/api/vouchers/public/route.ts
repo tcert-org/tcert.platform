@@ -80,7 +80,23 @@ export async function POST(req: NextRequest) {
       status_id: status.id.toString()
     };
 
-    return await VoucherController.createVoucher(voucherData);
+    // Crear el voucher
+    const response = await VoucherController.createVoucher(voucherData);
+    const { data, statusCode } = await response.json();
+
+    // Si se creó correctamente, enviar el email
+    if (statusCode === 201 && data && data.code) {
+      try {
+  const { sendVoucherEmail } = await import("@/../tool-email/sendVoucherEmail");
+        await sendVoucherEmail(email, data.code);
+      } catch (mailError) {
+        console.error("[ERROR_SEND_VOUCHER_EMAIL]", mailError);
+        // No interrumpe la respuesta al usuario
+      }
+    }
+
+    // Retornar la respuesta original
+    return response;
   } catch (error: any) {
     return NextResponse.json(
       {
