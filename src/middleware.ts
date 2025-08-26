@@ -161,6 +161,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth/register|api/auth/login|api/auth/refresh|api/forgot-password|api/auth/reset-password|sign-in|api/auth-student|api/decrypt-student|api/diploma/by-voucher-code|api/diamond|api/certification-params|api/feedback|forgot-password|reset-password|_next/static|_next/image|public|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)",
+    "/((?!api/vouchers/public|api/auth/register|api/auth/login|api/auth/refresh|api/forgot-password|api/auth/reset-password|sign-in|api/auth-student|api/decrypt-student|api/diploma/by-voucher-code|api/diamond|api/certification-params|api/feedback|forgot-password|reset-password|_next/static|_next/image|public|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)",
   ],
 };
