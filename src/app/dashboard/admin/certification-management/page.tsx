@@ -231,7 +231,10 @@ export default function CertificationManagementPage() {
         body: JSON.stringify({
           name: certification.name,
           description: certification.description,
+          audience: certification.audience,
           active: newActiveState,
+          logo_url: certification.logo_url,
+          study_material_url: certification.study_material_url,
         }),
       });
 
