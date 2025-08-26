@@ -64,7 +64,10 @@ export default function ExamDetailsPage() {
     async function fetchQuestions() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/exam/question?exam_id=${examId}`);
+        // Para admin: obtener todas las preguntas (activas e inactivas)
+        const res = await fetch(
+          `/api/exam/question?exam_id=${examId}&all=true`
+        );
         const result = await res.json();
         setQuestions(result.data || []);
       } catch (e) {

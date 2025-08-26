@@ -11,7 +11,14 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   // Obtén exam_id desde la query (?exam_id=57)
   const exam_id = req.nextUrl.searchParams.get("exam_id");
-  // Lo pasamos como número (o undefined)
+  // Si se pasa all=true, devolver todas las preguntas (activas e inactivas)
+  const all = req.nextUrl.searchParams.get("all");
+  if (all === "true") {
+    return QuestionController.getAllQuestions(
+      exam_id ? Number(exam_id) : undefined
+    );
+  }
+  // Por defecto, solo preguntas activas
   return QuestionController.getQuestions(exam_id ? Number(exam_id) : undefined);
 }
 
