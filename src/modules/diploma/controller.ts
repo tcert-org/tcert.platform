@@ -36,7 +36,8 @@ export default class DiplomaController {
       }
 
       // Si no existe, calculamos la fecha de expiración si no viene en data
-      let diplomaData = { ...data };
+
+      const diplomaData = { ...data };
       if (!diplomaData.expiration_date) {
         const completionDate = diplomaData.completion_date
           ? new Date(diplomaData.completion_date)
