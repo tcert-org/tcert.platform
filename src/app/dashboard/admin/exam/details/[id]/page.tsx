@@ -268,11 +268,12 @@ export default function ExamDetailsPage() {
               <div className="flex items-center gap-3">
                 {editingQuestion === q.id ? (
                   <>
-                    <Input
+                    <textarea
                       value={newQuestionContent}
                       onChange={(e) => setNewQuestionContent(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-y"
                       placeholder="Contenido de la pregunta"
+                      rows={3}
                     />
                     <Button
                       size="sm"
@@ -295,7 +296,10 @@ export default function ExamDetailsPage() {
                   </>
                 ) : (
                   <>
-                    <span className="text-base font-medium flex-1">
+                    <span
+                      className="text-base font-medium flex-1"
+                      style={{ whiteSpace: "pre-line" }}
+                    >
                       {q.content}
                     </span>
                     <span
