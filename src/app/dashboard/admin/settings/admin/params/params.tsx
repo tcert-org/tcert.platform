@@ -241,7 +241,11 @@ function ParamsPage() {
                         <Input
                           type="number"
                           min={
-                            param.name.toLowerCase().includes("precio") ? 0 : 1
+                            param.name.toLowerCase().includes("precio")
+                              ? 0
+                              : param.name.toLowerCase().includes("porcentaje") && param.name.toLowerCase().includes("descuento") && param.name.toLowerCase().includes("estudiantes")
+                                ? 0
+                                : 1
                           }
                           step={
                             param.name.toLowerCase().includes("precio")

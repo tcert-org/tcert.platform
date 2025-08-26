@@ -6,6 +6,14 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { FetchParams } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { createActionsColumn } from "@/components/data-table/action-menu";
+
+// Acción reutilizable al estilo Admin
+type ActionItem<T> = {
+  label: string;
+  action?: (row: T) => void;
+  hidden?: (row: T) => boolean;
+};
 
 export interface PaymentDynamicTable {
   id: string;
@@ -15,7 +23,8 @@ export interface PaymentDynamicTable {
   created_at: string;
   expiration_date: string | null;
   extension_date: string | null;
-  extension_used?: boolean; // Campo para indicar si ya fue extendido
+  extension_used?: boolean;
+  file_url?: string | null; // <- NUEVO: URL del comprobante
 }
 
 function formatUSD(value: number): string {
@@ -41,9 +50,7 @@ export default function PartnerReportsPage() {
     price?: number;
     isValid?: boolean;
   }>({ exists: false });
-  const [processedPayments, setProcessedPayments] = useState<Set<string>>(
-    new Set()
-  );
+  const [processedPayments, setProcessedPayments] = useState<Set<string>>(new Set());
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -65,7 +72,6 @@ export default function PartnerReportsPage() {
         setExtensionPriceInfo({ exists: false });
       }
     };
-
     checkExtensionPrice();
   }, []);
 
@@ -74,17 +80,11 @@ export default function PartnerReportsPage() {
     const extensionSuccess = searchParams.get("extension_success");
     const paymentId = searchParams.get("payment_id");
 
-    if (
-      extensionSuccess === "true" &&
-      paymentId &&
-      !processedPayments.has(paymentId)
-    ) {
-      // Marcar como procesado inmediatamente para evitar duplicados
+    if (extensionSuccess === "true" && paymentId && !processedPayments.has(paymentId)) {
       setProcessedPayments((prev) => new Set([...prev, paymentId]));
 
       const processExtension = async () => {
         try {
-          // Procesar la extensión en el backend
           const res = await fetch("/api/payments/extension/process", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -102,17 +102,12 @@ export default function PartnerReportsPage() {
             } else {
               toast.success(
                 "¡Extensión de 1 año procesada exitosamente! Las fechas de vencimiento han sido extendidas por 12 meses.",
-                {
-                  duration: 5000,
-                  description:
-                    "Todas las fechas han sido actualizadas correctamente.",
-                }
+                { duration: 5000, description: "Todas las fechas han sido actualizadas correctamente." }
               );
             }
           } else {
             console.error("Error al procesar extensión:", data.error);
             toast.error(`Error al procesar la extensión: ${data.error}`);
-            // Si hay error, quitar de la lista de procesados para permitir reintento
             setProcessedPayments((prev) => {
               const newSet = new Set(prev);
               newSet.delete(paymentId);
@@ -122,17 +117,13 @@ export default function PartnerReportsPage() {
         } catch (error) {
           console.error("Error al procesar extensión:", error);
           toast.error("Error inesperado al procesar la extensión");
-          // Si hay error, quitar de la lista de procesados para permitir reintento
           setProcessedPayments((prev) => {
             const newSet = new Set(prev);
             newSet.delete(paymentId);
             return newSet;
           });
         } finally {
-          // Refrescar la tabla para mostrar los cambios
           setRefreshKey((prev) => prev + 1);
-
-          // Limpiar los parámetros de la URL
           const url = new URL(window.location.href);
           url.searchParams.delete("extension_success");
           url.searchParams.delete("payment_id");
@@ -168,44 +159,37 @@ export default function PartnerReportsPage() {
     }
 
     if (!partnerId) return { data: [], totalCount: 0 };
-
     query["partner_id"] = partnerId;
 
     const search = new URLSearchParams(
       Object.entries(query).reduce(
-        (acc, [k, v]) =>
-          v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
+        (acc, [k, v]) => (v !== undefined && v !== null ? { ...acc, [k]: v } : acc),
         {}
       )
     ).toString();
 
-    // Solo hacer una llamada ahora, los parámetros ya están cargados
     const resPayments = await fetch(`/api/payments/details-partner?${search}`);
-
-    if (!resPayments.ok) {
-      throw new Error("Error al cargar los pagos");
-    }
+    if (!resPayments.ok) throw new Error("Error al cargar los pagos");
 
     const { data, meta } = await resPayments.json();
 
-    // Usar parámetros del estado en lugar de hacer otra llamada
+    // Obtener params para calcular expiración faltante
     const paramsRes = await fetch("/api/params");
     const { data: paramsData } = await paramsRes.json();
-    const expirationMonths = parseInt(
-      paramsData.find((p: any) => p.id === 1)?.value ?? "0",
-      10
-    );
+    const expirationMonths = parseInt(paramsData.find((p: any) => p.id === 1)?.value ?? "0", 10);
 
-    const processedData = data.map((item: any) => {
-      if (!item.expiration_date && expirationMonths > 0) {
+    // Mapear files -> file_url y completar expiración
+    const processedData: PaymentDynamicTable[] = data.map((item: any) => {
+      let expiration_date = item.expiration_date;
+      if (!expiration_date && expirationMonths > 0) {
         const createdDate = new Date(item.created_at);
-        const expiration = addMonthsToDate(createdDate, expirationMonths);
-        return {
-          ...item,
-          expiration_date: expiration.toISOString(),
-        };
+        expiration_date = addMonthsToDate(createdDate, expirationMonths).toISOString();
       }
-      return item;
+      return {
+        ...item,
+        expiration_date,
+        file_url: item.files ?? null, // <- aquí queda disponible para la acción
+      };
     });
 
     return {
@@ -214,7 +198,21 @@ export default function PartnerReportsPage() {
     };
   }
 
+  // Acciones (incluye Comprobante)
+  const paymentActions: ActionItem<PaymentDynamicTable>[] = [
+    {
+      label: "Comprobante",
+      action: (row) => {
+        if (row.file_url) window.open(row.file_url, "_blank");
+      },
+      hidden: (row) => !row.file_url,
+    },
+  ];
+
   const columns: ColumnDef<PaymentDynamicTable>[] = [
+    // Columna de acciones como en admin
+    createActionsColumn(paymentActions),
+  
     {
       accessorKey: "id",
       header: "ID",
@@ -321,26 +319,10 @@ export default function PartnerReportsPage() {
           );
         }
 
-        // Verificar si está vencido o próximo a vencer
-        const today = new Date();
-        const expirationDate = new Date(val as string);
-        const isExpired = expirationDate < today;
-        const isExpiringSoon =
-          (expirationDate.getTime() - today.getTime()) /
-            (1000 * 60 * 60 * 24) <=
-          30;
-
+        // (Si quieres cambiar colores, aquí)
         return (
           <div className="text-center">
-            <span
-              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                isExpired
-                  ? "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50"
-                  : isExpiringSoon
-                  ? "bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-300/50"
-                  : "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50"
-              }`}
-            >
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50">
               {formattedDate}
             </span>
           </div>
@@ -373,11 +355,7 @@ export default function PartnerReportsPage() {
 
         return (
           <div className="text-center">
-            <span
-              className={`text-sm ${
-                extensionUsed ? "text-green-700 font-medium" : "text-gray-700"
-              }`}
-            >
+            <span className={`text-sm ${extensionUsed ? "text-green-700 font-medium" : "text-gray-700"}`}>
               {formattedDate}
             </span>
             {extensionUsed && (
@@ -405,10 +383,7 @@ export default function PartnerReportsPage() {
         const expirationDate = expirationRaw ? new Date(expirationRaw) : null;
         const today = new Date();
 
-        // Verificar si ya fue extendido
         const alreadyExtended = extensionUsed === true;
-
-        // Verificar si está en período de extensión
         const canExtend =
           !alreadyExtended &&
           extensionDate &&
@@ -427,18 +402,10 @@ export default function PartnerReportsPage() {
         };
 
         const getTooltipText = () => {
-          if (alreadyExtended) {
-            return "Este pago ya ha sido extendido";
-          }
-          if (!extensionPriceInfo.exists) {
-            return "El precio de extensión no está configurado";
-          }
-          if (!extensionPriceInfo.isValid) {
-            return "El precio de extensión no es válido";
-          }
-          if (!canExtend) {
-            return "Solo se puede extender durante el período de extensión";
-          }
+          if (alreadyExtended) return "Este pago ya ha sido extendido";
+          if (!extensionPriceInfo.exists) return "El precio de extensión no está configurado";
+          if (!extensionPriceInfo.isValid) return "El precio de extensión no es válido";
+          if (!canExtend) return "Solo se puede extender durante el período de extensión";
           return "Extender vouchers sin asignar por 1 año. El precio se calculará en checkout.";
         };
 
@@ -449,7 +416,6 @@ export default function PartnerReportsPage() {
                 canExtend
                   ? async () => {
                       try {
-                        // Proceder directamente al checkout - Stripe calculará el precio
                         const res = await fetch("/api/checkout/extension", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
@@ -459,41 +425,28 @@ export default function PartnerReportsPage() {
                         const data = await res.json();
 
                         if (res.ok) {
-                          // Intentar diferentes nombres de propiedades que puede devolver la API
-                          const redirectUrl =
-                            data.checkout_url || data.url || data.checkoutUrl;
-
+                          const redirectUrl = data.checkout_url || data.url || data.checkoutUrl;
                           if (redirectUrl) {
-                            // Redirigir a Stripe checkout
                             window.location.href = redirectUrl;
                           } else {
                             toast.error("No se generó URL de checkout");
                           }
                         } else {
-                          toast.error(
-                            data.error ||
-                              data.message ||
-                              "Error al crear checkout"
-                          );
+                          toast.error(data.error || data.message || "Error al crear checkout");
                         }
                       } catch (error) {
                         console.error("Error al procesar extensión:", error);
-                        toast.error(
-                          "Error inesperado al procesar la extensión"
-                        );
+                        toast.error("Error inesperado al procesar la extensión");
                       }
                     }
                   : undefined
               }
               title={getTooltipText()}
-              className={`
-                inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200
-                ${
-                  canExtend
-                    ? "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 hover:shadow-sm cursor-pointer"
-                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                }
-              `}
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                canExtend
+                  ? "bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 hover:shadow-sm cursor-pointer"
+                  : "bg-gray-200 text-gray-500 cursor-not-allowed"
+              }`}
             >
               {getButtonText()}
             </span>
@@ -501,51 +454,54 @@ export default function PartnerReportsPage() {
         );
       },
     },
+    {
+  id: "comprobante_status",
+  header: "Comprobante",
+  size: 80,
+  enableSorting: false,
+  cell: ({ row }) => {
+    const hasReceipt = Boolean(row.original.file_url);
+    return (
+      <div className="flex justify-center items-center">
+        <span
+          title={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+          aria-label={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+          className={`inline-block rounded-full ${
+            hasReceipt ? "bg-green-500" : "bg-gray-300"
+          } h-3.5 w-3.5`}
+        />
+      </div>
+    );
+  },
+}
+
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-orange-50/30 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header mejorado */}
+        {/* Header */}
         <div className="mb-6 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 rounded-xl shadow-lg shadow-purple-500/30 border border-purple-400/20">
-                <svg
-                  className="h-6 w-6 text-white drop-shadow-sm"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 11V7a4 4 0 00-8 0v4M8 11v6h8v-6M8 11H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2"
-                  />
+                <svg className="h-6 w-6 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M8 11v6h8v-6M8 11H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2" />
                 </svg>
               </div>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent drop-shadow-sm">
                   Mis Compras
                 </h1>
-                <p className="text-lg text-gray-600 mt-1">
-                  Historial completo de tus adquisiciones de vouchers
-                </p>
+                <p className="text-lg text-gray-600 mt-1">Historial completo de tus adquisiciones de vouchers</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Contenedor de la tabla */}
+        {/* Tabla */}
         <div className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-lg p-6">
-          {partnerId && (
-            <DataTable
-              key={refreshKey}
-              columns={columns}
-              fetchDataFn={fetchPartnerPayments}
-            />
-          )}
+          {partnerId && <DataTable key={refreshKey} columns={columns} fetchDataFn={fetchPartnerPayments} />}
         </div>
       </div>
     </div>

@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
       filter_purchase_date: params.filter_purchase_date,
       filter_expiration_date: params.filter_expiration_date,
       filter_partner_id: params.filter_partner_id,
+      filter_status_name: params.filter_status_name,
       order_by: params.order_by,
       order_dir: params.order_dir as "asc" | "desc" | undefined,
       page: params.page ? Number(params.page) : 1,

@@ -27,6 +27,7 @@ export default class VoucherCountTable extends Table<"vouchers"> {
       voucher_purchased: counts.voucher_purchased ?? 0,
       voucher_asigned: counts.voucher_asigned ?? 0,
       voucher_available: counts.voucher_available ?? 0,
+      voucher_expired: counts.voucher_expired ?? 0,
     };
   }
 }

@@ -10,7 +10,7 @@ import { createActionsColumn } from "@/components/data-table/action-menu";
 
 type ActionItem<T> = {
   label: string;
-  onClick?: (row: T) => void;
+  action?: (row: T) => void;
   hidden?: (row: T) => boolean;
 };
 
@@ -62,8 +62,13 @@ async function fetchPayments(
 
   const { data, meta } = await res.json();
 
+  // Mapear 'files' a 'file_url' para cada pago
+  const mappedData = Array.isArray(data)
+    ? data.map((item) => ({ ...item, file_url: item.files ?? null }))
+    : [];
+
   return {
-    data,
+    data: mappedData,
     totalCount: meta?.totalCount ?? 0,
   };
 }
@@ -74,7 +79,7 @@ export default function PaymentsPage() {
   const paymentActions: ActionItem<PaymentDynamicTable>[] = [
     {
       label: "Comprobante",
-      onClick: (row) => {
+      action: (row) => {
         if (row.file_url) {
           window.open(row.file_url, "_blank");
         }
@@ -205,6 +210,27 @@ export default function PaymentsPage() {
         );
       },
     },
+    {
+  id: "comprobante_status",
+  header: "Comprobante",
+  size: 80,
+  enableSorting: false,
+  cell: ({ row }) => {
+    const hasReceipt = Boolean(row.original.file_url);
+    return (
+      <div className="flex justify-center items-center">
+        <span
+          title={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+          aria-label={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+          className={`inline-block rounded-full ${
+            hasReceipt ? "bg-green-500" : "bg-gray-300"
+          } h-3.5 w-3.5`}
+        />
+      </div>
+    );
+  },
+}
+
   ];
 
   return (

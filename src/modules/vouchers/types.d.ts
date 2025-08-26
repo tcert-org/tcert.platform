@@ -7,6 +7,7 @@ export type FilterParamsVoucher = {
   filter_purchase_date?: string;
   filter_expiration_date?: string;
   filter_partner_id?: string;
+  filter_status_name?: string; // 👈 NUEVO: Filtro por nombre de estado
   order_by?: string;
   order_dir?: "asc" | "desc";
   page?: number;

@@ -1,12 +1,46 @@
 import { NextRequest } from "next/server";
 import { supabase } from "@/lib/database/conection";
+import { NextResponse } from "next/server";
+import UserTable from "@/modules/auth/table";
+
+// NOTA IMPORTANTE:
+// Esta ruta solo debe ser usada por partners o administradores.
+// Los estudiantes deben usar exclusivamente /api/vouchers/by-student para acceder a sus propios vouchers.
+// Si un estudiante intenta acceder aquí, recibirá 403 Forbidden aunque el voucher sea suyo.
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const accessToken = req.cookies.get("access_token")?.value;
+  if (!accessToken) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
 
+  // Obtener usuario actual
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser(accessToken);
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Usuario no encontrado" },
+      { status: 401 }
+    );
+  }
+
+  // Buscar usuario en tabla interna y verificar rol
+  const userTable = new UserTable();
+  const dbUser = await userTable.getByUuid(user.id);
+  if (!dbUser) {
+    return NextResponse.json(
+      { error: "Usuario no encontrado en base de datos interna" },
+      { status: 401 }
+    );
+  }
+
+  // Obtener el voucher y validar que pertenezca al partner autenticado
   const { data, error } = await supabase
     .from("vouchers")
     .select(
@@ -19,6 +53,7 @@ export async function GET(
       expiration_date,
       certification_id,
       status_id,
+      partner_id,
       certification:certifications ( name, logo_url ),
       voucher_status:voucher_statuses ( name )
     `
@@ -30,6 +65,15 @@ export async function GET(
     return new Response(JSON.stringify({ error: "Voucher no encontrado" }), {
       status: 404,
     });
+  }
+
+  // Solo el partner dueño del voucher o un admin puede acceder
+  if (dbUser.role_id !== 4 && data.partner_id !== dbUser.id) {
+    // 4 = admin
+    return NextResponse.json(
+      { error: "No autorizado para ver este voucher" },
+      { status: 403 }
+    );
   }
 
   const certification = Array.isArray(data.certification)
@@ -55,4 +99,62 @@ export async function GET(
   };
 
   return new Response(JSON.stringify({ data: formattedData }), { status: 200 });
+}
+
+// PATCH: Solo admin puede cambiar la certificación del voucher
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const accessToken = req.cookies.get("access_token")?.value;
+  if (!accessToken) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  // Obtener usuario actual
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser(accessToken);
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Usuario no encontrado" },
+      { status: 401 }
+    );
+  }
+
+  // Buscar usuario en tabla interna y verificar rol
+  const userTable = new UserTable();
+  const dbUser = await userTable.getByUuid(user.id);
+  if (!dbUser || dbUser.role_id !== 4) {
+    // 4 = admin
+    return NextResponse.json(
+      { error: "Solo administradores pueden cambiar la certificación" },
+      { status: 403 }
+    );
+  }
+
+  // Obtener nuevo certification_id
+  const body = await req.json();
+  const { certification_id } = body;
+  if (!certification_id) {
+    return NextResponse.json(
+      { error: "certification_id requerido" },
+      { status: 400 }
+    );
+  }
+
+  // Actualizar voucher
+  const { error } = await supabase
+    .from("vouchers")
+    .update({ certification_id: Number(certification_id) })
+    .eq("id", id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  return NextResponse.json(
+    { message: "Certificación actualizada correctamente" },
+    { status: 200 }
+  );
 }

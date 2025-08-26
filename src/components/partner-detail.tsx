@@ -14,6 +14,7 @@ interface VoucherCounts {
   voucher_purchased: number;
   voucher_asigned: number;
   voucher_available: number;
+  voucher_expired: number;
 }
 
 interface PartnerDetailProps {
@@ -49,6 +50,7 @@ export default function PartnerDetail({ partner }: PartnerDetailProps) {
   const used = counts?.voucher_asigned || 0;
   const total = counts?.voucher_purchased || 0;
   const available = counts?.voucher_available || 0;
+  const expired = counts?.voucher_expired || 0;
 
   const usagePercentage = total > 0 ? Math.round((used / total) * 100) : 0;
 
@@ -114,7 +116,7 @@ export default function PartnerDetail({ partner }: PartnerDetailProps) {
                 <span>Partner desde el {formattedDate}</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-4 pt-2">
+              <div className="grid grid-cols-4 gap-4 pt-2">
                 <div className="rounded-lg border p-3">
                   <div className="text-sm font-medium text-muted-foreground">
                     Vouchers comprados
@@ -132,6 +134,12 @@ export default function PartnerDetail({ partner }: PartnerDetailProps) {
                     Vouchers disponibles
                   </div>
                   <div className="text-2xl font-bold">{available}</div>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-sm font-medium text-muted-foreground">
+                    Vouchers vencidos
+                  </div>
+                  <div className="text-2xl font-bold">{expired}</div>
                 </div>
               </div>
             </div>

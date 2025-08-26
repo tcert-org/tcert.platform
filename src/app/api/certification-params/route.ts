@@ -23,7 +23,7 @@ export async function GET() {
     // Obtener solo certificaciones activas (active = true)
     const { data: certifications, error: certificationsError } = await supabase
       .from("certifications")
-      .select("id, name, description, logo_url, active")
+      .select("id, name, description, logo_url, active, audience")
       .eq("active", true); // Solo certificaciones donde active = true
 
     if (certificationsError) {

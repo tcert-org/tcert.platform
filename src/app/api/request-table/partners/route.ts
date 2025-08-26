@@ -10,6 +10,8 @@ export type FilterParamsPartner = {
   filter_total_vouchers_op?: string;
   filter_used_vouchers?: number;
   filter_used_vouchers_op?: string;
+  filter_unused_vouchers?: number;
+  filter_unused_vouchers_op?: string;
   order_by?: string;
   order_dir?: "asc" | "desc";
   page?: number;
@@ -32,6 +34,11 @@ export async function GET(req: NextRequest) {
         searchParams.get("filter_used_vouchers_op") || "=",
       filter_used_vouchers: searchParams.get("filter_used_vouchers")
         ? parseInt(searchParams.get("filter_used_vouchers")!)
+        : undefined,
+      filter_unused_vouchers_op:
+        searchParams.get("filter_unused_vouchers_op") || "=",
+      filter_unused_vouchers: searchParams.get("filter_unused_vouchers")
+        ? parseInt(searchParams.get("filter_unused_vouchers")!)
         : undefined,
       filter_created_at_op: searchParams.get("filter_created_at_op") || ">=",
       filter_created_at: searchParams.get("filter_created_at")

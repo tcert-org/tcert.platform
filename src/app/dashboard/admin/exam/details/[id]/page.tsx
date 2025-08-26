@@ -35,7 +35,7 @@ export default function ExamDetailsPage() {
   const [newExamName, setNewExamName] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [showOptionsFor, setShowOptionsFor] = useState<number | null>(null);
-  
+
   // Edición de preguntas
   const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
   const [newQuestionContent, setNewQuestionContent] = useState("");
@@ -64,7 +64,10 @@ export default function ExamDetailsPage() {
     async function fetchQuestions() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/exam/question?exam_id=${examId}`);
+        // Para admin: obtener todas las preguntas (activas e inactivas)
+        const res = await fetch(
+          `/api/exam/question?exam_id=${examId}&all=true`
+        );
         const result = await res.json();
         setQuestions(result.data || []);
       } catch (e) {
@@ -124,10 +127,10 @@ export default function ExamDetailsPage() {
       });
       const result = await res.json();
       if (!res.ok || result.error) throw new Error(result.error || "Error");
-      
+
       // Actualizar la pregunta en el estado local
       setQuestions((prev) =>
-        prev.map((q) => 
+        prev.map((q) =>
           q.id === questionId ? { ...q, content: newQuestionContent } : q
         )
       );
@@ -212,7 +215,7 @@ export default function ExamDetailsPage() {
         <div className="text-gray-500 text-base">Preguntas del Examen</div>
         <div className="flex items-center gap-4 text-sm">
           <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium">
-            Activas: {questions.filter(q => q.active).length}
+            Activas: {questions.filter((q) => q.active).length}
           </span>
           <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">
             Total: {questions.length}
@@ -275,7 +278,9 @@ export default function ExamDetailsPage() {
                       size="sm"
                       className="bg-green-600 hover:bg-green-700 text-white"
                       onClick={() => handleSaveQuestion(q.id)}
-                      disabled={savingQuestion || newQuestionContent.trim() === ""}
+                      disabled={
+                        savingQuestion || newQuestionContent.trim() === ""
+                      }
                     >
                       {savingQuestion ? "Guardando..." : "Guardar"}
                     </Button>
@@ -306,7 +311,9 @@ export default function ExamDetailsPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => startEditingQuestion(q.id, q.content)}
-                      disabled={editingQuestion !== null || showOptionsFor === q.id}
+                      disabled={
+                        editingQuestion !== null || showOptionsFor === q.id
+                      }
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
@@ -331,7 +338,9 @@ export default function ExamDetailsPage() {
                       size="sm"
                       variant={showOptionsFor === q.id ? "default" : "outline"}
                       onClick={() =>
-                        setShowOptionsFor((prev) => (prev === q.id ? null : q.id))
+                        setShowOptionsFor((prev) =>
+                          prev === q.id ? null : q.id
+                        )
                       }
                       disabled={editingQuestion !== null}
                     >

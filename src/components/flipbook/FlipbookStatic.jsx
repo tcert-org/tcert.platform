@@ -75,7 +75,7 @@ export default function FlipbookStatic({ material }) {
   return (
     <div className="w-full h-full flex flex-col items-center gap-4 p-2">
       <Document
-        file={`/materials/${material}`}
+        file={`https://e48bssyezdxaxnzg.public.blob.vercel-storage.com/materials/${material}`}
         onLoadSuccess={handleLoadSuccess}
         loading={<p>Cargando PDF...</p>}
       >

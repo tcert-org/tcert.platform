@@ -42,7 +42,22 @@ export async function POST(req: NextRequest) {
     }
 
     const service = new AttemptsService();
-    const updatedAttempt = await service.gradeExamAttempt(attempt_id);
+    // Leer total_questions y unanswered del body si existen
+    const totalQuestions =
+      typeof body?.total_questions === "number"
+        ? body.total_questions
+        : undefined;
+    const unanswered =
+      typeof body?.unanswered === "number"
+        ? body.unanswered
+        : typeof totalQuestions === "number" &&
+          body?.answered_questions !== undefined
+        ? totalQuestions - Number(body.answered_questions)
+        : undefined;
+    const updatedAttempt = await service.gradeExamAttempt(attempt_id, {
+      totalQuestions,
+      unanswered,
+    });
 
     const responseData = {
       message: "Intento calificado correctamente",

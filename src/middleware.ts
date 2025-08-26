@@ -116,7 +116,15 @@ export async function middleware(req: NextRequest) {
     }
 
     if (!studentAuthResult.authenticated && !userAuthResult.authenticated) {
-      return NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
+      // Limpiar cookies de sesión inválidas
+      const response = NextResponse.redirect(new URL(SIGN_IN_URL, req.url));
+      response.cookies.set("access_token", "", { path: "/", maxAge: 0 });
+      response.cookies.set("refresh_token", "", { path: "/", maxAge: 0 });
+      response.cookies.set("student_access_token", "", {
+        path: "/",
+        maxAge: 0,
+      });
+      return response;
     }
 
     // Headers para rutas API autenticadas como usuario
@@ -153,6 +161,6 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api/auth/register|api/auth/login|api/auth/refresh|sign-in|api/auth-student|api/decrypt-student|api/diploma/by-voucher-code|api/diamond|api/certification-params|api/feedback|_next/static|_next/image|public|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)",
+    "/((?!api/vouchers/public|api/auth/register|api/auth/login|api/auth/refresh|api/forgot-password|api/auth/reset-password|sign-in|api/auth-student|api/decrypt-student|api/diploma/by-voucher-code|api/diamond|api/certification-params|api/feedback|forgot-password|reset-password|_next/static|_next/image|public|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp)$).*)",
   ],
 };

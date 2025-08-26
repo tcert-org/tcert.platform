@@ -164,97 +164,123 @@ export default function CertificatePage() {
 
       console.log("ID del estudiante obtenido (tabla students): ", studentId);
 
-      // Llamamos al endpoint para obtener los detalles del voucher
-      const response = await fetch(`/api/vouchers/${voucherId}`);
-
+      // Usar el endpoint seguro para estudiantes con voucher_id ya obtenido arriba
+      if (!voucherId) {
+        setError("No se encontró el ID del voucher.");
+        setLoading(false);
+        return;
+      }
+      const response = await fetch(
+        `/api/vouchers/by-student?voucher_id=${voucherId}`,
+        { credentials: "include" }
+      );
       if (!response.ok) {
-        console.error("Error al obtener los detalles del voucher");
         setError("Error al obtener los detalles del voucher.");
         setLoading(false);
         return;
       }
-
-      // Parseamos la respuesta a JSON
       const voucherData = await response.json();
-
-      if (voucherData?.data) {
-        // Obtener el intento aprobado más reciente para usar su ID
-        let examAttemptId = null;
-
-        if (approvedAttempts.length > 0) {
-          // Usar el intento más reciente (primero en la lista ya que está ordenado por fecha descendente)
-          examAttemptId = approvedAttempts[0].id;
-          console.log("✅ Usando exam_attempt_id:", examAttemptId);
-          console.log("📋 Datos del intento:", approvedAttempts[0]);
-        } else {
-          console.warn("❌ No hay intentos aprobados disponibles");
-          setError(
-            "No se encontraron intentos aprobados para generar el certificado."
-          );
-          setLoading(false);
-          return;
-        }
-
-        // Calcular la fecha de expiración (2 años después)
-        const expirationDate = new Date();
-        expirationDate.setFullYear(expirationDate.getFullYear() + 2);
-        const expirationDateString = expirationDate.toISOString().split("T")[0];
-
-        // Validar o crear el registro del diploma antes de generar el PDF
-        const diplomaResponse = await fetch("/api/diploma", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            exam_attempt_id: examAttemptId, // Usar el ID del intento aprobado
-            student_id: studentId, // Usar el ID de la tabla students
-            certification_id: voucherData.data.certification_id,
-            completion_date: new Date().toISOString().split("T")[0], // Solo la fecha (YYYY-MM-DD)
-            expiration_date: expirationDateString, // Fecha de expiración (2 años después)
-          }),
-        });
-
-        if (!diplomaResponse.ok) {
-          const diplomaResponseText = await diplomaResponse.text();
-          console.error("Error al validar/crear el diploma");
-          setError(`Error al validar el diploma: ${diplomaResponseText}`);
-          setLoading(false);
-          return;
-        }
-
-        // Llamamos al endpoint para generar el certificado
-        const certResponse = await fetch("/api/diploma/generate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            studentName: studentName,
-            certificationName: voucherData.data.certification_name,
-            expeditionDate: new Date().toISOString().split("T")[0], // Fecha de expedición por defecto (hoy)
-            codigoVoucher: voucherData.data.code,
-            URL_logo: voucherData.data.certification_logo_url,
-            documentNumber: documentNumber, // Agregar número de documento
-          }),
-        });
-
-        if (!certResponse.ok) {
-          console.error("Error al generar el certificado");
-          setError("Error al generar el certificado.");
-          setLoading(false);
-          return;
-        }
-
-        // Aquí, descargamos el PDF directamente
-        const certBlob = await certResponse.blob();
-        const downloadUrl = URL.createObjectURL(certBlob);
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = `${studentName}-certificado.pdf`;
-        link.click();
-        URL.revokeObjectURL(downloadUrl);
+      if (!voucherData?.data) {
+        setError("No se encontró la información del voucher.");
+        setLoading(false);
+        return;
       }
+
+      // Obtener el intento aprobado más reciente para usar su ID
+      let examAttemptId = null;
+      if (approvedAttempts.length > 0) {
+        examAttemptId = approvedAttempts[0].id;
+      } else {
+        setError(
+          "No se encontraron intentos aprobados para generar el certificado."
+        );
+        setLoading(false);
+        return;
+      }
+
+      // Validar o crear el registro del diploma antes de generar el PDF
+      const diplomaResponse = await fetch("/api/diploma", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          exam_attempt_id: examAttemptId,
+          student_id: studentId,
+          certification_id: voucherData.data.certification_id,
+          completion_date: new Date().toISOString().split("T")[0],
+        }),
+      });
+      if (!diplomaResponse.ok) {
+        const diplomaResponseText = await diplomaResponse.text();
+        setError(`Error al validar el diploma: ${diplomaResponseText}`);
+        setLoading(false);
+        return;
+      }
+
+      // Obtener el registro del diploma por voucher para extraer la fecha de expiración
+      const diplomaByVoucherRes = await fetch(
+        `/api/diploma/by-voucher-code?voucher_code=${voucherData.data.code}`,
+        { credentials: "include" }
+      );
+      if (!diplomaByVoucherRes.ok) {
+        setError("No se pudo obtener el registro del diploma para el voucher.");
+        setLoading(false);
+        return;
+      }
+      const diplomaByVoucherData = await diplomaByVoucherRes.json();
+      console.log(
+        "Respuesta de /api/diploma/by-voucher-code:",
+        diplomaByVoucherData
+      );
+      const expirationDateRaw =
+        diplomaByVoucherData?.data?.diploma?.expiration_date;
+      if (!expirationDateRaw) {
+        setError("No se encontró la fecha de expiración en el diploma.");
+        setLoading(false);
+        return;
+      }
+      // Formatear la fecha a YYYY-MM-DD (sin hora) para el PDFTool
+      let expirationDate = "";
+      if (typeof expirationDateRaw === "string") {
+        expirationDate = expirationDateRaw.split("T")[0];
+      }
+      if (!expirationDate) {
+        setError("La fecha de expiración no es válida.");
+        setLoading(false);
+        return;
+      }
+
+      // Llamar al endpoint para generar el certificado usando la fecha de expiración real
+      const certResponse = await fetch("/api/diploma/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          studentName: studentName,
+          certificationName: voucherData.data.certification_name,
+          expeditionDate: expirationDate, // <--- CORREGIDO
+          codigoVoucher: voucherData.data.code,
+          URL_logo: voucherData.data.certification_logo_url,
+          documentNumber: documentNumber,
+        }),
+      });
+      if (!certResponse.ok) {
+        setError("Error al generar el certificado.");
+        setLoading(false);
+        return;
+      }
+      // Descargar el PDF
+      const certBlob = await certResponse.blob();
+      const downloadUrl = URL.createObjectURL(certBlob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${studentName}-certificado.pdf`;
+      link.click();
+      URL.revokeObjectURL(downloadUrl);
     } catch (err) {
       console.error("Error inesperado", err);
       setError("Error inesperado al generar el certificado.");

@@ -60,6 +60,13 @@ export default function DashboardWrapper({
     }
 
     console.warn("[DEBUG] Ni estudiante ni usuario están autenticados");
+    // Limpiar stores y localStorage
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("user-store");
+      localStorage.removeItem("student-store");
+      // Si usas otra key de persistencia, agrégala aquí
+      window.location.href = "/sign-in";
+    }
     setProfile(null);
     setStudentFirstTime(false);
   }, [getStudent, getUser, pathname, router]);
