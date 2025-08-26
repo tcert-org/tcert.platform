@@ -107,10 +107,12 @@ export default function FormQuestion({ examId }: { examId: number }) {
 
               <div>
                 <Label htmlFor="content">Contenido</Label>
-                <Input
+                <textarea
                   id="content"
                   {...register("content", { required: "Campo obligatorio" })}
                   placeholder="Escriba la pregunta aquí"
+                  rows={4}
+                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-y"
                 />
                 {errors.content && (
                   <span className="text-red-500 text-xs">
