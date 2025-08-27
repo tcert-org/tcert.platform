@@ -213,7 +213,14 @@ export default function VoucherForm() {
         theme: "colored",
       });
 
+      // Recalcular la fecha de expiración antes de resetear el formulario
+      const expiration = await getVoucherExpirationDate();
       reset();
+      setValue("expiration_dates", expiration, {
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
+      });
       setValue("certification_id", "", {
         shouldValidate: true,
         shouldDirty: true,
