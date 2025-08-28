@@ -4,7 +4,9 @@ import ejs from "ejs";
 import fs from "fs";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: process.env.MAILER_HOST || "smtp.office365.com",
+  port: Number(process.env.MAILER_PORT) || 587,
+  secure: false, // true para 465, false para 587
   auth: {
     user: process.env.MAILER_EMAIL,
     pass: process.env.MAILER_PASSWORD,

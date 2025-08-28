@@ -50,7 +50,9 @@ export default function PartnerReportsPage() {
     price?: number;
     isValid?: boolean;
   }>({ exists: false });
-  const [processedPayments, setProcessedPayments] = useState<Set<string>>(new Set());
+  const [processedPayments, setProcessedPayments] = useState<Set<string>>(
+    new Set()
+  );
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -80,7 +82,11 @@ export default function PartnerReportsPage() {
     const extensionSuccess = searchParams.get("extension_success");
     const paymentId = searchParams.get("payment_id");
 
-    if (extensionSuccess === "true" && paymentId && !processedPayments.has(paymentId)) {
+    if (
+      extensionSuccess === "true" &&
+      paymentId &&
+      !processedPayments.has(paymentId)
+    ) {
       setProcessedPayments((prev) => new Set([...prev, paymentId]));
 
       const processExtension = async () => {
@@ -102,7 +108,11 @@ export default function PartnerReportsPage() {
             } else {
               toast.success(
                 "¡Extensión de 1 año procesada exitosamente! Las fechas de vencimiento han sido extendidas por 12 meses.",
-                { duration: 5000, description: "Todas las fechas han sido actualizadas correctamente." }
+                {
+                  duration: 5000,
+                  description:
+                    "Todas las fechas han sido actualizadas correctamente.",
+                }
               );
             }
           } else {
@@ -163,7 +173,8 @@ export default function PartnerReportsPage() {
 
     const search = new URLSearchParams(
       Object.entries(query).reduce(
-        (acc, [k, v]) => (v !== undefined && v !== null ? { ...acc, [k]: v } : acc),
+        (acc, [k, v]) =>
+          v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
         {}
       )
     ).toString();
@@ -176,14 +187,20 @@ export default function PartnerReportsPage() {
     // Obtener params para calcular expiración faltante
     const paramsRes = await fetch("/api/params");
     const { data: paramsData } = await paramsRes.json();
-    const expirationMonths = parseInt(paramsData.find((p: any) => p.id === 1)?.value ?? "0", 10);
+    const expirationMonths = parseInt(
+      paramsData.find((p: any) => p.id === 1)?.value ?? "0",
+      10
+    );
 
     // Mapear files -> file_url y completar expiración
     const processedData: PaymentDynamicTable[] = data.map((item: any) => {
       let expiration_date = item.expiration_date;
       if (!expiration_date && expirationMonths > 0) {
         const createdDate = new Date(item.created_at);
-        expiration_date = addMonthsToDate(createdDate, expirationMonths).toISOString();
+        expiration_date = addMonthsToDate(
+          createdDate,
+          expirationMonths
+        ).toISOString();
       }
       return {
         ...item,
@@ -203,16 +220,18 @@ export default function PartnerReportsPage() {
     {
       label: "Comprobante",
       action: (row) => {
-        if (row.file_url) window.open(row.file_url, "_blank");
+        if (row.file_url && row.file_url !== "stripe_payment") {
+          window.open(row.file_url, "_blank");
+        }
       },
-      hidden: (row) => !row.file_url,
+      hidden: (row) => !row.file_url || row.file_url === "stripe_payment",
     },
   ];
 
   const columns: ColumnDef<PaymentDynamicTable>[] = [
     // Columna de acciones como en admin
     createActionsColumn(paymentActions),
-  
+
     {
       accessorKey: "id",
       header: "ID",
@@ -355,7 +374,11 @@ export default function PartnerReportsPage() {
 
         return (
           <div className="text-center">
-            <span className={`text-sm ${extensionUsed ? "text-green-700 font-medium" : "text-gray-700"}`}>
+            <span
+              className={`text-sm ${
+                extensionUsed ? "text-green-700 font-medium" : "text-gray-700"
+              }`}
+            >
               {formattedDate}
             </span>
             {extensionUsed && (
@@ -403,9 +426,12 @@ export default function PartnerReportsPage() {
 
         const getTooltipText = () => {
           if (alreadyExtended) return "Este pago ya ha sido extendido";
-          if (!extensionPriceInfo.exists) return "El precio de extensión no está configurado";
-          if (!extensionPriceInfo.isValid) return "El precio de extensión no es válido";
-          if (!canExtend) return "Solo se puede extender durante el período de extensión";
+          if (!extensionPriceInfo.exists)
+            return "El precio de extensión no está configurado";
+          if (!extensionPriceInfo.isValid)
+            return "El precio de extensión no es válido";
+          if (!canExtend)
+            return "Solo se puede extender durante el período de extensión";
           return "Extender vouchers sin asignar por 1 año. El precio se calculará en checkout.";
         };
 
@@ -425,18 +451,25 @@ export default function PartnerReportsPage() {
                         const data = await res.json();
 
                         if (res.ok) {
-                          const redirectUrl = data.checkout_url || data.url || data.checkoutUrl;
+                          const redirectUrl =
+                            data.checkout_url || data.url || data.checkoutUrl;
                           if (redirectUrl) {
                             window.location.href = redirectUrl;
                           } else {
                             toast.error("No se generó URL de checkout");
                           }
                         } else {
-                          toast.error(data.error || data.message || "Error al crear checkout");
+                          toast.error(
+                            data.error ||
+                              data.message ||
+                              "Error al crear checkout"
+                          );
                         }
                       } catch (error) {
                         console.error("Error al procesar extensión:", error);
-                        toast.error("Error inesperado al procesar la extensión");
+                        toast.error(
+                          "Error inesperado al procesar la extensión"
+                        );
                       }
                     }
                   : undefined
@@ -455,26 +488,28 @@ export default function PartnerReportsPage() {
       },
     },
     {
-  id: "comprobante_status",
-  header: "Comprobante",
-  size: 80,
-  enableSorting: false,
-  cell: ({ row }) => {
-    const hasReceipt = Boolean(row.original.file_url);
-    return (
-      <div className="flex justify-center items-center">
-        <span
-          title={hasReceipt ? "Con comprobante" : "Sin comprobante"}
-          aria-label={hasReceipt ? "Con comprobante" : "Sin comprobante"}
-          className={`inline-block rounded-full ${
-            hasReceipt ? "bg-green-500" : "bg-gray-300"
-          } h-3.5 w-3.5`}
-        />
-      </div>
-    );
-  },
-}
-
+      id: "comprobante_status",
+      header: "Comprobante",
+      size: 80,
+      enableSorting: false,
+      cell: ({ row }) => {
+        const hasReceipt = Boolean(
+          row.original.file_url !== null &&
+            row.original.file_url !== "stripe_payment"
+        );
+        return (
+          <div className="flex justify-center items-center">
+            <span
+              title={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+              aria-label={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+              className={`inline-block rounded-full ${
+                hasReceipt ? "bg-green-500" : "bg-gray-300"
+              } h-3.5 w-3.5`}
+            />
+          </div>
+        );
+      },
+    },
   ];
 
   return (
@@ -485,15 +520,27 @@ export default function PartnerReportsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 rounded-xl shadow-lg shadow-purple-500/30 border border-purple-400/20">
-                <svg className="h-6 w-6 text-white drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M8 11v6h8v-6M8 11H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2" />
+                <svg
+                  className="h-6 w-6 text-white drop-shadow-sm"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 11V7a4 4 0 00-8 0v4M8 11v6h8v-6M8 11H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2"
+                  />
                 </svg>
               </div>
               <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-800 via-violet-700 to-purple-900 bg-clip-text text-transparent drop-shadow-sm">
                   Mis Compras
                 </h1>
-                <p className="text-lg text-gray-600 mt-1">Historial completo de tus adquisiciones de vouchers</p>
+                <p className="text-lg text-gray-600 mt-1">
+                  Historial completo de tus adquisiciones de vouchers
+                </p>
               </div>
             </div>
           </div>
@@ -501,7 +548,13 @@ export default function PartnerReportsPage() {
 
         {/* Tabla */}
         <div className="transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:-translate-y-1 bg-gradient-to-br from-white via-purple-50/30 to-purple-100/50 border-purple-200/50 shadow-lg shadow-purple-100/40 backdrop-blur-sm border-2 rounded-lg p-6">
-          {partnerId && <DataTable key={refreshKey} columns={columns} fetchDataFn={fetchPartnerPayments} />}
+          {partnerId && (
+            <DataTable
+              key={refreshKey}
+              columns={columns}
+              fetchDataFn={fetchPartnerPayments}
+            />
+          )}
         </div>
       </div>
     </div>

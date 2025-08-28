@@ -80,11 +80,11 @@ export default function PaymentsPage() {
     {
       label: "Comprobante",
       action: (row) => {
-        if (row.file_url) {
+        if (row.file_url && row.file_url !== "stripe_payment") {
           window.open(row.file_url, "_blank");
         }
       },
-      hidden: (row) => !row.file_url,
+      hidden: (row) => !row.file_url || row.file_url === "stripe_payment",
     },
   ];
 
@@ -211,26 +211,28 @@ export default function PaymentsPage() {
       },
     },
     {
-  id: "comprobante_status",
-  header: "Comprobante",
-  size: 80,
-  enableSorting: false,
-  cell: ({ row }) => {
-    const hasReceipt = Boolean(row.original.file_url);
-    return (
-      <div className="flex justify-center items-center">
-        <span
-          title={hasReceipt ? "Con comprobante" : "Sin comprobante"}
-          aria-label={hasReceipt ? "Con comprobante" : "Sin comprobante"}
-          className={`inline-block rounded-full ${
-            hasReceipt ? "bg-green-500" : "bg-gray-300"
-          } h-3.5 w-3.5`}
-        />
-      </div>
-    );
-  },
-}
-
+      id: "comprobante_status",
+      header: "Comprobante",
+      size: 80,
+      enableSorting: false,
+      cell: ({ row }) => {
+        const hasReceipt = Boolean(
+          row.original.file_url !== null &&
+            row.original.file_url !== "stripe_payment"
+        );
+        return (
+          <div className="flex justify-center items-center">
+            <span
+              title={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+              aria-label={hasReceipt ? "Con comprobante" : "Sin comprobante"}
+              className={`inline-block rounded-full ${
+                hasReceipt ? "bg-green-500" : "bg-gray-300"
+              } h-3.5 w-3.5`}
+            />
+          </div>
+        );
+      },
+    },
   ];
 
   return (
