@@ -493,7 +493,10 @@ export default function PartnerReportsPage() {
       size: 80,
       enableSorting: false,
       cell: ({ row }) => {
-        const hasReceipt = Boolean(row.original.file_url);
+        const hasReceipt = Boolean(
+          row.original.file_url !== null &&
+            row.original.file_url !== "stripe_payment"
+        );
         return (
           <div className="flex justify-center items-center">
             <span
