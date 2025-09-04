@@ -131,7 +131,8 @@ export default class DiplomaTable extends Table<"diplomas"> {
         .select(
           `
           id,
-          name
+          name,
+          logo_url
         `
         )
         .eq("id", diploma.certification_id)

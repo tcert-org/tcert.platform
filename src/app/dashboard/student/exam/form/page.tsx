@@ -14,6 +14,8 @@ import {
   Clock,
   HelpCircle,
 } from "lucide-react";
+import ProgressBar from "@/modules/tools/ProgressBar";
+import ActionWarning from "@/modules/tools/ActionWarning";
 
 interface Question {
   id: number;
@@ -163,32 +165,17 @@ export default function FormExam() {
         return;
       }
 
-      // Paso 1: Obtener las respuestas
-      const payload = questions.map((q) => ({
-        exam_attempt_id: Number(attemptId),
-        question_id: q.id,
-        selected_option_id: selectedOptions[q.id] ?? null,
-      }));
-
-      const res = await fetch("/api/answers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers: payload }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        console.error("Error al guardar respuestas:", error);
-        alert(error?.error || "Error al guardar respuestas");
-        return;
-      }
-
-      // Paso 2: Calificar el examen
+      // Solo calificar, no enviar unanswered
       const gradeRes = await fetch("/api/attempts/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ attempt_id: attemptId, final_submit: true }),
+        body: JSON.stringify({
+          attempt_id: attemptId,
+          final_submit: true,
+          total_questions: questions.length,
+          answered_questions: Object.keys(selectedOptions).length,
+        }),
       });
 
       if (!gradeRes.ok) {
@@ -447,7 +434,13 @@ export default function FormExam() {
 
     setSelectedOptions((prev) => {
       const updated = { ...prev, [currentQuestion.id]: optionId };
-      autosaveAttempt(questions, updated);
+      // Usar autosaveAttempt igual que en simulador
+      autosaveAttempt(
+        currentQuestion.id,
+        optionId,
+        questions.length,
+        Object.keys({ ...prev, [currentQuestion.id]: optionId }).length
+      );
       return updated;
     });
   };
@@ -558,23 +551,15 @@ export default function FormExam() {
       {/* Progress Bar */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="w-full bg-gray-200 h-1">
-            <div
-              className="bg-gradient-to-r from-blue-500 to-purple-600 h-1 transition-all duration-300 ease-out"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
+          <ProgressBar progress={progressPercentage} />
         </div>
       </div>
 
       {/* Advertencia de seguridad */}
-      {showWarning && (
-        <div className="fixed top-16 sm:top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-lg animate-pulse mx-4 max-w-[calc(100vw-2rem)]">
-          <p className="text-xs sm:text-sm font-medium text-center">
-            ⚠️ Acción no permitida durante el examen
-          </p>
-        </div>
-      )}
+      <ActionWarning
+        show={showWarning}
+        message="⚠️ Acción no permitida durante el examen"
+      />
 
       {/* Advertencia de tiempo */}
       {showTimeWarning && timeRemaining !== null && (

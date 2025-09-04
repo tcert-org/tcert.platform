@@ -168,7 +168,7 @@ export default function FlipbookFullModal({ material }) {
           </button>
 
           <Document
-            file={`/materials/${material}`}
+            file={`https://e48bssyezdxaxnzg.public.blob.vercel-storage.com/materials/${material}`}
             onLoadSuccess={({ numPages }) => setNumPages(numPages)}
             loading={
               <div className="text-white flex items-center justify-center p-8">

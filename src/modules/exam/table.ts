@@ -34,23 +34,26 @@ export default class ExamTable extends Table<"exams"> {
         throw new Error("Pagination values must be greater than 0.");
       }
 
+      console.log("🔍 Table filters received:", {
+        filter_name_exam,
+        filter_certification_id,
+        filter_simulator,
+        filter_active,
+        filter_created_at,
+        filter_created_at_op,
+      }); // Debug log
+
       const { data, error } = await supabase.rpc("get_exams_with_filters", {
         filter_name_exam: filter_name_exam ?? null,
-        filter_certification_id: filter_certification_id ?? null,
+        filter_certification_id: filter_certification_id
+          ? Number(filter_certification_id)
+          : null,
+        filter_certification_name:
+          (filters as any).filter_certification_name ?? null, // 👈 NUEVO
         filter_simulator:
-          String(filter_simulator) === "true"
-            ? true
-            : String(filter_simulator) === "false"
-            ? false
-            : null,
-
+          typeof filter_simulator === "boolean" ? filter_simulator : null,
         filter_active:
-          String(filter_active) === "true"
-            ? true
-            : String(filter_active) === "false"
-            ? false
-            : null,
-
+          typeof filter_active === "boolean" ? filter_active : null,
         filter_created_at: filter_created_at
           ? new Date(filter_created_at).toISOString().split("T")[0]
           : null,
@@ -60,13 +63,11 @@ export default class ExamTable extends Table<"exams"> {
         page: page ?? 1,
         limit_value: limit_value ?? 10,
       });
-      console.log("🧪 Filtros recibidos:", {
-        filter_simulator,
-        filter_active,
-        filter_name_exam,
-      });
 
-      if (error) throw new Error(`Error getting exams: ${error.message}`);
+      if (error) {
+        console.error("ERROR SUPABASE:", error);
+        throw new Error(`Error getting exams: ${error.message}`);
+      }
 
       const rows = data as ExamRowWithCount[];
 

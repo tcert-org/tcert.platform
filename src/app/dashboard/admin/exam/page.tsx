@@ -19,52 +19,84 @@ export interface ExamDinamicTable {
 }
 
 async function fetchExam(
-  params: FetchParams
+  params: Record<string, any>
 ): Promise<{ data: ExamDinamicTable[]; totalCount: number }> {
-  const query: Record<string, any> = {
-    page: params.page ?? 1,
-    limit_value: params.limit ?? 10,
-    order_by: params.order_by ?? "created_at",
-    order_dir: params.order_dir ?? "desc",
-  };
+  try {
+    const query: Record<string, any> = {
+      page: params.page ?? 1,
+      limit_value: params.limit ?? 10,
+      order_by: params.order_by ?? "created_at",
+      order_dir: params.order_dir ?? "desc",
+    };
 
-  if (params.filters) {
-    for (const filter of params.filters) {
-      const val = filter.value;
-
-      if (filter.id === "active" || filter.id === "simulator") {
-        query[`filter_${filter.id}`] =
-          val === true || val === "true"
+    // Agrega dinámicamente los filtros con el prefijo filter_
+    for (const key in params) {
+      if (key.startsWith("filter_")) {
+        const value = params[key];
+        if (key.endsWith("_op")) {
+          query[key] = value;
+        } else if (key === "filter_simulator" || key === "filter_active") {
+          // Manejo especial para booleans
+          query[key] =
+            value === "true" ? true : value === "false" ? false : value;
+        } else if (
+          !isNaN(value) &&
+          key !== "filter_name_exam" &&
+          key !== "filter_certification_name"
+        ) {
+          query[key] = Number(value);
+        } else {
+          query[key] = value;
+        }
+      } else if (key === "certification_name") {
+        // Mapear certification_name a filter_certification_name
+        query["filter_certification_name"] = params[key];
+      } else if (key === "name_exam") {
+        // Mapear name_exam a filter_name_exam
+        query["filter_name_exam"] = params[key];
+      } else if (key === "simulator") {
+        // Mapear simulator a filter_simulator
+        query["filter_simulator"] =
+          params[key] === "true"
             ? true
-            : val === false || val === "false"
+            : params[key] === "false"
             ? false
-            : undefined;
-      } else if (typeof val === "string" && val.includes(":")) {
-        const [op, rawValue] = val.split(":");
-        query[`filter_${filter.id}_op`] = op;
-        query[`filter_${filter.id}`] = rawValue;
-      } else {
-        query[`filter_${filter.id}`] = val;
+            : params[key];
+      } else if (key === "active") {
+        // Mapear active a filter_active
+        query["filter_active"] =
+          params[key] === "true"
+            ? true
+            : params[key] === "false"
+            ? false
+            : params[key];
       }
     }
+
+    const queryParams = new URLSearchParams(
+      Object.entries(query).reduce(
+        (acc, [k, v]) =>
+          v !== undefined && v !== null ? { ...acc, [k]: String(v) } : acc,
+        {}
+      )
+    ).toString();
+
+    console.log("🔍 Query params:", queryParams); // Debug log
+
+    const response = await fetch(`/api/exam?${queryParams}`);
+
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    const { data, totalCount } = result || { data: [], totalCount: 0 };
+
+    return { data, totalCount };
+  } catch (error) {
+    console.error("Error fetching exams:", error);
+    return { data: [], totalCount: 0 };
   }
-
-  const search = new URLSearchParams(
-    Object.entries(query).reduce(
-      (acc, [k, v]) =>
-        v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
-      {}
-    )
-  ).toString();
-
-  const res = await fetch(`/api/exam?${search}`);
-  if (!res.ok) throw new Error("No se pudieron cargar los exámenes");
-  const { data, totalCount } = await res.json();
-
-  return {
-    data,
-    totalCount,
-  };
 }
 
 async function toggleExamActive(id: string, current: boolean) {

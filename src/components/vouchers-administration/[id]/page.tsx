@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useCallback } from "react";
+type Certification = { id: number; name: string };
 import { usePathname } from "next/navigation";
 import {
   Loader2,
@@ -48,7 +49,37 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
   const [certificateLoading, setCertificateLoading] = useState(false);
   const [certificateEligible, setCertificateEligible] = useState(false);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+  const [hasApprovedAttempts, setHasApprovedAttempts] = useState<
+    boolean | null
+  >(null);
+  const [approvedAttempts, setApprovedAttempts] = useState<any[]>([]);
+  const [editName, setEditName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [savingCertification, setSavingCertification] = useState(false);
+  const [certificationError, setCertificationError] = useState<string | null>(
+    null
+  );
+  const [showCertificationSuccess, setShowCertificationSuccess] =
+    useState(false);
   const pathname = usePathname();
+  // Cargar certificaciones
+  useEffect(() => {
+    async function fetchCertifications() {
+      try {
+        const res = await fetch("/api/vouchers/certifications");
+        const result = await res.json();
+        if (res.ok && result.data) {
+          setCertifications(result.data);
+        }
+      } catch (err) {
+        // Silenciar error
+      }
+    }
+    fetchCertifications();
+  }, []);
 
   // Detectar si estamos en la ruta de admin
   const isAdminRoute = pathname.includes("/dashboard/admin");
@@ -62,59 +93,106 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
     return `/dashboard/partner/results?voucher_id=${voucher?.id}&student_id=${student.id}`;
   };
 
-  // Verificar elegibilidad para certificado
+  // Verificar elegibilidad para certificado (igual que vista estudiante)
   const checkCertificateEligibility = useCallback(async () => {
-    if (!voucher?.code || !student) return;
-
+    if (!student?.id) return;
+    setCertificateError(null);
+    setHasApprovedAttempts(null);
+    setApprovedAttempts([]);
     try {
-      // Usar el mismo endpoint que usa la vista de estudiante para validar
+      // Verificar si el estudiante tiene intentos aprobados
+      const approvedResponse = await fetch(
+        `/api/attempts/approved?student_id=${student.id}`
+      );
+      if (!approvedResponse.ok) {
+        setCertificateEligible(false);
+        setHasApprovedAttempts(false);
+        setCertificateError(
+          "Error al verificar la elegibilidad para el certificado."
+        );
+        return;
+      }
+      const approvedData = await approvedResponse.json();
+      const attemptData = approvedData.data;
+      setHasApprovedAttempts(attemptData.hasApprovedAttempts);
+      if (
+        attemptData.hasApprovedAttempts &&
+        attemptData.approvedAttempts.length > 0
+      ) {
+        setApprovedAttempts(attemptData.approvedAttempts);
+        setCertificateEligible(true);
+        setCertificateError(null);
+      } else {
+        setApprovedAttempts([]);
+        setCertificateEligible(false);
+        setCertificateError(
+          "El estudiante debe aprobar un examen para generar el certificado."
+        );
+      }
+    } catch (error) {
+      setCertificateEligible(false);
+      setHasApprovedAttempts(false);
+      setCertificateError("Error inesperado al verificar la elegibilidad.");
+      console.error("Error verificando elegibilidad:", error);
+    }
+  }, [student?.id]);
+
+  // Generar certificado (solo si hay intentos aprobados)
+  const generateCertificate = async () => {
+    if (
+      !certificateEligible ||
+      !voucher ||
+      !student ||
+      !hasApprovedAttempts ||
+      approvedAttempts.length === 0
+    ) {
+      setCertificateError(
+        "No puedes obtener el certificado porque no tienes ningún examen aprobado."
+      );
+      return;
+    }
+    setCertificateLoading(true);
+    setCertificateError(null);
+    try {
+      // Usar el intento aprobado más reciente
+      const examAttemptId = approvedAttempts[0].id;
+      // Obtener el diploma para extraer la fecha de expiración real
+      const diplomaByVoucherRes = await fetch(
+        `/api/diploma/by-voucher-code?voucher_code=${voucher.code}`
+      );
+      let expirationDate = new Date();
+      if (diplomaByVoucherRes.ok) {
+        const diplomaByVoucherData = await diplomaByVoucherRes.json();
+        const expirationDateRaw =
+          diplomaByVoucherData?.data?.diploma?.expiration_date;
+        if (typeof expirationDateRaw === "string") {
+          expirationDate = new Date(expirationDateRaw.split("T")[0]);
+        }
+      }
+      const expirationDateString = expirationDate.toISOString().split("T")[0];
+      // Validar o crear el registro del diploma antes de generar el PDF
       const diplomaResponse = await fetch("/api/diploma", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          voucher_code: voucher.code,
+          exam_attempt_id: examAttemptId,
+          student_id: student.id,
+          certification_id: voucher.certification_id,
+          completion_date: new Date().toISOString().split("T")[0],
+          expiration_date: expirationDateString,
         }),
       });
-
-      if (diplomaResponse.ok) {
-        // El estudiante es elegible para certificado
-        setCertificateEligible(true);
-        setCertificateError(null);
-        console.log("✅ Estudiante elegible para certificado");
-      } else {
-        // No es elegible
-        const errorText = await diplomaResponse.text();
-        setCertificateEligible(false);
+      if (!diplomaResponse.ok) {
+        const diplomaResponseText = await diplomaResponse.text();
         setCertificateError(
-          "El estudiante debe aprobar un examen para generar el certificado"
+          `Error al validar el diploma: ${diplomaResponseText}`
         );
-        console.log("❌ Estudiante no elegible:", errorText);
+        setCertificateLoading(false);
+        return;
       }
-    } catch (error) {
-      setCertificateEligible(false);
-      setCertificateError(
-        "Error al verificar elegibilidad para el certificado"
-      );
-      console.error("Error verificando elegibilidad:", error);
-    }
-  }, [voucher?.code, student]);
-
-  // Generar certificado
-  const generateCertificate = async () => {
-    if (!certificateEligible || !voucher || !student) return;
-
-    setCertificateLoading(true);
-    setCertificateError(null);
-
-    try {
-      console.log(
-        "🚀 Iniciando generación de certificado para:",
-        student.fullname
-      );
-
-      // Generar el certificado directamente (la validación ya se hizo en checkCertificateEligibility)
+      // Generar el certificado
       const certResponse = await fetch("/api/diploma/generate", {
         method: "POST",
         headers: {
@@ -123,22 +201,17 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
         body: JSON.stringify({
           studentName: student.fullname,
           certificationName: voucher.certification_name,
-          expeditionDate: new Date().toISOString().split("T")[0],
+          expeditionDate: expirationDateString,
           codigoVoucher: voucher.code,
           URL_logo: voucher.certification_logo_url,
           documentNumber: student.document_number,
         }),
       });
-
       if (!certResponse.ok) {
-        console.error("Error al generar el certificado");
         setCertificateError("Error al generar el certificado.");
         setCertificateLoading(false);
         return;
       }
-
-      console.log("✅ Certificado generado exitosamente");
-
       // Descargar el PDF
       const certBlob = await certResponse.blob();
       const url = window.URL.createObjectURL(certBlob);
@@ -150,8 +223,7 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Error en la generación del certificado:", error);
-      setCertificateError("Error al generar el certificado.");
+      setCertificateError("Error inesperado al generar el certificado.");
     } finally {
       setCertificateLoading(false);
     }
@@ -175,6 +247,7 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
         const studentData = await studentRes.json();
         if (studentRes.ok) {
           setStudent(studentData.data);
+          setEditName(studentData.data?.fullname || "");
         }
       } catch (err) {
         console.error("Error cargando datos:", err);
@@ -263,9 +336,88 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
                   <BookOpen className="text-purple-700 w-5 h-5" />
                   <p>
                     <strong className="text-gray-700">Certificación:</strong>{" "}
-                    <span className="text-gray-800 font-medium">
-                      {voucher?.certification_name || "N/A"}
-                    </span>
+                    {isAdminRoute ? (
+                      <>
+                        <select
+                          className="border rounded px-2 py-1 text-gray-800 font-medium focus:outline-none focus:ring focus:border-purple-400"
+                          value={voucher?.certification_id || ""}
+                          onChange={async (e) => {
+                            setSavingCertification(true);
+                            setCertificationError(null);
+                            setShowCertificationSuccess(false);
+                            const newId = e.target.value;
+                            try {
+                              const res = await fetch(
+                                `/api/vouchers/${voucher.id}`,
+                                {
+                                  method: "PATCH",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    certification_id: newId,
+                                  }),
+                                }
+                              );
+                              if (!res.ok) {
+                                const err = await res.text();
+                                setCertificationError(
+                                  err || "Error al actualizar certificación"
+                                );
+                              } else {
+                                const selected = certifications.find(
+                                  (c) => c.id === Number(newId)
+                                );
+                                setVoucher({
+                                  ...voucher,
+                                  certification_id: Number(newId),
+                                  certification_name: selected?.name,
+                                });
+                                setShowCertificationSuccess(true);
+                                setTimeout(
+                                  () => setShowCertificationSuccess(false),
+                                  2500
+                                );
+                              }
+                            } catch (err) {
+                              setCertificationError(
+                                "Error de red al actualizar certificación"
+                              );
+                            } finally {
+                              setSavingCertification(false);
+                            }
+                          }}
+                          disabled={savingCertification}
+                          style={{ minWidth: 180 }}
+                        >
+                          <option value="">Selecciona una certificación</option>
+                          {certifications.map((cert) => (
+                            <option key={cert.id} value={cert.id}>
+                              {cert.name}
+                            </option>
+                          ))}
+                        </select>
+                        {savingCertification && (
+                          <span className="ml-2 text-xs text-purple-600">
+                            Guardando...
+                          </span>
+                        )}
+                        {certificationError && (
+                          <span className="ml-2 text-xs text-red-600">
+                            {certificationError}
+                          </span>
+                        )}
+                        {showCertificationSuccess && (
+                          <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded shadow">
+                            ¡Certificación actualizada!
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-gray-800 font-medium">
+                        {voucher?.certification_name || "N/A"}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -334,11 +486,72 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center space-x-3">
                   <User className="text-purple-700 w-5 h-5" />
-                  <p>
+                  <p className="flex items-center gap-2">
                     <strong className="text-gray-700">Nombre:</strong>{" "}
-                    <span className="text-gray-800 font-medium">
-                      {student.fullname}
-                    </span>
+                    {isAdminRoute ? (
+                      <>
+                        <input
+                          type="text"
+                          className="border rounded px-2 py-1 text-gray-800 font-medium focus:outline-none focus:ring focus:border-purple-400"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          disabled={savingName}
+                          style={{ minWidth: 180 }}
+                        />
+                        <button
+                          className={`ml-2 px-3 py-1 rounded bg-purple-600 text-white text-xs font-semibold hover:bg-purple-700 transition disabled:opacity-60 disabled:cursor-not-allowed`}
+                          onClick={async () => {
+                            setSavingName(true);
+                            setNameError(null);
+                            try {
+                              const res = await fetch(
+                                `/api/students/${student.id}/update-name`,
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({ fullname: editName }),
+                                }
+                              );
+                              if (!res.ok) {
+                                const err = await res.text();
+                                setNameError(err || "Error al guardar nombre");
+                              } else {
+                                setStudent({ ...student, fullname: editName });
+                                setShowSuccess(true);
+                                setTimeout(() => setShowSuccess(false), 2500);
+                              }
+                            } catch (err) {
+                              setNameError("Error de red al guardar nombre");
+                            } finally {
+                              setSavingName(false);
+                            }
+                          }}
+                          disabled={
+                            savingName ||
+                            !editName ||
+                            editName === student.fullname
+                          }
+                        >
+                          {savingName ? "Guardando..." : "Guardar"}
+                        </button>
+                        {nameError && (
+                          <span className="ml-2 text-xs text-red-600">
+                            {nameError}
+                          </span>
+                        )}
+                        {showSuccess && (
+                          <span className="ml-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded shadow">
+                            ¡Nombre actualizado!
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-gray-800 font-medium">
+                        {student.fullname}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -376,49 +589,89 @@ export default function VoucherDetailsPage({ voucherId }: Props) {
               </div>
             )}
           </div>
+          <div className="flex justify-center gap-4">
+            {student && (
+              <a
+                href={getResultsUrl()}
+                className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 transition-all duration-200 shadow-sm"
+              >
+                <Contact2 className="w-4 h-4 mr-2" />
+                Ver Resultados del Estudiante
+              </a>
+            )}
+
+            {student && (
+              <button
+                onClick={generateCertificate}
+                disabled={
+                  !certificateEligible ||
+                  certificateLoading ||
+                  !hasApprovedAttempts ||
+                  approvedAttempts.length === 0
+                }
+                className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm ${
+                  certificateEligible &&
+                  !certificateLoading &&
+                  hasApprovedAttempts &&
+                  approvedAttempts.length > 0
+                    ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 hover:from-green-200 hover:to-emerald-200"
+                    : "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-500 border border-gray-300/50 cursor-not-allowed"
+                }`}
+              >
+                {certificateLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                {certificateLoading ? "Generando..." : "Generar Certificado"}
+              </button>
+            )}
+          </div>
 
           {/* Botones de acción */}
           <div className="flex flex-col items-center gap-4">
-            {/* Mostrar error de certificado si existe */}
-            {certificateError && (
+            {/* Mostrar advertencia personalizada si no hay intentos aprobados */}
+            {certificateError && hasApprovedAttempts === false && (
+              <div className="max-w-md mx-auto w-full">
+                <div className="flex flex-col items-center bg-orange-50 border border-orange-200 rounded-lg p-3 mb-2 shadow-sm">
+                  <div className="w-7 h-7 bg-orange-100 rounded-full flex items-center justify-center mb-1">
+                    <svg
+                      className="w-4 h-4 text-orange-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+                      />
+                    </svg>
+                  </div>
+                  <h3 className="font-semibold text-orange-800 mb-1 text-base">
+                    Certificado No Disponible
+                  </h3>
+                  <p className="text-xs text-orange-700 mb-1 text-center">
+                    Para obtener el certificado, el estudiante debe aprobar al
+                    menos un examen oficial de la certificación.
+                  </p>
+                  <p className="text-xs text-orange-600 text-center">
+                    Verifica los resultados o indícale que presente el examen
+                    correspondiente.
+                  </p>
+                </div>
+              </div>
+            )}
+            {/* Otros errores */}
+            {certificateError && hasApprovedAttempts !== false && (
               <div className="max-w-md text-center">
-                <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-800 border border-yellow-300/50">
+                <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-300/50">
                   <BadgeCheck className="w-4 h-4 mr-2" />
                   {certificateError}
                 </div>
               </div>
             )}
-
-            <div className="flex justify-center gap-4">
-              {student && (
-                <a
-                  href={getResultsUrl()}
-                  className="inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg bg-gradient-to-r from-purple-100 to-violet-100 text-purple-800 border border-purple-300/50 hover:from-purple-200 hover:to-violet-200 transition-all duration-200 shadow-sm"
-                >
-                  <Contact2 className="w-4 h-4 mr-2" />
-                  Ver Resultados del Estudiante
-                </a>
-              )}
-
-              {student && (
-                <button
-                  onClick={generateCertificate}
-                  disabled={!certificateEligible || certificateLoading}
-                  className={`inline-flex items-center px-6 py-3 text-sm font-medium rounded-lg transition-all duration-200 shadow-sm ${
-                    certificateEligible && !certificateLoading
-                      ? "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50 hover:from-green-200 hover:to-emerald-200"
-                      : "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-500 border border-gray-300/50 cursor-not-allowed"
-                  }`}
-                >
-                  {certificateLoading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4 mr-2" />
-                  )}
-                  {certificateLoading ? "Generando..." : "Generar Certificado"}
-                </button>
-              )}
-            </div>
           </div>
         </div>
       </div>

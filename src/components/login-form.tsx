@@ -162,9 +162,9 @@ export function LoginForm({
       <Card
         className={cn(
           "relative overflow-hidden transition-all duration-300 w-full",
-          "border-0 bg-gradient-to-br from-white to-gray-50/80",
+          "bg-gradient-to-br from-white to-gray-50/80",
           "shadow-2xl shadow-violet-950/10 backdrop-blur-sm",
-          "ring-1 ring-gray-200/50"
+          "border-2 border-violet-700"
         )}
       >
         {/* Elementos decorativos elegantes */}
@@ -197,10 +197,10 @@ export function LoginForm({
             <Button
               variant="outline"
               className={cn(
-                "w-full h-14 text-base font-semibold transition-all duration-300 transform border-2 rounded-xl relative overflow-hidden group",
+                "w-full h-14 text-base font-semibold transition-all duration-300 transform rounded-xl relative overflow-hidden group",
                 loginType === "student"
-                  ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-gray-500 shadow-lg shadow-gray-500/25 scale-[1.02] hover:from-gray-500 hover:to-gray-600"
-                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900 hover:scale-[1.01] hover:shadow-md"
+                  ? "bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white shadow-lg shadow-violet-700/25 scale-[1.02] hover:from-violet-800 hover:to-orange-600 hover:text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-700 hover:scale-[1.01] hover:shadow-md"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -229,10 +229,10 @@ export function LoginForm({
             <Button
               variant="outline"
               className={cn(
-                "w-full h-14 text-base font-semibold transition-all duration-300 transform border-2 rounded-xl relative overflow-hidden group",
+                "w-full h-14 text-base font-semibold transition-all duration-300 transform rounded-xl relative overflow-hidden group",
                 loginType === "partner"
-                  ? "bg-gradient-to-r from-gray-400 to-gray-500 text-white border-gray-500 shadow-lg shadow-gray-500/25 scale-[1.02] hover:from-gray-500 hover:to-gray-600"
-                  : "border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900 hover:scale-[1.01] hover:shadow-md"
+                  ? "bg-gradient-to-r from-violet-700 via-violet-600 to-orange-500 text-white shadow-lg shadow-violet-700/25 scale-[1.02] hover:from-violet-800 hover:to-orange-600 hover:text-white"
+                  : "bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-700 hover:scale-[1.01] hover:shadow-md"
               )}
               onClick={(e) => {
                 e.preventDefault();
@@ -437,134 +437,223 @@ function PartnerLoginForm({
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState<string | null>(null);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <div className="space-y-2">
-        <Label
-          htmlFor="email"
-          className="text-sm font-semibold text-orange-900 flex items-center"
+    <>
+      {showForgotPassword ? (
+        <form
+          action="#"
+          autoComplete="off"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setForgotLoading(true);
+            setForgotMessage(null);
+            try {
+              const res = await fetch("/api/forgot-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: forgotEmail }),
+              });
+              if (res.ok) {
+                setForgotMessage(
+                  "Por favor, revisa tu correo electrónico. Hemos enviado un enlace para que puedas restablecer tu contraseña de manera segura."
+                );
+              } else {
+                const data = await res.json();
+                setForgotMessage(
+                  data.error || "Error al enviar el correo. Intenta más tarde."
+                );
+              }
+            } catch (err) {
+              setForgotMessage("Error de red. Intenta más tarde.");
+            } finally {
+              setForgotLoading(false);
+            }
+          }}
+          className="space-y-5"
         >
-          <Building2 className="w-4 h-4 mr-2 text-orange-700" />
-          Correo
-        </Label>
-        <div className="relative group">
-          <Input
-            id="email"
-            type="email"
-            placeholder="partner@institucion.com"
-            className={cn(
-              "h-12 text-sm transition-all duration-300 border-2 rounded-xl pl-4",
-              "border-orange-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-100/50",
-              "bg-gradient-to-r from-white to-orange-50/30 hover:to-orange-50/50",
-              "shadow-sm focus:shadow-md group-hover:shadow-sm",
-              errors.email &&
-                "border-red-300 focus:border-red-500 focus:ring-red-100/50"
-            )}
-            {...register("email")}
-            disabled={isLoading}
-          />
-        </div>
-        {errors.email && (
-          <div className="flex items-center space-x-2 text-red-600 text-xs bg-red-50/80 p-2 rounded-lg border border-red-200/50 animate-in slide-in-from-top-1">
-            <div className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
-            <span className="font-medium">{errors.email.message}</span>
+          <div className="space-y-2">
+            <Label
+              htmlFor="forgot-email"
+              className="text-sm font-semibold text-orange-900 flex items-center"
+            >
+              <Shield className="w-4 h-4 mr-2 text-orange-700" />
+              Ingresa tu correo electrónico
+            </Label>
+            <Input
+              id="forgot-email"
+              type="email"
+              placeholder="user@example.com"
+              className="h-12 text-sm border-orange-200 rounded-xl pl-4 bg-gradient-to-r from-white to-orange-50/30"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              disabled={forgotLoading}
+              required
+            />
           </div>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label
-            htmlFor="password"
-            className="text-sm font-semibold text-orange-900 flex items-center"
-          >
-            <Shield className="w-4 h-4 mr-2 text-orange-700" />
-            Contraseña
-          </Label>
-          <button
-            type="button"
-            className="text-xs text-orange-600 hover:text-orange-700 underline-offset-4 hover:underline transition-colors font-medium"
-          >
-            ¿Olvidaste tu contraseña?
-          </button>
-        </div>
-        <div className="relative group">
-          <Input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Ingresa tu contraseña"
-            className={cn(
-              "h-12 text-sm pr-12 transition-all duration-300 border-2 rounded-xl pl-4",
-              "border-orange-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-100/50",
-              "bg-gradient-to-r from-white to-orange-50/30 hover:to-orange-50/50",
-              "shadow-sm focus:shadow-md group-hover:shadow-sm",
-              errors.password &&
-                "border-red-300 focus:border-red-500 focus:ring-red-100/50"
-            )}
-            {...register("password")}
-            disabled={isLoading}
-          />
           <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg hover:bg-orange-50 transition-colors"
-            onClick={() => setShowPassword(!showPassword)}
-            disabled={isLoading}
+            type="submit"
+            className="w-full h-12 text-sm font-semibold rounded-xl bg-gradient-to-r from-orange-500 to-orange-600"
+            disabled={forgotLoading || !forgotEmail}
           >
-            {showPassword ? (
-              <EyeOff className="h-4 w-4 text-orange-600" />
-            ) : (
-              <Eye className="h-4 w-4 text-orange-600" />
-            )}
+            {forgotLoading ? "Enviando..." : "Enviar instrucciones"}
           </Button>
-        </div>
-        {errors.password && (
-          <div className="flex items-center space-x-2 text-red-600 text-xs bg-red-50/80 p-2 rounded-lg border border-red-200/50 animate-in slide-in-from-top-1">
-            <div className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
-            <span className="font-medium">{errors.password.message}</span>
+          {forgotMessage && (
+            <div className="text-xs text-green-700 bg-green-50/80 p-2 rounded-lg border border-green-200/50 text-center animate-in slide-in-from-top-1">
+              {forgotMessage}
+            </div>
+          )}
+          <div className="text-center pt-2">
+            <button
+              type="button"
+              className="text-xs text-orange-600 hover:text-orange-700 underline-offset-4 hover:underline transition-colors font-medium"
+              onClick={() => setShowForgotPassword(false)}
+            >
+              Volver al login
+            </button>
           </div>
-        )}
-      </div>
-
-      <div className="space-y-3 pt-2">
-        <Button
-          type="submit"
-          className={cn(
-            "w-full h-12 text-sm font-semibold rounded-xl relative overflow-hidden group",
-            "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
-            "shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30",
-            "transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]",
-            "border border-orange-400",
-            isLoading && "opacity-80"
-          )}
-          disabled={isLoading}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-          {isLoading ? (
-            <div className="flex items-center space-x-2 relative z-10">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Verificando credenciales...</span>
+        </form>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div className="space-y-2">
+            <Label
+              htmlFor="email"
+              className="text-sm font-semibold text-orange-900 flex items-center"
+            >
+              <Building2 className="w-4 h-4 mr-2 text-orange-700" />
+              Correo
+            </Label>
+            <div className="relative group">
+              <Input
+                id="email"
+                type="email"
+                placeholder="user@example.com"
+                className={cn(
+                  "h-12 text-sm transition-all duration-300 border-2 rounded-xl pl-4",
+                  "border-orange-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-100/50",
+                  "bg-gradient-to-r from-white to-orange-50/30 hover:to-orange-50/50",
+                  "shadow-sm focus:shadow-md group-hover:shadow-sm",
+                  errors.email &&
+                    "border-red-300 focus:border-red-500 focus:ring-red-100/50"
+                )}
+                {...register("email")}
+                disabled={isLoading}
+              />
             </div>
-          ) : (
-            <div className="flex items-center space-x-2 relative z-10">
-              <Building2 className="h-4 w-4" />
-              <span>Acceder como Partner </span>
-              <Shield className="h-4 w-4 text-violet-300" />
-            </div>
-          )}
-        </Button>
+            {errors.email && (
+              <div className="flex items-center space-x-2 text-red-600 text-xs bg-red-50/80 p-2 rounded-lg border border-red-200/50 animate-in slide-in-from-top-1">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
+                <span className="font-medium">{errors.email.message}</span>
+              </div>
+            )}
+          </div>
 
-        <div className="text-center pt-1">
-          <button
-            type="button"
-            className="text-xs text-orange-600 hover:text-orange-700 underline-offset-4 hover:underline transition-colors font-medium bg-orange-50/50 px-3 py-1.5 rounded-lg hover:bg-orange-50"
-          >
-            ¿Deseas ser Partner? Solicita información
-          </button>
-        </div>
-      </div>
-    </form>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label
+                htmlFor="password"
+                className="text-sm font-semibold text-orange-900 flex items-center"
+              >
+                <Shield className="w-4 h-4 mr-2 text-orange-700" />
+                Contraseña
+              </Label>
+              <button
+                type="button"
+                className="text-xs text-orange-600 hover:text-orange-700 underline-offset-4 hover:underline transition-colors font-medium"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    window.location.href = "/forgot-password";
+                  }
+                }}
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            </div>
+            <div className="relative group">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Ingresa tu contraseña"
+                className={cn(
+                  "h-12 text-sm pr-12 transition-all duration-300 border-2 rounded-xl pl-4",
+                  "border-orange-200 focus:border-orange-500 focus:ring-4 focus:ring-orange-100/50",
+                  "bg-gradient-to-r from-white to-orange-50/30 hover:to-orange-50/50",
+                  "shadow-sm focus:shadow-md group-hover:shadow-sm",
+                  errors.password &&
+                    "border-red-300 focus:border-red-500 focus:ring-red-100/50"
+                )}
+                {...register("password")}
+                disabled={isLoading}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg hover:bg-orange-50 transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-orange-600" />
+                ) : (
+                  <Eye className="h-4 w-4 text-orange-600" />
+                )}
+              </Button>
+            </div>
+            {errors.password && (
+              <div className="flex items-center space-x-2 text-red-600 text-xs bg-red-50/80 p-2 rounded-lg border border-red-200/50 animate-in slide-in-from-top-1">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full flex-shrink-0" />
+                <span className="font-medium">{errors.password.message}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <Button
+              type="submit"
+              className={cn(
+                "w-full h-12 text-sm font-semibold rounded-xl relative overflow-hidden group",
+                "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
+                "shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30",
+                "transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]",
+                "border border-orange-400",
+                isLoading && "opacity-80"
+              )}
+              disabled={isLoading}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              {isLoading ? (
+                <div className="flex items-center space-x-2 relative z-10">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Verificando credenciales...</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 relative z-10">
+                  <Building2 className="h-4 w-4" />
+                  <span>Acceder como Partner </span>
+                  <Shield className="h-4 w-4 text-violet-300" />
+                </div>
+              )}
+            </Button>
+
+            <div className="text-center pt-1">
+              <a
+                href="https://t-cert.us/#contact"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-orange-600 hover:text-orange-700 underline-offset-4 hover:underline transition-colors font-medium bg-orange-50/50 px-3 py-1.5 rounded-lg hover:bg-orange-50"
+              >
+                ¿Deseas ser Partner? Solicita información
+              </a>
+            </div>
+          </div>
+        </form>
+      )}
+    </>
   );
 }

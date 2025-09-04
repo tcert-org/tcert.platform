@@ -41,8 +41,12 @@ export function NavUser({ user, className }: NavUserProps) {
         <div className="flex items-center gap-2">
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-semibold">
-              {user && "company_name" in user
-                ? user.company_name ?? "Ultradev"
+              {user
+                ? user.nameRol === "student"
+                  ? ("fullname" in user ? user.fullname ?? "Estudiante" : "Estudiante")
+                  : "company_name" in user
+                    ? user.company_name ?? "Ultradev"
+                    : "Ultradev"
                 : "Ultradev"}
             </span>
             <span className="truncate text-xs">

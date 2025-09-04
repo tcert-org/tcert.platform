@@ -39,6 +39,10 @@ export default class PartnerTable extends Table<"users"> {
         filter_total_vouchers_op,
         filter_used_vouchers,
         filter_used_vouchers_op,
+        filter_unused_vouchers,
+        filter_unused_vouchers_op,
+        filter_expired_vouchers,
+        filter_expired_vouchers_op,
         order_by = "created_at",
         order_dir = "desc",
         page = 1,
@@ -64,6 +68,10 @@ export default class PartnerTable extends Table<"users"> {
         filter_total_vouchers_op: filter_total_vouchers_op ?? "=",
         filter_used_vouchers: filter_used_vouchers ?? null,
         filter_used_vouchers_op: filter_used_vouchers_op ?? "=",
+        filter_unused_vouchers: filter_unused_vouchers ?? null,
+        filter_unused_vouchers_op: filter_unused_vouchers_op ?? "=",
+        filter_expired_vouchers: filter_expired_vouchers ?? null,
+        filter_expired_vouchers_op: filter_expired_vouchers_op ?? "=",
         order_by: order_by ?? "created_at",
         order_dir: order_dir ?? "desc",
         page: page ?? 1,
@@ -88,14 +96,16 @@ export default class PartnerTable extends Table<"users"> {
     try {
       const { data: userData, error: userError } = await supabase
         .from("users")
-        .select(`
+        .select(
+          `
           id,
           email,
           created_at,
           company_name,
           contact_number,
           membership:membership_id ( name )
-        `)
+        `
+        )
         .eq("id", id)
         .single();
 

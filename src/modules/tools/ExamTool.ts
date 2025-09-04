@@ -66,20 +66,23 @@ export default class ExamTool {
   static async gradeAttempt({
     studentAnswers,
     correctAnswers,
+    totalQuestions: totalQuestionsParam,
+    unanswered: unansweredParam,
   }: {
     studentAnswers: {
       question_id: number;
       selected_option_id: number | null;
     }[];
     correctAnswers: { question_id: number; correct_option_id: number }[];
+    totalQuestions?: number;
+    unanswered?: number;
   }) {
     let correct = 0;
     let incorrect = 0;
-    let unanswered = 0;
 
     for (const answer of studentAnswers) {
       if (answer.selected_option_id === null) {
-        unanswered++;
+        // Ya no se espera que existan, pero por compatibilidad
         continue;
       }
 
@@ -96,7 +99,16 @@ export default class ExamTool {
       }
     }
 
-    const totalQuestions = correct + incorrect + unanswered;
+    let unanswered = 0;
+    let totalQuestions = totalQuestionsParam ?? correct + incorrect;
+    if (typeof unansweredParam === "number") {
+      unanswered = unansweredParam;
+      totalQuestions = correct + incorrect + unanswered;
+    } else {
+      unanswered = totalQuestions - (correct + incorrect);
+      if (unanswered < 0) unanswered = 0;
+    }
+
     const score = totalQuestions > 0 ? (correct / totalQuestions) * 100 : 0;
 
     // Obtener el porcentaje de aprobación desde la base de datos

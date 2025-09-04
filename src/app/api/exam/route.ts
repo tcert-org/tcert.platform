@@ -32,9 +32,52 @@ export async function GET(req: NextRequest) {
       }
       return NextResponse.json(data, { status: 200 });
     }
+
+    // Procesar parámetros para la tabla con filtros
     const params = Object.fromEntries(url.searchParams.entries());
 
-    const result = await examTable.getExamsForTable(params);
+    // Convertir tipos apropiados
+    const filters: any = {
+      filter_name_exam: params.filter_name_exam || params.name_exam,
+      filter_certification_name:
+        params.filter_certification_name || params.certification_name,
+      filter_certification_id: params.filter_certification_id
+        ? Number(params.filter_certification_id)
+        : undefined,
+      filter_simulator:
+        params.filter_simulator === "true"
+          ? true
+          : params.filter_simulator === "false"
+          ? false
+          : params.simulator === "true"
+          ? true
+          : params.simulator === "false"
+          ? false
+          : undefined,
+      filter_active:
+        params.filter_active === "true"
+          ? true
+          : params.filter_active === "false"
+          ? false
+          : params.active === "true"
+          ? true
+          : params.active === "false"
+          ? false
+          : undefined,
+      filter_created_at: params.filter_created_at,
+      filter_created_at_op: params.filter_created_at_op || ">=",
+      order_by: params.order_by || "created_at",
+      order_dir: params.order_dir || "desc",
+      page: params.page ? Number(params.page) : 1,
+      limit_value:
+        params.limit_value || params.limit
+          ? Number(params.limit_value || params.limit)
+          : 10,
+    };
+
+    console.log("🔍 API Filters received:", filters); // Debug log
+
+    const result = await examTable.getExamsForTable(filters);
 
     if (!result) {
       return NextResponse.json(
@@ -44,7 +87,7 @@ export async function GET(req: NextRequest) {
     }
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    console.error(error);
+    console.error("Error in GET /api/exam:", error);
     return NextResponse.json(
       { message: "Error interno del servidor" },
       { status: 500 }
