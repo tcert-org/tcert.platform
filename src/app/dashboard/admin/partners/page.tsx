@@ -15,6 +15,7 @@ export interface PartnerDinamicTable {
   total_vouchers: number;
   used_vouchers: number;
   unused_vouchers: number;
+  expired_vouchers?: number; // Nuevo campo para vouchers expirados
   created_at: string;
 }
 
@@ -143,6 +144,23 @@ export default function PartnersPage() {
         <div className="text-center font-medium">
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-300/50">
             {row.getValue("unused_vouchers")}
+          </span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "expired_vouchers",
+      header: "Vouchers Expirados",
+      size: 80,
+      enableSorting: true,
+      meta: {
+        filterType: "number",
+        numberOptions: { step: 1, operators: true },
+      },
+      cell: ({ row }) => (
+        <div className="text-center font-medium">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-sky-100 text-blue-800 border border-blue-300/50">
+            {row.getValue("expired_vouchers") || 0}
           </span>
         </div>
       ),
