@@ -30,6 +30,7 @@ import { useRouter } from "next/navigation";
 import { useUserStore } from "@/stores/user-store";
 import { useStudentStore } from "@/stores/student-store";
 import Image from "next/image";
+import Link from "next/link";
 
 type StudentLoginForm = z.infer<typeof studentLoginSchema>;
 type PartnerLoginForm = z.infer<typeof partnerLoginSchema>;
@@ -323,8 +324,10 @@ export function LoginForm({
                     {errorMessage.includes("ya fue utilizado") && (
                       <div className="mt-2 text-xs text-green-700 bg-green-100/50 p-2 rounded-lg border border-green-200/50">
                         ℹ️ <strong>Información:</strong> Este voucher ya fue
-                        usado anteriormente. Solicita un nuevo voucher si deseas
-                        obtener otra certificación.
+                        usado anteriormente. Verifica su estado haciendo
+                        <Link href="https://t-cert.us/autenticator">
+                          <span className="underline"> click aqui</span>
+                        </Link>
                       </div>
                     )}
                   </div>

@@ -48,7 +48,6 @@ export async function POST(request: Request) {
     if (
       !name ||
       !description ||
-      !audience ||
       !logo_url ||
       typeof active !== "boolean" ||
       !study_material_url
@@ -62,7 +61,14 @@ export async function POST(request: Request) {
     const { data, error } = await supabase
       .from("certifications")
       .insert([
-        { name, description, audience, logo_url, active, study_material_url },
+        {
+          name,
+          description,
+          audience: audience || "",
+          logo_url,
+          active,
+          study_material_url,
+        },
       ])
       .select();
 
