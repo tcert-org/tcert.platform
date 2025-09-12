@@ -531,7 +531,7 @@ export default function CertificationManagementPage() {
                                   </span>
                                   <input
                                     type="file"
-                                    accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp"
+                                    accept=".pdf"
                                     className="hidden"
                                     onChange={(e) =>
                                       updateEditFile(
@@ -543,7 +543,7 @@ export default function CertificationManagementPage() {
                                   />
                                 </label>
                                 <p className="text-xs text-gray-600">
-                                  PDF, DOC, PPT, PNG, JPG, JPEG, WebP
+                                  Solo PDF
                                 </p>
                               </div>
                             </>
