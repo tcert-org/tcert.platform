@@ -46,20 +46,39 @@ export async function GET(req: NextRequest) {
     // Aplicar filtros manualmente si existen
     let filteredData = allPartnerPayments;
 
+    // Helper function para extraer solo la fecha (YYYY-MM-DD) de un string o Date
+    const extractDateOnly = (dateInput: string | Date): string => {
+      let date: Date;
+
+      if (typeof dateInput === "string") {
+        date = new Date(dateInput);
+      } else {
+        date = dateInput;
+      }
+
+      // Extraer solo la parte de fecha en formato YYYY-MM-DD
+      return date.toISOString().split("T")[0];
+    };
+
     // Filtro por fecha de creación
     if (query.filter_created_at) {
-      const filterDate = new Date(query.filter_created_at);
-      const filterOp = query.filter_created_at_op || ">=";
+      const filterDateStr = extractDateOnly(query.filter_created_at);
+      const filterOp = query.filter_created_at_op || "=";
 
       filteredData = filteredData.filter((item) => {
-        const itemDate = new Date(item.created_at);
+        const itemDateStr = extractDateOnly(item.created_at);
+
         switch (filterOp) {
           case ">=":
-            return itemDate >= filterDate;
+            return itemDateStr >= filterDateStr;
           case "<=":
-            return itemDate <= filterDate;
+            return itemDateStr <= filterDateStr;
           case "=":
-            return itemDate.toDateString() === filterDate.toDateString();
+            return itemDateStr === filterDateStr;
+          case ">":
+            return itemDateStr > filterDateStr;
+          case "<":
+            return itemDateStr < filterDateStr;
           default:
             return true;
         }
@@ -108,6 +127,82 @@ export async function GET(req: NextRequest) {
             return itemQuantity > filterQuantity;
           case "<":
             return itemQuantity < filterQuantity;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Filtro por precio unitario
+    if (query.filter_unit_price) {
+      const filterPrice = parseFloat(query.filter_unit_price);
+      const filterOp = query.filter_unit_price_op || "=";
+
+      filteredData = filteredData.filter((item) => {
+        const itemPrice = parseFloat(item.unit_price);
+        switch (filterOp) {
+          case ">=":
+            return itemPrice >= filterPrice;
+          case "<=":
+            return itemPrice <= filterPrice;
+          case "=":
+            return itemPrice === filterPrice;
+          case ">":
+            return itemPrice > filterPrice;
+          case "<":
+            return itemPrice < filterPrice;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Filtro por fecha de vencimiento
+    if (query.filter_expiration_date) {
+      const filterDateStr = extractDateOnly(query.filter_expiration_date);
+      const filterOp = query.filter_expiration_date_op || "=";
+
+      filteredData = filteredData.filter((item) => {
+        if (!item.expiration_date) return false;
+        const itemDateStr = extractDateOnly(item.expiration_date);
+
+        switch (filterOp) {
+          case ">=":
+            return itemDateStr >= filterDateStr;
+          case "<=":
+            return itemDateStr <= filterDateStr;
+          case "=":
+            return itemDateStr === filterDateStr;
+          case ">":
+            return itemDateStr > filterDateStr;
+          case "<":
+            return itemDateStr < filterDateStr;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Filtro por fecha de extensión
+    if (query.filter_extension_date) {
+      const filterDateStr = extractDateOnly(query.filter_extension_date);
+      const filterOp = query.filter_extension_date_op || "=";
+
+      filteredData = filteredData.filter((item) => {
+        if (!item.extension_date) return false;
+        const itemDateStr = extractDateOnly(item.extension_date);
+
+        switch (filterOp) {
+          case ">=":
+            return itemDateStr >= filterDateStr;
+          case "<=":
+            return itemDateStr <= filterDateStr;
+          case "=":
+            return itemDateStr === filterDateStr;
+          case ">":
+            return itemDateStr > filterDateStr;
+          case "<":
+            return itemDateStr < filterDateStr;
           default:
             return true;
         }

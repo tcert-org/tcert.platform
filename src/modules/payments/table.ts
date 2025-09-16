@@ -13,6 +13,14 @@ export type FilterParamsPayment = {
   filter_partner_name?: string;
   filter_created_at?: string;
   filter_created_at_op?: string;
+  filter_expiration_date?: string;
+  filter_expiration_date_op?: string;
+  filter_extension_date?: string;
+  filter_extension_date_op?: string;
+  filter_voucher_quantity?: number;
+  filter_voucher_quantity_op?: string;
+  filter_unit_price?: number;
+  filter_unit_price_op?: string;
   filter_total_price?: number;
   filter_total_price_op?: string;
   order_by?: string;
@@ -62,7 +70,15 @@ export default class PaymentTable extends Table<"payments"> {
     const {
       filter_partner_name = null,
       filter_created_at = null,
-      filter_created_at_op = ">=",
+      filter_created_at_op = "=",
+      filter_expiration_date = null,
+      filter_expiration_date_op = "=",
+      filter_extension_date = null,
+      filter_extension_date_op = "=",
+      filter_voucher_quantity = null,
+      filter_voucher_quantity_op = "=",
+      filter_unit_price = null,
+      filter_unit_price_op = "=",
       filter_total_price = null,
       filter_total_price_op = "=",
       order_by = "created_at",
@@ -71,17 +87,30 @@ export default class PaymentTable extends Table<"payments"> {
       limit_value = 10,
     } = params;
 
-    const { data, error } = await supabase.rpc("get_payments_with_filters", {
+    const rpcParams = {
       filter_partner_name,
       filter_created_at,
       filter_created_at_op,
+      filter_expiration_date,
+      filter_expiration_date_op,
+      filter_extension_date,
+      filter_extension_date_op,
+      filter_voucher_quantity,
+      filter_voucher_quantity_op,
+      filter_unit_price,
+      filter_unit_price_op,
       filter_total_price,
       filter_total_price_op,
       order_by,
       order_dir,
       page,
       limit_value,
-    });
+    };
+
+    const { data, error } = await supabase.rpc(
+      "get_payments_with_filters",
+      rpcParams
+    );
 
     if (error) {
       console.error("[GET_PAYMENTS_FILTERED_ERROR]", error.message);
@@ -95,6 +124,7 @@ export default class PaymentTable extends Table<"payments"> {
       totalCount,
     };
   }
+
   async getPaymentsByPartner(partnerId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from("payments")

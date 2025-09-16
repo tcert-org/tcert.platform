@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FetchParams } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { createActionsColumn } from "@/components/data-table/action-menu";
@@ -146,76 +145,80 @@ export default function PartnerReportsPage() {
   }, [searchParams, processedPayments]);
 
   async function fetchPartnerPayments(
-    params: FetchParams
+    params: Record<string, any>
   ): Promise<{ data: PaymentDynamicTable[]; totalCount: number }> {
-    const query: Record<string, any> = {
-      page: params.page ?? 1,
-      limit_value: params.limit ?? 10,
-      order_by: params.order_by ?? "created_at",
-      order_dir: params.order_dir ?? "desc",
-    };
+    try {
+      const query: Record<string, any> = {
+        page: params.page ?? 1,
+        limit_value: params.limit ?? 10,
+        order_by: params.order_by ?? "created_at",
+        order_dir: params.order_dir ?? "desc",
+      };
 
-    if (params.filters) {
-      for (const filter of params.filters) {
-        const val = filter.value;
-        if (typeof val === "string" && val.includes(":")) {
-          const [op, rawValue] = val.split(":");
-          query[`filter_${filter.id}_op`] = op;
-          query[`filter_${filter.id}`] = rawValue;
-        } else {
-          query[`filter_${filter.id}`] = val;
+      // Agregar todos los filtros que empiecen con 'filter_'
+      for (const key in params) {
+        if (key.startsWith("filter_")) {
+          const value = params[key];
+          if (key.endsWith("_op")) {
+            query[key] = value;
+          } else if (value !== undefined && value !== null && value !== "") {
+            query[key] = value;
+          }
         }
       }
-    }
 
-    if (!partnerId) return { data: [], totalCount: 0 };
-    query["partner_id"] = partnerId;
+      if (!partnerId) return { data: [], totalCount: 0 };
+      query["partner_id"] = partnerId;
 
-    const search = new URLSearchParams(
-      Object.entries(query).reduce(
-        (acc, [k, v]) =>
-          v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
-        {}
-      )
-    ).toString();
+      const search = new URLSearchParams(
+        Object.entries(query).reduce(
+          (acc, [k, v]) =>
+            v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
+          {}
+        )
+      ).toString();
 
-    const resPayments = await fetch(`/api/payments/details-partner?${search}`);
-    if (!resPayments.ok) throw new Error("Error al cargar los pagos");
+      const resPayments = await fetch(
+        `/api/payments/details-partner?${search}`
+      );
+      if (!resPayments.ok) throw new Error("Error al cargar los pagos");
 
-    const { data, meta } = await resPayments.json();
+      const { data, meta } = await resPayments.json();
 
-    // Obtener params para calcular expiración faltante
-    const paramsRes = await fetch("/api/params");
-    const { data: paramsData } = await paramsRes.json();
-    const expirationMonths = parseInt(
-      paramsData.find((p: any) => p.id === 1)?.value ?? "0",
-      10
-    );
+      // Obtener params para calcular expiración faltante
+      const paramsRes = await fetch("/api/params");
+      const { data: paramsData } = await paramsRes.json();
+      const expirationMonths = parseInt(
+        paramsData.find((p: any) => p.id === 1)?.value ?? "0",
+        10
+      );
 
-    // Mapear files -> file_url y completar expiración
-    const processedData: PaymentDynamicTable[] = data.map((item: any) => {
-      let expiration_date = item.expiration_date;
-      if (!expiration_date && expirationMonths > 0) {
-        const createdDate = new Date(item.created_at);
-        expiration_date = addMonthsToDate(
-          createdDate,
-          expirationMonths
-        ).toISOString();
-      }
+      // Mapear files -> file_url y completar expiración
+      const processedData: PaymentDynamicTable[] = data.map((item: any) => {
+        let expiration_date = item.expiration_date;
+        if (!expiration_date && expirationMonths > 0) {
+          const createdDate = new Date(item.created_at);
+          expiration_date = addMonthsToDate(
+            createdDate,
+            expirationMonths
+          ).toISOString();
+        }
+        return {
+          ...item,
+          expiration_date,
+          file_url: item.files ?? null, // <- aquí queda disponible para la acción
+        };
+      });
+
       return {
-        ...item,
-        expiration_date,
-        file_url: item.files ?? null, // <- aquí queda disponible para la acción
+        data: processedData,
+        totalCount: meta?.totalCount ?? 0,
       };
-    });
-
-    return {
-      data: processedData,
-      totalCount: meta?.totalCount ?? 0,
-    };
-  }
-
-  // Acciones (incluye Comprobante)
+    } catch (error) {
+      console.error("Error fetching partner payments:", error);
+      return { data: [], totalCount: 0 };
+    }
+  } // Acciones (incluye Comprobante)
   const paymentActions: ActionItem<PaymentDynamicTable>[] = [
     {
       label: "Comprobante",
@@ -241,7 +244,10 @@ export default function PartnerReportsPage() {
       accessorKey: "voucher_quantity",
       header: "Cantidad de Vouchers",
       size: 160,
-      meta: { filterType: "number" },
+      meta: {
+        filterType: "number",
+        numberOptions: { operators: true, min: 0 },
+      },
       cell: ({ row }) => {
         const quantity = row.getValue("voucher_quantity") as number;
         return (
@@ -257,7 +263,10 @@ export default function PartnerReportsPage() {
       accessorKey: "unit_price",
       header: "Precio Unitario",
       size: 140,
-      meta: { filterType: "number" },
+      meta: {
+        filterType: "number",
+        numberOptions: { operators: true, min: 0 },
+      },
       cell: ({ row }) => {
         const val = row.getValue("unit_price") as number;
         return val ? (
@@ -275,7 +284,10 @@ export default function PartnerReportsPage() {
       accessorKey: "total_price",
       header: "Precio Total",
       size: 140,
-      meta: { filterType: "number" },
+      meta: {
+        filterType: "number",
+        numberOptions: { operators: true, min: 0 },
+      },
       cell: ({ row }) => {
         const val = row.getValue("total_price") as number;
         return val ? (

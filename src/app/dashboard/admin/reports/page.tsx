@@ -5,7 +5,6 @@
 import { useState } from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
-import { FetchParams } from "@/lib/types";
 import { createActionsColumn } from "@/components/data-table/action-menu";
 
 type ActionItem<T> = {
@@ -26,51 +25,54 @@ export interface PaymentDynamicTable {
 }
 
 async function fetchPayments(
-  params: FetchParams
+  params: Record<string, any>
 ): Promise<{ data: PaymentDynamicTable[]; totalCount: number }> {
-  const query: Record<string, any> = {
-    page: params.page ?? 1,
-    limit_value: params.limit ?? 10,
-    order_by: params.order_by ?? "created_at",
-    order_dir: params.order_dir ?? "desc",
-  };
+  try {
+    const query: Record<string, any> = {
+      page: params.page ?? 1,
+      limit_value: params.limit ?? 10,
+      order_by: params.order_by ?? "created_at",
+      order_dir: params.order_dir ?? "desc",
+    };
 
-  if (params.filters) {
-    for (const filter of params.filters) {
-      const val = filter.value;
-
-      if (typeof val === "string" && val.includes(":")) {
-        const [op, rawValue] = val.split(":");
-        query[`filter_${filter.id}_op`] = op;
-        query[`filter_${filter.id}`] = rawValue;
-      } else {
-        query[`filter_${filter.id}`] = val;
+    // Agregar todos los filtros que empiecen con 'filter_'
+    for (const key in params) {
+      if (key.startsWith("filter_")) {
+        const value = params[key];
+        if (key.endsWith("_op")) {
+          query[key] = value;
+        } else if (value !== undefined && value !== null && value !== "") {
+          query[key] = value;
+        }
       }
     }
+
+    const search = new URLSearchParams(
+      Object.entries(query).reduce(
+        (acc, [k, v]) =>
+          v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
+        {}
+      )
+    ).toString();
+
+    const res = await fetch(`/api/payments?${search}`);
+    if (!res.ok) throw new Error("No se pudieron cargar los pagos");
+
+    const { data, meta } = await res.json();
+
+    // Mapear 'files' a 'file_url' para cada pago
+    const mappedData = Array.isArray(data)
+      ? data.map((item) => ({ ...item, file_url: item.files ?? null }))
+      : [];
+
+    return {
+      data: mappedData,
+      totalCount: meta?.totalCount ?? 0,
+    };
+  } catch (error) {
+    console.error("Error fetching payments:", error);
+    return { data: [], totalCount: 0 };
   }
-
-  const search = new URLSearchParams(
-    Object.entries(query).reduce(
-      (acc, [k, v]) =>
-        v !== undefined && v !== null ? { ...acc, [k]: v } : acc,
-      {}
-    )
-  ).toString();
-
-  const res = await fetch(`/api/payments?${search}`);
-  if (!res.ok) throw new Error("No se pudieron cargar los pagos");
-
-  const { data, meta } = await res.json();
-
-  // Mapear 'files' a 'file_url' para cada pago
-  const mappedData = Array.isArray(data)
-    ? data.map((item) => ({ ...item, file_url: item.files ?? null }))
-    : [];
-
-  return {
-    data: mappedData,
-    totalCount: meta?.totalCount ?? 0,
-  };
 }
 
 export default function PaymentsPage() {
@@ -105,7 +107,10 @@ export default function PaymentsPage() {
       accessorKey: "voucher_quantity",
       header: "Cantidad de Vouchers",
       size: 160,
-      meta: { filterType: "number" },
+      meta: {
+        filterType: "number",
+        numberOptions: { operators: true, min: 0 },
+      },
       cell: ({ row }) => {
         const quantity = row.getValue("voucher_quantity") as number;
         return (
@@ -121,7 +126,10 @@ export default function PaymentsPage() {
       accessorKey: "unit_price",
       header: "Precio Unitario",
       size: 140,
-      meta: { filterType: "number" },
+      meta: {
+        filterType: "number",
+        numberOptions: { operators: true, min: 0 },
+      },
       cell: ({ row }) => {
         const val = row.getValue("unit_price");
         return val ? (
@@ -139,7 +147,10 @@ export default function PaymentsPage() {
       accessorKey: "total_price",
       header: "Precio Total",
       size: 140,
-      meta: { filterType: "number" },
+      meta: {
+        filterType: "number",
+        numberOptions: { operators: true, min: 0 },
+      },
       cell: ({ row }) => {
         const val = row.getValue("total_price");
         return val ? (
