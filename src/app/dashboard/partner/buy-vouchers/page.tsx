@@ -4,8 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Banknote, Loader2 } from "lucide-react";
-import { useSearchParams } from "next/navigation";
+import {
+  Banknote,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Sparkles,
+  AlertTriangle,
+} from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +39,7 @@ export default function AssignVoucherForm() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const hasRegistered = useRef(false);
 
   // Función para obtener datos frescos del partner directamente de la API
@@ -215,81 +223,89 @@ export default function AssignVoucherForm() {
           const json = await res.json();
           const newMembershipId = json?.data?.new_membership_id;
 
-          // 🔁 Esperar un momento para que la DB se actualice completamente
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-
-          // 🔁 Obtener datos frescos del partner directamente de la API (como lo hace partner-detail)
-          console.log(
-            "🔄 Obteniendo datos frescos del partner después del pago..."
-          );
-          const user = await getUser();
-          const freshPartnerData = await fetchFreshPartnerData(
-            String(user?.id)
-          );
-
-          if (freshPartnerData) {
-            console.log("🔄 Datos frescos del partner obtenidos:", {
-              newMembershipId,
-              freshMembershipName: freshPartnerData.membership_name,
-              finalMembershipToUse: newMembershipId,
-            });
-
-            // Actualizar la membresía mostrada usando el nombre directo de la API
-            if (
-              freshPartnerData.membership_name &&
-              freshPartnerData.membership_name !== "Sin asignar"
-            ) {
-              setMembershipName(freshPartnerData.membership_name);
-            }
-
-            // 🔄 Limpiar session storage
-            sessionStorage.removeItem("last_quantity");
-            // ❌ Removido: sessionStorage.removeItem("unit_price");
-            sessionStorage.setItem("vouchers_registered", "true");
-
-            // Forzar actualización del precio con la nueva membresía del response del pago
-            if (newMembershipId) {
-              console.log("🔄 Actualizando precio con nueva membresía...");
-              try {
-                const priceRes = await fetch("/api/checkout", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Cache-Control": "no-cache",
-                  },
-                  body: JSON.stringify({
-                    quantity: quantityFromStorage,
-                    membership_id: newMembershipId,
-                    onlyPrice: true,
-                  }),
-                });
-                const priceData = await priceRes.json();
-                if (typeof priceData.unit_price === "number") {
-                  setUnitPrice(priceData.unit_price);
-                  console.log(
-                    "✅ Nuevo precio unitario:",
-                    priceData.unit_price
-                  );
-                }
-              } catch (error) {
-                console.error(
-                  "Error al actualizar precio con nueva membresía:",
-                  error
-                );
-              }
-            }
-          } else {
-            console.error(
-              "❌ No se pudieron obtener datos frescos del partner"
-            );
-          }
-
+          // ✅ Mostrar modal inmediatamente después del pago exitoso
           setShowSuccessModal(true);
           toast.success("Vouchers asignados exitosamente.");
 
-          setTimeout(() => {
-            window.location.href = "/dashboard/partner/buy-vouchers";
-          }, 2000);
+          // 🔄 Hacer actualizaciones en background (sin bloquear el modal)
+          (async () => {
+            try {
+              // Espera reducida para que la DB se actualice
+              await new Promise((resolve) => setTimeout(resolve, 500));
+
+              // 🔁 Obtener datos frescos del partner directamente de la API
+              console.log(
+                "🔄 Obteniendo datos frescos del partner después del pago..."
+              );
+              const user = await getUser();
+              const freshPartnerData = await fetchFreshPartnerData(
+                String(user?.id)
+              );
+
+              if (freshPartnerData) {
+                console.log("🔄 Datos frescos del partner obtenidos:", {
+                  newMembershipId,
+                  freshMembershipName: freshPartnerData.membership_name,
+                  finalMembershipToUse: newMembershipId,
+                });
+
+                // Actualizar la membresía mostrada usando el nombre directo de la API
+                if (
+                  freshPartnerData.membership_name &&
+                  freshPartnerData.membership_name !== "Sin asignar"
+                ) {
+                  setMembershipName(freshPartnerData.membership_name);
+                }
+
+                // Forzar actualización del precio con la nueva membresía del response del pago
+                if (newMembershipId) {
+                  console.log("🔄 Actualizando precio con nueva membresía...");
+                  try {
+                    const priceRes = await fetch("/api/checkout", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "Cache-Control": "no-cache",
+                      },
+                      body: JSON.stringify({
+                        quantity: quantityFromStorage,
+                        membership_id: newMembershipId,
+                        onlyPrice: true,
+                      }),
+                    });
+                    const priceData = await priceRes.json();
+                    if (typeof priceData.unit_price === "number") {
+                      setUnitPrice(priceData.unit_price);
+                      console.log(
+                        "✅ Nuevo precio unitario:",
+                        priceData.unit_price
+                      );
+                    }
+                  } catch (error) {
+                    console.error(
+                      "Error al actualizar precio con nueva membresía:",
+                      error
+                    );
+                  }
+                }
+              } else {
+                console.error(
+                  "❌ No se pudieron obtener datos frescos del partner"
+                );
+              }
+            } catch (error) {
+              console.error("Error en actualización background:", error);
+            }
+          })();
+
+          // 🔄 Limpiar session storage
+          sessionStorage.removeItem("last_quantity");
+          sessionStorage.setItem("vouchers_registered", "true");
+
+          // ❌ Eliminado: redirección automática
+          // setTimeout(() => {
+          //   window.location.href = "/dashboard/partner/buy-vouchers";
+          // }, 2000);
         } catch (error) {
           console.error("❌ Error en /api/payments:", error);
           toast.error("Error al asignar los vouchers.");
@@ -384,63 +400,205 @@ export default function AssignVoucherForm() {
       <Dialog
         open={showSuccessModal}
         onOpenChange={(open) => {
-          setShowSuccessModal(open);
-          // Si se cierra el modal, obtener datos frescos una vez más
-          if (!open) {
-            setTimeout(async () => {
-              console.log("🔄 Actualizacion final al cerrar modal...");
-              const user = await getUser();
-              if (user?.id) {
-                const freshData = await fetchFreshPartnerData(String(user.id));
-                if (
-                  freshData?.membership_name &&
-                  freshData.membership_name !== "Sin asignar"
-                ) {
-                  setMembershipName(freshData.membership_name);
-                }
-              }
-            }, 500);
-          }
+          // Solo permitir cerrar el modal a través de los botones (no hacer nada aquí)
+          // Los botones manejan el cierre manualmente
         }}
       >
-        <DialogContent className="max-w-md bg-gradient-to-br from-white via-green-50/30 to-emerald-50/30 border-green-200/50 shadow-lg shadow-green-100/40">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-green-800 bg-clip-text text-transparent">
-              ✅ Pago exitoso
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-gray-800 space-y-3">
-            <div className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg p-4 border border-green-300/50">
-              <p className="text-green-800">
-                Tu compra de{" "}
-                <strong className="text-green-900">{quantity}</strong>{" "}
-                voucher(s) fue procesada exitosamente.
-              </p>
-              <p className="mt-2 text-green-700">¡Gracias por tu pago! 🎉</p>
-              {membershipName && membershipName !== "Sin asignar" && (
-                <p className="mt-2 text-green-700 font-medium">
-                  Tu membresía actual:{" "}
-                  <span className="font-bold">{membershipName}</span>
+        <DialogContent className="max-w-lg bg-white border-0 shadow-2xl shadow-purple-500/25 rounded-2xl overflow-hidden">
+          {/* Header con gradiente */}
+          <div className="relative bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-700 p-6 -m-6 mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+            <div className="relative flex items-center gap-4">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-full">
+                <CheckCircle className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold text-white mb-1">
+                  ¡Pago Exitoso!
+                </DialogTitle>
+                <p className="text-purple-100 text-sm">
+                  Tu transacción fue procesada correctamente
                 </p>
-              )}
+              </div>
+              <div className="ml-auto">
+                <Sparkles className="h-6 w-6 text-yellow-300 animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Contenido */}
+          <div className="space-y-6 px-6 pb-6">
+            {/* Información principal */}
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-100 to-violet-100 rounded-full border border-purple-200">
+                <Banknote className="h-5 w-5 text-purple-700" />
+                <span className="font-semibold text-purple-800">
+                  {quantity} voucher{Number(quantity) > 1 ? "s" : ""} adquirido
+                  {Number(quantity) > 1 ? "s" : ""}
+                </span>
+              </div>
+
+              <p className="text-gray-600 text-lg">
+                ¡Gracias por tu compra! Tus vouchers están listos para usar.
+              </p>
+            </div>
+
+            {/* Información de membresía */}
+            {membershipName && membershipName !== "Sin asignar" && (
+              <div className="bg-gradient-to-r from-slate-50 to-purple-50/50 rounded-xl p-4 border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-100 rounded-lg">
+                      <Sparkles className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium">
+                        Tu membresía actual
+                      </p>
+                      <p className="text-lg font-bold text-gray-800">
+                        {membershipName}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${badgeClass}`}
+                  >
+                    Activa
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Mensaje de confirmación */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-green-800">
+                    Proceso completado
+                  </p>
+                  <p className="text-sm text-green-700 mt-1">
+                    Tu compra se ha procesado exitosamente. ¿Qué te gustaría
+                    hacer ahora?
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setQuantity("1");
+                }}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
+              >
+                <Banknote className="h-5 w-5" />
+                Comprar más vouchers
+              </button>
+              <button
+                onClick={() => {
+                  router.push("/dashboard/partner");
+                }}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-slate-500 to-gray-600 hover:from-slate-600 hover:to-gray-700 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg shadow-gray-500/25"
+              >
+                Ir al Dashboard
+              </button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
-        <DialogContent className="max-w-md bg-gradient-to-br from-white via-red-50/30 to-rose-50/30 border-red-200/50 shadow-lg shadow-red-100/40">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-red-700 via-rose-600 to-red-800 bg-clip-text text-transparent">
-              ❌ Pago cancelado
-            </DialogTitle>
-          </DialogHeader>
-          <div className="text-gray-800">
-            <div className="bg-gradient-to-r from-red-100 to-rose-100 rounded-lg p-4 border border-red-300/50">
-              <p className="text-red-800">El proceso de pago fue cancelado.</p>
-              <p className="mt-2 text-red-700 text-sm">
-                Puedes intentar nuevamente cuando desees.
+      <Dialog
+        open={showErrorModal}
+        onOpenChange={() => {
+          // Solo permitir cerrar el modal a través del botón (no hacer nada aquí)
+        }}
+      >
+        <DialogContent className="max-w-lg bg-white border-0 shadow-2xl shadow-red-500/25 rounded-2xl overflow-hidden">
+          {/* Header con gradiente */}
+          <div className="relative bg-gradient-to-br from-red-500 via-rose-500 to-red-600 p-6 -m-6 mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+            <div className="relative flex items-center gap-4">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-full">
+                <XCircle className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold text-white mb-1">
+                  Pago Cancelado
+                </DialogTitle>
+                <p className="text-red-100 text-sm">
+                  La transacción no pudo completarse
+                </p>
+              </div>
+              <div className="ml-auto">
+                <AlertTriangle className="h-6 w-6 text-yellow-300" />
+              </div>
+            </div>
+          </div>
+
+          {/* Contenido */}
+          <div className="space-y-6 px-6 pb-6">
+            {/* Información principal */}
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-100 to-rose-100 rounded-full border border-red-200">
+                <XCircle className="h-5 w-5 text-red-600" />
+                <span className="font-semibold text-red-800">
+                  Proceso interrumpido
+                </span>
+              </div>
+
+              <p className="text-gray-600 text-lg">
+                El proceso de pago fue cancelado antes de completarse.
               </p>
+            </div>
+
+            {/* Mensaje informativo */}
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-200">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-orange-800">No te preocupes</p>
+                  <p className="text-sm text-orange-700 mt-1">
+                    No se realizó ningún cargo a tu tarjeta. Puedes intentar
+                    nuevamente cuando desees.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sugerencias */}
+            <div className="bg-gradient-to-r from-slate-50 to-purple-50/50 rounded-xl p-4 border border-slate-200">
+              <div className="space-y-3">
+                <p className="font-medium text-gray-800 text-sm">
+                  Sugerencias para tu próximo intento:
+                </p>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                    Verifica que tu tarjeta tenga fondos suficientes
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                    Asegúrate de tener una conexión estable
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
+                    Intenta con un método de pago diferente
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Botón de acción */}
+            <div className="flex justify-center">
+              <button
+                onClick={() => setShowErrorModal(false)}
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-medium rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg shadow-purple-500/25"
+              >
+                Intentar nuevamente
+              </button>
             </div>
           </div>
         </DialogContent>
