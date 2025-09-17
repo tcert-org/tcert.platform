@@ -209,14 +209,12 @@ export default function CreateCertificationPage() {
                     type="file"
                     id="material_file"
                     name="material_file"
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.webp"
+                    accept=".pdf"
                     className="pl-10 border-purple-200 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-100 file:to-violet-100 file:text-purple-700 hover:file:from-purple-200 hover:file:to-violet-200 file:cursor-pointer cursor-pointer"
                     onChange={handleChange}
                   />
                 </div>
-                <p className="text-xs text-gray-600">
-                  Puedes subir PDF, DOC, PPT, PNG, JPG, JPEG, WebP
-                </p>
+                <p className="text-xs text-gray-600">Solo pdf</p>
               </div>
             </div>
 
@@ -262,7 +260,7 @@ export default function CreateCertificationPage() {
             {/* Audiencia */}
             <div className="space-y-2">
               <Label htmlFor="audience" className="text-purple-700 font-medium">
-                Audiencia objetivo *
+                Audiencia objetivo (Opcional)
               </Label>
               <div className="text-xs text-slate-600 mb-1">
                 Separar con <span className="font-bold">;</span>
@@ -271,7 +269,6 @@ export default function CreateCertificationPage() {
                 id="audience"
                 name="audience"
                 type="text"
-                required
                 placeholder="Indica a quién está dirigida la certificación."
                 className="border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 bg-white"
                 value={form.audience}

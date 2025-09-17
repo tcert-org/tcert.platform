@@ -27,9 +27,9 @@ export async function PUT(
     } = body;
 
     // Validar campos requeridos
-    if (!name || !description || !audience) {
+    if (!name || !description) {
       return NextResponse.json(
-        { error: "Nombre, descripción y audiencia son requeridos" },
+        { error: "Nombre y descripción son requeridos" },
         { status: 400 }
       );
     }
@@ -38,7 +38,7 @@ export async function PUT(
     const updateFields: any = {
       name: name.trim(),
       description: description.trim(),
-      audience: audience.trim(),
+      audience: audience ? audience.trim() : "",
       active: active,
       updated_at: new Date().toISOString(),
     };

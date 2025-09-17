@@ -63,12 +63,41 @@ export default function EditPartnerPage() {
     setSaving(true);
 
     try {
+      let logoUrl = formData.logo_url;
+
+      // Subir logo si se seleccionó uno nuevo
+      const logoInput = document.getElementById(
+        "logo_file"
+      ) as HTMLInputElement;
+      if (logoInput && logoInput.files && logoInput.files[0]) {
+        const file = logoInput.files[0];
+        const formDataUpload = new FormData();
+        formDataUpload.append("logo", file);
+
+        const uploadRes = await fetch("/api/upload-logo", {
+          method: "POST",
+          body: formDataUpload,
+        });
+
+        const uploadResult = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(uploadResult.error || "Error al subir logo");
+        }
+
+        // Guardar la URL completa del blob
+        logoUrl = uploadResult.url;
+      }
+
+      // Actualizar partner con la URL del logo
       const response = await fetch(`/api/partners/${partnerId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          logo_url: logoUrl,
+        }),
       });
 
       const result = await response.json();
@@ -220,24 +249,23 @@ export default function EditPartnerPage() {
                 <div className="space-y-2">
                   <Label
                     className="text-purple-700 font-semibold text-sm"
-                    htmlFor="logo_url"
+                    htmlFor="logo_file"
                   >
-                    URL del Logo (Opcional)
+                    Logo del Partner (Opcional)
                   </Label>
                   <div className="relative">
-                    <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-purple-500" />
                     <Input
-                      id="logo_url"
-                      type="url"
-                      value={formData.logo_url}
-                      onChange={(e) =>
-                        handleInputChange("logo_url", e.target.value)
-                      }
-                      placeholder="https://ejemplo.com/logo.png"
-                      className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
+                      id="logo_file"
+                      type="file"
+                      name="logo_file"
+                      accept=".png,.jpg,.jpeg,.svg,.webp"
+                      className="border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30 py-2 h-auto file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-100 file:to-violet-100 file:text-purple-700 hover:file:from-purple-200 hover:file:to-violet-200 file:cursor-pointer cursor-pointer"
                       disabled={saving}
                     />
                   </div>
+                  <p className="text-xs text-gray-600">
+                    Formatos aceptados: PNG, JPG, JPEG, SVG, WebP
+                  </p>
                 </div>
 
                 <div className="space-y-2">
