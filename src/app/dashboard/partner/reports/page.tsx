@@ -31,6 +31,22 @@ function formatUSD(value: number): string {
   return `$${isInteger ? value : value.toFixed(2)} USD`;
 }
 
+// Helper function para formatear fechas sin problemas de timezone
+function formatDateSafe(dateString: string): string {
+  // Extraer solo la parte de fecha (YYYY-MM-DD) de un ISO string
+  const dateOnly = dateString.split("T")[0];
+  const [year, month, day] = dateOnly.split("-");
+
+  // Crear fecha usando los componentes individuales para evitar timezone issues
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+  return date.toLocaleDateString("es-ES", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function addMonthsToDate(date: Date, months: number): Date {
   const result = new Date(date);
   const currentMonth = result.getMonth();
@@ -308,13 +324,7 @@ export default function PartnerReportsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("created_at");
-        const formattedDate = val
-          ? new Date(val as string).toLocaleDateString("es-ES", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : "-";
+        const formattedDate = val ? formatDateSafe(val as string) : "-";
 
         return val ? (
           <div className="text-center">
@@ -332,13 +342,7 @@ export default function PartnerReportsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("expiration_date");
-        const formattedDate = val
-          ? new Date(val as string).toLocaleDateString("es-ES", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : null;
+        const formattedDate = val ? formatDateSafe(val as string) : null;
 
         if (!val) {
           return (
@@ -368,13 +372,7 @@ export default function PartnerReportsPage() {
       cell: ({ row }) => {
         const val = row.getValue("extension_date");
         const extensionUsed = row.original.extension_used;
-        const formattedDate = val
-          ? new Date(val as string).toLocaleDateString("es-ES", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : null;
+        const formattedDate = val ? formatDateSafe(val as string) : null;
 
         if (!val) {
           return (

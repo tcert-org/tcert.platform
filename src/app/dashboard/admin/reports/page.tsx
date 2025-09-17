@@ -7,6 +7,22 @@ import { DataTable } from "@/components/data-table/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { createActionsColumn } from "@/components/data-table/action-menu";
 
+// Helper function para formatear fechas sin problemas de timezone
+function formatDateSafe(dateString: string): string {
+  // Extraer solo la parte de fecha (YYYY-MM-DD) de un ISO string
+  const dateOnly = dateString.split("T")[0];
+  const [year, month, day] = dateOnly.split("-");
+
+  // Crear fecha usando los componentes individuales para evitar timezone issues
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
+  return date.toLocaleDateString("es-ES", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 type ActionItem<T> = {
   label: string;
   action?: (row: T) => void;
@@ -172,13 +188,7 @@ export default function PaymentsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("created_at");
-        const formattedDate = val
-          ? new Date(val as string).toLocaleDateString("es-ES", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : "-";
+        const formattedDate = val ? formatDateSafe(val as string) : "-";
 
         return val ? (
           <div className="text-center">
@@ -196,13 +206,7 @@ export default function PaymentsPage() {
       meta: { filterType: "date" },
       cell: ({ row }) => {
         const val = row.getValue("expiration_date");
-        const formattedDate = val
-          ? new Date(val as string).toLocaleDateString("es-ES", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })
-          : null;
+        const formattedDate = val ? formatDateSafe(val as string) : null;
 
         if (!val) {
           return (
