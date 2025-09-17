@@ -15,7 +15,11 @@ function addMonthsSafe(date: Date, monthsToAdd: number) {
   const newDate = new Date(year, targetMonth, 1);
 
   // Calcular último día del mes resultante
-  const lastDayOfTargetMonth = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0).getDate();
+  const lastDayOfTargetMonth = new Date(
+    newDate.getFullYear(),
+    newDate.getMonth() + 1,
+    0
+  ).getDate();
 
   // Usar el mínimo entre el día original y el último día del mes
   newDate.setDate(Math.min(day, lastDayOfTargetMonth));
@@ -24,7 +28,9 @@ function addMonthsSafe(date: Date, monthsToAdd: number) {
 }
 
 export default class PaymentController {
-  static async createPayment(data: PaymentsInsertType): Promise<NextResponse<ApiResponse<any>>> {
+  static async createPayment(
+    data: PaymentsInsertType
+  ): Promise<NextResponse<ApiResponse<any>>> {
     try {
       const paymentTable = new PaymentTable();
 
@@ -34,10 +40,11 @@ export default class PaymentController {
         .select("id, value")
         .in("id", [1, 3]); // 1: Expiración Vouchers, 3: Tiempo Extensión
 
-      if (paramsError) throw new Error("Error al obtener parámetros del sistema");
+      if (paramsError)
+        throw new Error("Error al obtener parámetros del sistema");
 
-      const expirationMonths = Number(params.find(p => p.id === 1)?.value);
-      const extensionMonths = Number(params.find(p => p.id === 3)?.value);
+      const expirationMonths = Number(params.find((p) => p.id === 1)?.value);
+      const extensionMonths = Number(params.find((p) => p.id === 3)?.value);
 
       if (!expirationMonths || !extensionMonths) {
         throw new Error("Faltan parámetros de expiración o extensión");
@@ -123,13 +130,34 @@ export default class PaymentController {
       const searchParams = req.nextUrl.searchParams;
 
       const filters: FilterParamsPayment = {
-        filter_partner_name: searchParams.get("filter_partner_name") ?? undefined,
+        filter_partner_name:
+          searchParams.get("filter_partner_name") ?? undefined,
         filter_created_at: searchParams.get("filter_created_at") ?? undefined,
-        filter_created_at_op: searchParams.get("filter_created_at_op") ?? undefined,
+        filter_created_at_op:
+          searchParams.get("filter_created_at_op") ?? undefined,
+        filter_expiration_date:
+          searchParams.get("filter_expiration_date") ?? undefined,
+        filter_expiration_date_op:
+          searchParams.get("filter_expiration_date_op") ?? undefined,
+        filter_extension_date:
+          searchParams.get("filter_extension_date") ?? undefined,
+        filter_extension_date_op:
+          searchParams.get("filter_extension_date_op") ?? undefined,
+        filter_voucher_quantity: searchParams.get("filter_voucher_quantity")
+          ? Number(searchParams.get("filter_voucher_quantity"))
+          : undefined,
+        filter_voucher_quantity_op:
+          searchParams.get("filter_voucher_quantity_op") ?? undefined,
+        filter_unit_price: searchParams.get("filter_unit_price")
+          ? Number(searchParams.get("filter_unit_price"))
+          : undefined,
+        filter_unit_price_op:
+          searchParams.get("filter_unit_price_op") ?? undefined,
         filter_total_price: searchParams.get("filter_total_price")
           ? Number(searchParams.get("filter_total_price"))
           : undefined,
-        filter_total_price_op: searchParams.get("filter_total_price_op") ?? undefined,
+        filter_total_price_op:
+          searchParams.get("filter_total_price_op") ?? undefined,
         order_by: searchParams.get("order_by") ?? "created_at",
         order_dir: searchParams.get("order_dir") ?? "desc",
         page: searchParams.get("page") ? Number(searchParams.get("page")) : 1,
@@ -139,7 +167,9 @@ export default class PaymentController {
       };
 
       const paymentTable = new PaymentTable();
-      const { data, totalCount } = await paymentTable.getPaymentsWithFilters(filters);
+      const { data, totalCount } = await paymentTable.getPaymentsWithFilters(
+        filters
+      );
 
       return NextResponse.json({
         statusCode: 200,

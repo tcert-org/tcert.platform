@@ -8,10 +8,9 @@ export async function POST(req: NextRequest) {
   const { quantity, membership_id, onlyPrice } = await req.json();
 
   if (!quantity || !membership_id) {
-    return new Response(
-      JSON.stringify({ error: "Faltan datos requeridos" }),
-      { status: 400 }
-    );
+    return new Response(JSON.stringify({ error: "Faltan datos requeridos" }), {
+      status: 400,
+    });
   }
 
   const { data, error } = await supabase
@@ -31,10 +30,9 @@ export async function POST(req: NextRequest) {
 
   // 👇 Si solo queremos consultar el precio, no creamos sesión en Stripe
   if (onlyPrice) {
-    return new Response(
-      JSON.stringify({ unit_price: data.price }),
-      { status: 200 }
-    );
+    return new Response(JSON.stringify({ unit_price: data.price }), {
+      status: 200,
+    });
   }
 
   const session = await stripe.checkout.sessions.create({
