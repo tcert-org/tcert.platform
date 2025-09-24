@@ -1,11 +1,12 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
 
 type OptionData = {
   content: string;
@@ -23,6 +24,7 @@ export default function FormOptions({ questionId }: { questionId: number }) {
     reset,
     watch,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<AllOptionsFormData>({
     defaultValues: {
@@ -35,11 +37,28 @@ export default function FormOptions({ questionId }: { questionId: number }) {
     },
   });
 
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "options",
+  });
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(true);
 
   const watchedOptions = watch("options");
+
+  // Función para agregar una nueva opción
+  const addOption = () => {
+    append({ content: "", is_correct: false });
+  };
+
+  // Función para remover una opción (mínimo 2 opciones)
+  const removeOption = (index: number) => {
+    if (fields.length > 2) {
+      remove(index);
+    }
+  };
 
   // Submit todas las opciones de una vez
   const onSubmit = async (data: AllOptionsFormData) => {
@@ -157,20 +176,51 @@ export default function FormOptions({ questionId }: { questionId: number }) {
             </CardTitle>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              {/* Botón para agregar más opciones */}
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-700">
+                  Opciones ({fields.length})
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addOption}
+                  className="flex items-center gap-2 hover:bg-blue-50 border-blue-300"
+                >
+                  <Plus className="h-4 w-4" />
+                  Agregar Opción
+                </Button>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {Array.from({ length: 4 }, (_, index) => (
-                  <div key={index} className="space-y-3">
-                    <Label
-                      htmlFor={`option-${index}`}
-                      className="text-sm font-semibold text-gray-700"
-                    >
-                      Opción {index + 1}
-                    </Label>
+                {fields.map((field, index) => (
+                  <div key={field.id} className="space-y-3 relative">
+                    <div className="flex justify-between items-center">
+                      <Label
+                        htmlFor={`option-${index}`}
+                        className="text-sm font-semibold text-gray-700"
+                      >
+                        Opción {index + 1}
+                      </Label>
+                      {fields.length > 2 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeOption(index)}
+                          className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Eliminar
+                        </Button>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       <Input
                         id={`option-${index}`}
                         type="text"
-                        {...register(`options.${index}.content`)} // Removida la validación required
+                        {...register(`options.${index}.content`)}
                         placeholder={`Ingrese la opción ${
                           index + 1
                         } (opcional)`}
@@ -228,6 +278,10 @@ export default function FormOptions({ questionId }: { questionId: number }) {
                     necesario
                   </li>
                   <li>Solo se crearán las opciones que tengan contenido</li>
+                  <li>
+                    Use &quot;Agregar Opción&quot; para añadir más de 4 opciones
+                  </li>
+                  <li>Debe mantener al menos 2 opciones (mínimo requerido)</li>
                 </ul>
               </div>
 
@@ -236,7 +290,8 @@ export default function FormOptions({ questionId }: { questionId: number }) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() =>
+                  onClick={() => {
+                    // Reset a 4 opciones por defecto
                     reset({
                       options: [
                         { content: "", is_correct: false },
@@ -244,11 +299,11 @@ export default function FormOptions({ questionId }: { questionId: number }) {
                         { content: "", is_correct: false },
                         { content: "", is_correct: false },
                       ],
-                    })
-                  }
+                    });
+                  }}
                   disabled={isSubmitting}
                 >
-                  Limpiar
+                  Reiniciar a 4 Opciones
                 </Button>
                 <Button
                   type="submit"

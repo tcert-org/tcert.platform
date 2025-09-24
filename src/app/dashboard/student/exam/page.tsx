@@ -257,7 +257,7 @@ export default function StudentExamPage() {
         return;
       }
 
-      console.log("Estado actual del voucher:", currentSlug);
+      //console.log("Estado actual del voucher:", currentSlug);
 
       let newStatusSlug = "";
 
