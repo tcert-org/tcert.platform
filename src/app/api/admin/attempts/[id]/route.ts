@@ -102,10 +102,10 @@ export async function GET(
       .eq("exam_attempt_id", Number(id));
 
     //console.log(
-      "📋 Respuestas obtenidas:",
-      studentAnswers?.length,
-      "respuestas"
-    );
+    //  "📋 Respuestas obtenidas:",
+    //  studentAnswers?.length,
+    //  "respuestas"
+    //);
     //console.log("📋 Primera respuesta (ejemplo):", studentAnswers?.[0]);
 
     if (answersError) {
