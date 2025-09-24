@@ -128,8 +128,6 @@ export default function QuestionOptionsInline({
   // Guardar nueva opción
   async function handleSaveNewOption() {
     if (!newContent.trim()) return;
-    // No permite agregar si ya hay 4
-    if (options.length >= 4) return;
     // Si NO hay opción correcta tras agregar, bloquea
     const simuladas = [
       ...options,
@@ -183,7 +181,7 @@ export default function QuestionOptionsInline({
   return (
     <div className="bg-white border border-gray-300 rounded-lg p-4 mt-3">
       <div className="font-semibold mb-2 text-sm text-gray-700 flex justify-between">
-        Opciones de la pregunta
+        Opciones de la pregunta ({options.length})
         <Button size="sm" variant="outline" onClick={handleTryClose}>
           Cerrar
         </Button>
@@ -217,7 +215,7 @@ export default function QuestionOptionsInline({
             size="sm"
             className="bg-green-600 hover:bg-green-700 text-white"
             onClick={handleSaveNewOption}
-            disabled={updating || !newContent.trim() || options.length >= 4}
+            disabled={updating || !newContent.trim()}
           >
             <Save className="w-4 h-4 mr-1" /> Guardar
           </Button>
@@ -237,14 +235,13 @@ export default function QuestionOptionsInline({
         <Button
           size="sm"
           variant="outline"
-          className="mb-3"
+          className="mb-3 flex items-center gap-2 hover:bg-blue-50 border-blue-300"
           onClick={() => {
             setAdding(true);
             setValidationError(null);
           }}
-          disabled={options.length >= 4}
         >
-          <Plus className="w-4 h-4 mr-1" /> Agregar opción
+          <Plus className="w-4 h-4" /> Agregar opción
         </Button>
       )}
 
