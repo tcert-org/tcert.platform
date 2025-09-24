@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    console.log("🔍 Admin API: Buscando intento con ID:", id);
+    //console.log("🔍 Admin API: Buscando intento con ID:", id);
 
     // Verificar que el ID sea válido
     if (!id || isNaN(Number(id))) {
@@ -20,7 +20,7 @@ export async function GET(
     }
 
     // Obtener el intento del examen con información completa
-    console.log("🔍 Consultando exam_attempts para ID:", id);
+    //console.log("🔍 Consultando exam_attempts para ID:", id);
     const { data: attempt, error: attemptError } = await supabase
       .from("exam_attempts")
       .select(
@@ -44,7 +44,7 @@ export async function GET(
       .eq("id", Number(id))
       .single();
 
-    console.log("📊 Resultado de la consulta:", { attempt, attemptError });
+    //console.log("📊 Resultado de la consulta:", { attempt, attemptError });
 
     if (attemptError) {
       console.error("❌ Error al consultar intento:", attemptError);
@@ -66,11 +66,11 @@ export async function GET(
     }
 
     // Usar directamente la tabla de preguntas para obtener las preguntas
-    console.log("🔍 Obteniendo preguntas para exam_id:", attempt.exam_id);
+    //console.log("🔍 Obteniendo preguntas para exam_id:", attempt.exam_id);
     const questionTable = new QuestionTable();
     const questions = await questionTable.getQuestions(attempt.exam_id);
 
-    console.log("📝 Preguntas obtenidas:", questions?.length, "preguntas");
+    //console.log("📝 Preguntas obtenidas:", questions?.length, "preguntas");
 
     // Obtener opciones para cada pregunta
     const questionsWithOptions = await Promise.all(
@@ -95,18 +95,18 @@ export async function GET(
     );
 
     // Obtener las respuestas del estudiante usando la tabla directamente
-    console.log("🔍 Obteniendo respuestas para exam_attempt_id:", Number(id));
+    //console.log("🔍 Obteniendo respuestas para exam_attempt_id:", Number(id));
     const { data: studentAnswers, error: answersError } = await supabase
       .from("answers")
       .select("question_id, selected_option_id, created_at")
       .eq("exam_attempt_id", Number(id));
 
-    console.log(
+    //console.log(
       "📋 Respuestas obtenidas:",
       studentAnswers?.length,
       "respuestas"
     );
-    console.log("📋 Primera respuesta (ejemplo):", studentAnswers?.[0]);
+    //console.log("📋 Primera respuesta (ejemplo):", studentAnswers?.[0]);
 
     if (answersError) {
       console.error("❌ Error al obtener respuestas:", answersError);

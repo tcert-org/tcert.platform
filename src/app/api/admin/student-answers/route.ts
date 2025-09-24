@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("🔍 API: Obteniendo respuestas para attempt:", attemptId);
+    //console.log("🔍 API: Obteniendo respuestas para attempt:", attemptId);
 
     // Obtener las respuestas del estudiante para este intento específico
     const { data: studentAnswers, error: answersError } = await supabase
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("📝 Respuestas encontradas:", studentAnswers?.length || 0);
+    //console.log("📝 Respuestas encontradas:", studentAnswers?.length || 0);
 
     return NextResponse.json({
       success: true,

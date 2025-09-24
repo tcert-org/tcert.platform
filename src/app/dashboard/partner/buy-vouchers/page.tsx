@@ -54,7 +54,7 @@ export default function AssignVoucherForm() {
       const json = await res.json();
       return json?.data || null;
     } catch (err) {
-      console.error("❌ Error al obtener datos frescos del partner:", err);
+      console.error("Error al obtener datos frescos del partner:", err);
       return null;
     }
   };
@@ -89,7 +89,7 @@ export default function AssignVoucherForm() {
 
       setPriceLoading(true);
 
-      // 🔄 Obtener membresía fresca de la API en lugar del user store
+      // Obtener membresía fresca de la API en lugar del user store
       const freshData = await fetchFreshPartnerData(String(user.id));
 
       // Buscar el membership_id basado en el nombre de la membresía fresca
@@ -156,14 +156,14 @@ export default function AssignVoucherForm() {
         );
         setQuantity(String(quantityFromStorage));
 
-        // ❌ Removido el uso del session storage para unit_price
+        // Removido el uso del session storage para unit_price
         // const storedUnitPrice = Number(sessionStorage.getItem("unit_price") || "0");
 
         const user = await getUser();
         const partnerId = String(user?.id);
         if (!partnerId || !user?.id) return;
 
-        // 🔄 Obtener precio actual basado en la membresía fresca de la API
+        // Obtener precio actual basado en la membresía fresca de la API
         let currentUnitPrice = unitPrice; // Usar el precio que ya tenemos en estado
         if (!currentUnitPrice) {
           try {
@@ -214,7 +214,7 @@ export default function AssignVoucherForm() {
               unit_price: currentUnitPrice || 0,
               total_price: quantityFromStorage * (currentUnitPrice || 0),
               files: "stripe_payment",
-              membership_id: null, // ❌ no usamos el viejo ID
+              membership_id: null, // No usamos el viejo ID
             }),
           });
 
@@ -223,32 +223,23 @@ export default function AssignVoucherForm() {
           const json = await res.json();
           const newMembershipId = json?.data?.new_membership_id;
 
-          // ✅ Mostrar modal inmediatamente después del pago exitoso
+          // Mostrar modal inmediatamente después del pago exitoso
           setShowSuccessModal(true);
           toast.success("Vouchers asignados exitosamente.");
 
-          // 🔄 Hacer actualizaciones en background (sin bloquear el modal)
+          // Hacer actualizaciones en background (sin bloquear el modal)
           (async () => {
             try {
               // Espera reducida para que la DB se actualice
               await new Promise((resolve) => setTimeout(resolve, 500));
 
-              // 🔁 Obtener datos frescos del partner directamente de la API
-              console.log(
-                "🔄 Obteniendo datos frescos del partner después del pago..."
-              );
+              // Obtener datos frescos del partner directamente de la API
               const user = await getUser();
               const freshPartnerData = await fetchFreshPartnerData(
                 String(user?.id)
               );
 
               if (freshPartnerData) {
-                console.log("🔄 Datos frescos del partner obtenidos:", {
-                  newMembershipId,
-                  freshMembershipName: freshPartnerData.membership_name,
-                  finalMembershipToUse: newMembershipId,
-                });
-
                 // Actualizar la membresía mostrada usando el nombre directo de la API
                 if (
                   freshPartnerData.membership_name &&
@@ -259,7 +250,6 @@ export default function AssignVoucherForm() {
 
                 // Forzar actualización del precio con la nueva membresía del response del pago
                 if (newMembershipId) {
-                  console.log("🔄 Actualizando precio con nueva membresía...");
                   try {
                     const priceRes = await fetch("/api/checkout", {
                       method: "POST",
@@ -276,10 +266,6 @@ export default function AssignVoucherForm() {
                     const priceData = await priceRes.json();
                     if (typeof priceData.unit_price === "number") {
                       setUnitPrice(priceData.unit_price);
-                      console.log(
-                        "✅ Nuevo precio unitario:",
-                        priceData.unit_price
-                      );
                     }
                   } catch (error) {
                     console.error(
@@ -289,25 +275,18 @@ export default function AssignVoucherForm() {
                   }
                 }
               } else {
-                console.error(
-                  "❌ No se pudieron obtener datos frescos del partner"
-                );
+                // No se pudieron obtener datos frescos del partner
               }
             } catch (error) {
               console.error("Error en actualización background:", error);
             }
           })();
 
-          // 🔄 Limpiar session storage
+          // Limpiar session storage
           sessionStorage.removeItem("last_quantity");
           sessionStorage.setItem("vouchers_registered", "true");
-
-          // ❌ Eliminado: redirección automática
-          // setTimeout(() => {
-          //   window.location.href = "/dashboard/partner/buy-vouchers";
-          // }, 2000);
         } catch (error) {
-          console.error("❌ Error en /api/payments:", error);
+          console.error("Error en /api/payments:", error);
           toast.error("Error al asignar los vouchers.");
         }
         return;
@@ -335,7 +314,7 @@ export default function AssignVoucherForm() {
         return;
       }
 
-      // 🔄 Obtener membresía fresca de la API
+      // Obtener membresía fresca de la API
       const freshData = await fetchFreshPartnerData(String(user.id));
       if (!freshData?.membership_name) {
         toast.error("No se encontró la membresía.");
