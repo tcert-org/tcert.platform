@@ -264,7 +264,7 @@ export default function QuestionOptionsInline({
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
                   className="flex-1"
-                  maxLength={100}
+                  maxLength={5000}
                 />
                 <label className="flex items-center gap-1 text-xs">
                   <input
