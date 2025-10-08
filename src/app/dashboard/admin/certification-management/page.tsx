@@ -444,7 +444,7 @@ export default function CertificationManagementPage() {
                           </div>
                           <div>
                             <Label className="text-purple-700 font-medium">
-                              Audiencia objetivo
+                              Habilidades
                             </Label>
                             {cert.isEditing ? (
                               <>
@@ -461,17 +461,17 @@ export default function CertificationManagementPage() {
                                       e.target.value
                                     )
                                   }
-                                  placeholder="Ej: Profesionales de TI;Estudiantes universitarios;Gerentes"
+                                  placeholder="Ej: Empático;Planificación;Analítica"
                                   className="mt-1 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 bg-white"
                                 />
                                 <div className="text-xs text-slate-600 mt-2">
                                   Ejemplo:{" "}
                                   <span className="italic">
-                                    Ingenieros
+                                    Servicial
                                     <span className="font-bold">;</span>
-                                    Investigadores
+                                    Empático
                                     <span className="font-bold">;</span>Lideres
-                                    de Proyectos
+                                    Resolución de problemas
                                   </span>
                                 </div>
                               </>
