@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Modal } from "@/modules/tools/ModalScore"; // Modal de calificación
+import ExamWarningModal from "@/components/ExamWarningModal";
 
 // Tipo de estado de intento
 type ExamStatus = "completed" | "not_started";
@@ -51,6 +52,7 @@ export default function StudentExamPage() {
   const [voucherStatusSlug, setVoucherStatusSlug] = useState<string | null>(
     null
   );
+  const [showWarningModal, setShowWarningModal] = useState(false);
   const router = useRouter();
 
   // Función para obtener el número de intento basado en el slug
@@ -210,7 +212,7 @@ export default function StudentExamPage() {
     fetchExam();
   }, []);
 
-  const handleStartExam = async () => {
+  const handleShowWarningModal = () => {
     // Verificar si el voucher ya está en estado final usando la función auxiliar
     if (isVoucherInFinalState()) {
       const statusText = isVoucherApproved() ? "aprobado" : "perdido";
@@ -219,6 +221,12 @@ export default function StudentExamPage() {
       );
       return;
     }
+    setShowWarningModal(true);
+  };
+
+  const handleStartExam = async () => {
+    // Cerrar el modal de advertencia
+    setShowWarningModal(false);
 
     const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
     const voucherId = session?.state?.decryptedStudent?.voucher_id;
@@ -608,7 +616,7 @@ export default function StudentExamPage() {
                             ? "bg-gray-400 cursor-not-allowed text-gray-600"
                             : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl"
                         }`}
-                        onClick={handleStartExam}
+                        onClick={handleShowWarningModal}
                         disabled={isVoucherInFinalState()}
                       >
                         <Play
@@ -675,6 +683,13 @@ export default function StudentExamPage() {
           </div>
         </div>
       )}
+
+      {/* Modal de advertencia antes del examen */}
+      <ExamWarningModal
+        isOpen={showWarningModal}
+        onClose={() => setShowWarningModal(false)}
+        onConfirm={handleStartExam}
+      />
 
       {/* Modal de calificación */}
       {isModalOpen && examDetails && (
