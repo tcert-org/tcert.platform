@@ -11,8 +11,5 @@
         "cache-control": "no-cache"
       }
     }
-  ],
-  "limits": {
-    "body": "50mb"
-  }
+  ]
 }

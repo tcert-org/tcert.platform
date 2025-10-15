@@ -6,9 +6,8 @@ export const runtime = "nodejs";
 // Configurar límite específico para este endpoint
 export const maxDuration = 30; // 30 segundos para uploads
 
-// Configurar límite de payload específico para Vercel
+// Configurar para forzar dinámico
 export const dynamic = "force-dynamic";
-export const maxBodySize = "50mb";
 
 export async function POST(req: NextRequest) {
   try {
