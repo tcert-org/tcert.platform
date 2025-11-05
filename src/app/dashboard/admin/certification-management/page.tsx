@@ -156,12 +156,12 @@ export default function CertificationManagementPage() {
         if (files.materialFile) {
           const formData = new FormData();
           formData.append("material", files.materialFile);
-          const uploadRes = await fetch("/api/upload-material", {
+          const uploadRes = await fetch("/api/upload-large-material", {
             method: "POST",
             body: formData,
           });
           const uploadResult = await uploadRes.json();
-          if (!uploadRes.ok)
+          if (!uploadRes.ok || !uploadResult.success)
             throw new Error(uploadResult.error || "Error al subir material");
           study_material_url = uploadResult.filename;
         }

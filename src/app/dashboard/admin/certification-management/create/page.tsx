@@ -93,12 +93,14 @@ export default function CreateCertificationPage() {
       if (materialFile) {
         const formData = new FormData();
         formData.append("material", materialFile);
-        const uploadRes = await fetch("/api/upload-material", {
+
+        // Usar la nueva API para archivos grandes
+        const uploadRes = await fetch("/api/upload-large-material", {
           method: "POST",
           body: formData,
         });
         const uploadResult = await uploadRes.json();
-        if (!uploadRes.ok)
+        if (!uploadRes.ok || !uploadResult.success)
           throw new Error(uploadResult.error || "Error al subir material");
         materialUrl = uploadResult.filename;
       }
@@ -214,7 +216,7 @@ export default function CreateCertificationPage() {
                     onChange={handleChange}
                   />
                 </div>
-                <p className="text-xs text-gray-600">Solo pdf</p>
+                <p className="text-xs text-gray-600">Solo PDF - Máximo 50MB</p>
               </div>
             </div>
 
