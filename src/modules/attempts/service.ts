@@ -51,11 +51,16 @@ export default class AttemptService {
       return attempt;
     }
 
-    // Obtener opciones correctas desde la tabla 'options'
+    // Primero obtener las preguntas específicas del examen
+    const questionIds = answers.map(answer => answer.question_id);
+
+    // Obtener SOLO las opciones correctas para las preguntas de este examen
     const { data: correctOptions, error: errorCorrect } = await supabase
       .from("options")
       .select("question_id, id")
-      .eq("is_correct", true);
+      .eq("is_correct", true)
+      .in("question_id", questionIds);
+
 
     if (errorCorrect || !correctOptions) {
       throw new Error("No se pudieron obtener las respuestas correctas.");

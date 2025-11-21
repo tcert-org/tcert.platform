@@ -9,6 +9,7 @@ import {
   Building2,
   Phone,
   Link as LinkIcon,
+  Upload,
   Loader2,
 } from "lucide-react";
 import { toast } from "react-toastify";
@@ -32,9 +33,10 @@ export default function ProfileForm() {
   const [formData, setFormData] = useState({
     company_name: "",
     contact_number: "",
-    logo_url: "",
     page_url: "",
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [currentLogoUrl, setCurrentLogoUrl] = useState<string>("");
 
   // Cargar datos del partner autenticado
   useEffect(() => {
@@ -54,9 +56,9 @@ export default function ProfileForm() {
         setFormData({
           company_name: data.company_name || "",
           contact_number: data.contact_number || "",
-          logo_url: data.logo_url || "",
           page_url: data.page_url || "",
         });
+        setCurrentLogoUrl(data.logo_url || "");
       } catch (error) {
         console.error("Error:", error);
         toast.error("Error al cargar los datos del perfil");
@@ -78,12 +80,36 @@ export default function ProfileForm() {
         throw new Error("No se pudo obtener la información del usuario");
       }
 
+      let logoUrl = currentLogoUrl; // Mantener la URL actual por defecto
+
+      // Subir logo si se seleccionó un archivo nuevo
+      if (logoFile) {
+        const formDataUpload = new FormData();
+        formDataUpload.append("logo", logoFile);
+
+        const uploadRes = await fetch("/api/upload-logo", {
+          method: "POST",
+          body: formDataUpload,
+        });
+
+        const uploadResult = await uploadRes.json();
+        if (!uploadRes.ok) {
+          throw new Error(uploadResult.error || "Error al subir logo");
+        }
+
+        // Guardar la URL completa del blob
+        logoUrl = uploadResult.url;
+      }
+
       const response = await fetch(`/api/partners/${user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          logo_url: logoUrl,
+        }),
       });
 
       const result = await response.json();
@@ -95,7 +121,9 @@ export default function ProfileForm() {
       toast.success("Perfil actualizado exitosamente");
 
       // Actualizar los datos locales
-      setPartnerData({ ...partnerData!, ...formData });
+      setPartnerData({ ...partnerData!, ...formData, logo_url: logoUrl });
+      setCurrentLogoUrl(logoUrl);
+      setLogoFile(null); // Limpiar el archivo seleccionado
     } catch (error) {
       console.error("Error:", error);
       toast.error(
@@ -170,23 +198,60 @@ export default function ProfileForm() {
         </div>
       </div>
 
-      {/* URL del Logo */}
+      {/* Logo del Partner */}
       <div className="space-y-2">
-        <Label htmlFor="logo_url" className="text-purple-700 font-medium">
-          URL del Logo (Opcional)
+        <Label htmlFor="logo_file" className="text-purple-700 font-medium">
+          Logo del Partner (Opcional)
         </Label>
+
+        {/* Mostrar logo actual si existe */}
+        {currentLogoUrl && (
+          <div className="mb-3">
+            <p className="text-sm text-purple-600 mb-2">Logo actual:</p>
+            <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={currentLogoUrl}
+                alt="Logo actual"
+                className="w-12 h-12 object-contain rounded-md border border-purple-200"
+              />
+              <span className="text-sm text-purple-700">
+                {currentLogoUrl.split("/").pop()}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="relative group">
-          <LinkIcon className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
+          <Upload className="absolute left-3 top-3 w-4 h-4 text-purple-500 group-focus-within:text-orange-500 transition-colors duration-300" />
           <Input
-            id="logo_url"
-            type="url"
-            value={formData.logo_url}
-            onChange={(e) => handleInputChange("logo_url", e.target.value)}
-            placeholder="https://ejemplo.com/logo.png"
-            className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30"
+            id="logo_file"
+            type="file"
+            accept=".png,.jpg,.jpeg,.svg,.webp"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                setLogoFile(file);
+                toast.info(`Logo seleccionado: ${file.name}`);
+              }
+            }}
+            className="pl-10 border-purple-200 focus:border-orange-400 focus:ring-orange-400/20 transition-all duration-300 bg-gradient-to-r from-white to-purple-50/30 py-2 h-auto file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-purple-100 file:to-violet-100 file:text-purple-700 hover:file:from-purple-200 hover:file:to-violet-200 file:cursor-pointer cursor-pointer"
             disabled={saving}
           />
         </div>
+        <p className="text-xs text-gray-600">
+          Formatos soportados: PNG, JPG, JPEG, SVG, WebP
+        </p>
+
+        {/* Mostrar archivo seleccionado */}
+        {logoFile && (
+          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-700">
+              ✅ Nuevo logo seleccionado:{" "}
+              <span className="font-medium">{logoFile.name}</span>
+            </p>
+          </div>
+        )}
       </div>
 
       {/* URL de la Página Web */}
@@ -236,9 +301,10 @@ export default function ProfileForm() {
               setFormData({
                 company_name: partnerData.company_name || "",
                 contact_number: partnerData.contact_number || "",
-                logo_url: partnerData.logo_url || "",
                 page_url: partnerData.page_url || "",
               });
+              setCurrentLogoUrl(partnerData.logo_url || "");
+              setLogoFile(null);
               toast.info("Cambios descartados");
             }
           }}
