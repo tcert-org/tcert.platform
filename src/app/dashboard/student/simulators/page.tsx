@@ -9,8 +9,10 @@ import {
   BarChart3,
   CheckCircle2,
   AlertCircle,
+  BookOpen,
 } from "lucide-react";
 import { Modal } from "@/modules/tools/ModalScore"; // Modal de calificación
+import { DetailedAttemptModal } from "@/components/ui/detailed-attempt-modal"; // Modal de retroalimentación detallada
 
 type SimulatorStatus = "completed" | "not_started";
 
@@ -43,21 +45,20 @@ export default function StudentSimulatorsPage() {
   const [simulators, setSimulators] = useState<SimulatorCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [examDetails, setExamDetails] = useState<any>(null);
+  const [feedbackData, setFeedbackData] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
     async function fetchSimulators() {
       setLoading(true);
-
       try {
         const session = JSON.parse(
           sessionStorage.getItem("student-data") || "{}"
         );
         const voucherId = session?.state?.decryptedStudent?.voucher_id;
-
         if (!voucherId) {
-          console.warn("voucher_id no disponible en la sesión");
           setSimulators([]);
           return;
         }
@@ -69,7 +70,6 @@ export default function StudentSimulatorsPage() {
         const studentData = await studentResponse.json();
 
         if (!studentResponse.ok || !studentData?.data?.id) {
-          console.warn("No se pudo obtener el ID del estudiante");
           setSimulators([]);
           return;
         }
@@ -87,31 +87,30 @@ export default function StudentSimulatorsPage() {
         } else {
           // Para cada simulador, verificamos si tiene calificaciones
           const simulatorsWithStatus = await Promise.all(
-            result.data.map(async (exam: any) => {
+            result.data.map(async (exam: any, index: number) => {
               try {
                 // Verificamos si existen resultados para este simulador
                 const resultsResponse = await fetch(
                   `/api/results?exam_id=${exam.id}&student_id=${studentId}`
                 );
+                const resultsData = await resultsResponse.json();
 
                 // Ahora el endpoint siempre devuelve 200, verificamos si hay data
                 let hasResults = false;
                 if (resultsResponse.ok) {
-                  const resultsData = await resultsResponse.json();
                   hasResults = resultsData.data !== null;
                 }
 
-                return {
+                const simulatorCard = {
                   id: exam.id,
                   name: exam.name_exam || "Sin nombre",
                   status: hasResults
                     ? "completed"
                     : ("not_started" as SimulatorStatus),
                 };
-              } catch {
-                console.warn(
-                  `No se pudieron verificar resultados para simulador ${exam.id}`
-                );
+                return simulatorCard;
+              } catch (error) {
+                console.error(error);
                 return {
                   id: exam.id,
                   name: exam.name_exam || "Sin nombre",
@@ -196,9 +195,6 @@ export default function StudentSimulatorsPage() {
 
       const studentId = studentData.data.id; // Usamos el student_id obtenido
 
-      console.log("Este es el ID del simulador:", simulatorId);
-      console.log("Este es el ID del estudiante:", studentId);
-
       // Ahora hacemos la solicitud para obtener los resultados del simulador
       const res = await fetch(
         `/api/results?exam_id=${simulatorId}&student_id=${studentId}`
@@ -206,12 +202,6 @@ export default function StudentSimulatorsPage() {
 
       if (res.ok) {
         const result = await res.json();
-
-        console.log("Data de los resultados del simulador result:", result);
-        console.log(
-          "Data de los resultados del simulador result.data:",
-          result.data
-        );
 
         if (result && result.data) {
           setExamDetails(result.data); // Guardamos los detalles de la calificación
@@ -233,6 +223,8 @@ export default function StudentSimulatorsPage() {
         }
       } else {
         // Manejar errores del servidor
+        const errorText = await res.text();
+
         if (res.status === 403) {
           alert("No tienes permisos para ver estos resultados.");
         } else if (res.status === 500) {
@@ -242,16 +234,85 @@ export default function StudentSimulatorsPage() {
             "No se pudieron obtener los resultados. Por favor, intenta más tarde."
           );
         }
-        console.error(
-          "Error al obtener los resultados del simulador. Status:",
-          res.status
-        );
       }
     } catch (err) {
-      console.error("Error al obtener los resultados del simulador", err);
+      console.error(err);
       alert(
         "Error de conexión. Verifica tu conexión a internet e intenta nuevamente."
       );
+    }
+  };
+
+  const handleViewDetailedFeedback = async (simulatorId: number) => {
+    // Obtener el voucher_id desde sessionStorage
+    const session = JSON.parse(sessionStorage.getItem("student-data") || "{}");
+    const voucherId = session?.state?.decryptedStudent?.voucher_id;
+
+    if (!voucherId) {
+      alert("No se pudo obtener el voucher ID.");
+      return;
+    }
+
+    try {
+      // 1. Obtener student_id
+      const response = await fetch(
+        `/api/students/by-voucher?voucher_id=${voucherId}`
+      );
+      const studentData = await response.json();
+
+      if (!response.ok || !studentData?.data?.id) {
+        alert("No se pudo obtener el ID del estudiante.");
+        return;
+      }
+
+      const studentId = studentData.data.id;
+
+      // 2. Obtener los resultados para conseguir el best_attempt.id
+      const resultsRes = await fetch(
+        `/api/results?exam_id=${simulatorId}&student_id=${studentId}`
+      );
+
+      if (!resultsRes.ok) {
+        alert("Error al obtener los resultados del simulador.");
+        return;
+      }
+
+      const resultsData = await resultsRes.json();
+
+      const lastAttemptId = resultsData?.data?.last_attempt?.id;
+
+      if (!lastAttemptId) {
+        alert(
+          "No se pudo encontrar un intento válido para mostrar la retroalimentación."
+        );
+        return;
+      }
+
+      // 3. Obtener la retroalimentación detallada
+
+      const feedbackRes = await fetch(
+        `/api/attempts/feedback?attempt_id=${lastAttemptId}`
+      );
+
+      if (feedbackRes.ok) {
+        const feedbackResult = await feedbackRes.json();
+
+        if (feedbackResult && feedbackResult.data) {
+          setFeedbackData(feedbackResult.data);
+          setIsFeedbackModalOpen(true);
+        } else {
+          console.error( feedbackResult);
+          alert(
+            "No se encontraron datos de retroalimentación para este simulador."
+          );
+        }
+      } else {
+        const errorText = await feedbackRes.text();
+        alert("Error al obtener la retroalimentación detallada.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de conexión al obtener la retroalimentación detallada.");
     }
   };
 
@@ -370,6 +431,31 @@ export default function StudentSimulatorsPage() {
                         ? "Ver Resultados"
                         : "Sin Resultados"}
                     </Button>
+
+                    {/* Botón de retroalimentación detallada */}
+                    <Button
+                      variant={
+                        sim.status === "completed" ? "secondary" : "outline"
+                      }
+                      className={`w-full border-2 group transition-all duration-200 ${
+                        sim.status === "completed"
+                          ? "bg-purple-600 hover:bg-purple-700 text-white border-purple-600 hover:border-purple-700 shadow-md hover:shadow-lg"
+                          : "hover:bg-gray-50 text-gray-400 border-gray-300 cursor-not-allowed"
+                      }`}
+                      onClick={() => handleViewDetailedFeedback(sim.id)}
+                      disabled={sim.status === "not_started"}
+                    >
+                      <BookOpen
+                        className={`w-4 h-4 mr-2 transition-transform ${
+                          sim.status === "completed"
+                            ? "group-hover:scale-110"
+                            : ""
+                        }`}
+                      />
+                      {sim.status === "completed"
+                        ? "Ver Retroalimentación"
+                        : "Sin Retroalimentación"}
+                    </Button>
                   </div>
                 </div>
 
@@ -387,6 +473,15 @@ export default function StudentSimulatorsPage() {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           examDetails={examDetails}
+        />
+      )}
+
+      {/* Modal de retroalimentación detallada */}
+      {isFeedbackModalOpen && feedbackData && (
+        <DetailedAttemptModal
+          isOpen={isFeedbackModalOpen}
+          onClose={() => setIsFeedbackModalOpen(false)}
+          attemptData={feedbackData}
         />
       )}
     </div>

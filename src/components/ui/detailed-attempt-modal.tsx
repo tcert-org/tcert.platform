@@ -282,15 +282,6 @@ export function DetailedAttemptModal({
                       </div>
                     ))}
                   </div>
-
-                  {/* Explicación */}
-                  {question.explanation && (
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-800">
-                        <strong>Explicación:</strong> {question.explanation}
-                      </p>
-                    </div>
-                  )}
                 </div>
               ))
             ) : (
