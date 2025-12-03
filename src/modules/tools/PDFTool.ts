@@ -26,6 +26,15 @@ import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import path from "path";
 import { EMBEDDED_FONTS, getFontBuffer } from "@/lib/fonts/embedded-fonts";
 
+// Función para normalizar texto removiendo tildes y ñ
+function normalizeText(text: string): string {
+  return text
+    .normalize("NFD") // Descompone los caracteres acentuados
+    .replace(/[\u0300-\u036f]/g, "") // Remueve las marcas diacríticas (tildes)
+    .replace(/ñ/g, "n") // Reemplaza ñ con n
+    .replace(/Ñ/g, "N"); // Reemplaza Ñ con N
+}
+
 // Variable global para fontkit
 let fontkitInstance: any = null;
 let fontkitInitialized = false;
@@ -182,6 +191,9 @@ export default class PDFTool {
       const date = new Date().toISOString();
       const nameCertificate = `${nameStudent}-${date}`; // Nombre del archivo PDF
 
+      // Normalizar el nombre del estudiante removiendo tildes y ñ
+      const normalizedNameStudent = normalizeText(nameStudent);
+
       // Usamos process.cwd() que es más confiable en Next.js
       const templatePath = path.join(
         process.cwd(),
@@ -250,7 +262,7 @@ export default class PDFTool {
       const maxStudentNameWidth = width - 120; // Margen horizontal de 60px a cada lado
       const studentNameLines = wrapText(
         mainFont,
-        nameStudent,
+        normalizedNameStudent,
         fontSize,
         maxStudentNameWidth
       );
@@ -396,6 +408,10 @@ export default class PDFTool {
   ): Promise<{ status: boolean; pdfBytes: Uint8Array }> {
     try {
       const date = new Date().toISOString();
+      
+      // Normalizar el nombre del estudiante removiendo tildes y ñ
+      const normalizedNameStudent = normalizeText(nameStudent);
+      
       const templatePath = path.join(
         process.cwd(),
         "public/assets/certificates/Modelo_definitivo-SIN_INSIGNIA.pdf"
@@ -470,10 +486,10 @@ export default class PDFTool {
 
       // Nombre del estudiante
       const studentNameWidth = studentNameFont.widthOfTextAtSize(
-        nameStudent,
+        normalizedNameStudent,
         20
       );
-      firstPage.drawText(nameStudent, {
+      firstPage.drawText(normalizedNameStudent, {
         x: (width - studentNameWidth) / 2,
         y: height - 315,
         size: 20,
