@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import PDFTool from "@/modules/tools/PDFTool";
 
+// Función para normalizar texto removiendo tildes y ñ para headers HTTP
+function normalizeForFilename(text: string): string {
+  return text
+    .normalize("NFD") // Descompone los caracteres acentuados
+    .replace(/[\u0300-\u036f]/g, "") // Remueve las marcas diacríticas (tildes)
+    .replace(/ñ/g, "n") // Reemplaza ñ con n
+    .replace(/Ñ/g, "N") // Reemplaza Ñ con N
+    .replace(/\s+/g, "-") // Reemplaza espacios con guiones
+    .replace(/[^a-zA-Z0-9\-_.]/g, ""); // Remueve caracteres especiales
+}
+
 // Asegurar que Next.js reconozca este endpoint como dinámico
 export const dynamic = 'force-dynamic';
 
@@ -38,12 +49,16 @@ export async function POST(req: NextRequest) {
 
     if (status) {
       console.log("[DIPLOMA_GENERATE] PDF generado exitosamente");
+      
+      // Normalizar el nombre del estudiante para el filename del header
+      const normalizedFilename = normalizeForFilename(studentName);
+      
       // Enviar el archivo PDF como una respuesta de descarga
       return new NextResponse(pdfBytes as BodyInit, {
         status: 200,
         headers: {
           "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${studentName}-certificado.pdf"`,
+          "Content-Disposition": `attachment; filename="${normalizedFilename}-certificado.pdf"`,
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
           "Expires": "0"
