@@ -11,9 +11,12 @@ export default class StudentController {
     try {
       const studentTable = new StudentTable();
 
+      
+      /* 
       const existingByDocument = await studentTable.getByDocumentNumber(
         data.document_number
       );
+      
       if (existingByDocument) {
         return NextResponse.json({
           statusCode: 400,
@@ -21,6 +24,7 @@ export default class StudentController {
           error: "Ya existe un estudiante con este número de documento",
         });
       }
+  */
 
       const result = await studentTable.createStudent(data);
 
