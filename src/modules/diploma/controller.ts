@@ -43,7 +43,7 @@ export default class DiplomaController {
           ? new Date(diplomaData.completion_date)
           : new Date();
         const expirationDate = new Date(completionDate);
-        expirationDate.setFullYear(expirationDate.getFullYear() + 2);
+        expirationDate.setFullYear(expirationDate.getFullYear() + 3);
         diplomaData.expiration_date = expirationDate
           .toISOString()
           .split("T")[0];
