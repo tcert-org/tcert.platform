@@ -50,7 +50,7 @@ export default function FormExam() {
   const hasSubmittedRef = useRef(false);
 
   const unansweredCount = questions.filter(
-    (q) => !(q.id in selectedOptions)
+    (q) => !(q.id in selectedOptions),
   ).length;
 
   useEffect(() => {
@@ -83,12 +83,12 @@ export default function FormExam() {
           (q: any) => ({
             id: q.id,
             text: q.content,
-          })
+          }),
         );
 
         const shuffledQuestions = getShuffledQuestionOrder(
           examId,
-          parsedQuestions
+          parsedQuestions,
         );
         setQuestions(shuffledQuestions);
         setCurrentIndex(0);
@@ -110,7 +110,7 @@ export default function FormExam() {
       setLoadingOptions(true);
       try {
         const res = await fetch(
-          `/api/exam/question/elections?question_id=${current.id}`
+          `/api/exam/question/elections?question_id=${current.id}`,
         );
         const data = await res.json();
         const rawOptions: Option[] = data.data ?? [];
@@ -350,14 +350,14 @@ export default function FormExam() {
           window.onbeforeunload = null;
 
           alert(
-            "🚨 EXAMEN CANCELADO: Has cambiado de pestaña 2 veces. Por seguridad, serás redirigido a la lista de exámenes."
+            "🚨 EXAMEN CANCELADO: Has cambiado de pestaña 2 veces. Por seguridad, serás redirigido a la lista de exámenes.",
           );
 
           // Limpiar datos locales antes de redirigir
           localStorage.removeItem(`simulator_${examId}_question_order`);
           questions.forEach((q) => {
             localStorage.removeItem(
-              `simulator_${examId}_q${q.id}_option_order`
+              `simulator_${examId}_q${q.id}_option_order`,
             );
           });
 
@@ -370,32 +370,7 @@ export default function FormExam() {
     };
 
     const handleBlur = () => {
-      const newCount = tabSwitchCount + 1;
-      setTabSwitchCount(newCount);
-      setShowTabWarning(true);
-      setTimeout(() => setShowTabWarning(false), 5000);
-
-      // Después de 2 cambios de pestaña, redirigir automáticamente
-      if (newCount >= 2) {
-        // Marcar como enviado para evitar el modal de confirmación
-        hasSubmittedRef.current = true;
-        window.onbeforeunload = null;
-
-        alert(
-          "🚨 EXAMEN CANCELADO: Has perdido el enfoque de la ventana 2 veces. Por seguridad, serás redirigido a la lista de exámenes."
-        );
-
-        // Limpiar datos locales antes de redirigir
-        localStorage.removeItem(`simulator_${examId}_question_order`);
-        questions.forEach((q) => {
-          localStorage.removeItem(`simulator_${examId}_q${q.id}_option_order`);
-        });
-
-        // Redirigir inmediatamente
-        setTimeout(() => {
-          window.location.href = "/dashboard/student/exam";
-        }, 2000);
-      }
+      // Ya no incrementa el contador aquí para evitar duplicidad
     };
 
     const handleFocus = () => {
@@ -439,7 +414,7 @@ export default function FormExam() {
         currentQuestion.id,
         optionId,
         questions.length,
-        Object.keys({ ...prev, [currentQuestion.id]: optionId }).length
+        Object.keys({ ...prev, [currentQuestion.id]: optionId }).length,
       );
       return updated;
     });
@@ -520,8 +495,8 @@ export default function FormExam() {
                       timeRemaining <= 300
                         ? "text-red-600"
                         : timeRemaining <= 900
-                        ? "text-orange-600"
-                        : "text-green-600"
+                          ? "text-orange-600"
+                          : "text-green-600"
                     }`}
                   >
                     {formatTime(timeRemaining)}
