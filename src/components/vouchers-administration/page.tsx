@@ -202,6 +202,20 @@ export default function VoucherAdministrationPage() {
       },
     },
     {
+      accessorKey: "email",
+      header: "Correo",
+      size: 240,
+      meta: { filterType: "text" },
+      cell: ({ row }) => {
+        const email = row.getValue("email") as string;
+        return email ? (
+          <span className="text-gray-800 font-medium break-all">{email}</span>
+        ) : (
+          <span className="text-gray-400 italic">Sin correo</span>
+        );
+      },
+    },
+    {
       accessorKey: "certification_name",
       header: "Nombre de certificación",
       size: 250,
