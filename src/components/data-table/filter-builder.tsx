@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table";
 import { Plus, X } from "lucide-react";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -87,7 +88,7 @@ export function FilterBuilder<TData, TValue>({
     if (column?.meta?.filterType === "boolean") {
       defaultValue = "true";
     } else if (column?.meta?.filterType === "date") {
-      defaultValue = new Date().toISOString();
+      defaultValue = `=:${format(new Date(), "yyyy-MM-dd")}`;
     } else if (column?.meta?.filterType === "number") {
       defaultValue = "0"; // Default number value
     }
@@ -313,13 +314,36 @@ function renderFilterInput(
         );
       }
 
-    case "date":
+    case "date": {
+      const parts = (value || "=:").split(":");
+      const op = parts[0];
+      const dateStr = parts.slice(1).join(":");
       return (
-        <DatePicker
-          date={value ? new Date(value) : undefined}
-          setDate={(date) => onChange(date ? date.toISOString() : undefined)}
-        />
+        <div className="flex gap-2">
+          <Select
+            value={op}
+            onValueChange={(newOp) => onChange(`${newOp}:${dateStr || ""}`)}
+          >
+            <SelectTrigger className="w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="=">Igual a</SelectItem>
+              <SelectItem value=">=">Mayor o igual que</SelectItem>
+              <SelectItem value="<=">Menor o igual que</SelectItem>
+              <SelectItem value=">">Mayor que</SelectItem>
+              <SelectItem value="<">Menor que</SelectItem>
+            </SelectContent>
+          </Select>
+          <DatePicker
+            date={dateStr ? new Date(dateStr + "T00:00:00") : undefined}
+            setDate={(date) =>
+              onChange(date ? `${op}:${format(date, "yyyy-MM-dd")}` : undefined)
+            }
+          />
+        </div>
       );
+    }
 
     default:
       return (
