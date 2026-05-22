@@ -6,21 +6,11 @@ import { useState } from "react";
 import { DataTable } from "@/components/data-table/data-table";
 import type { ColumnDef } from "@tanstack/react-table";
 import { createActionsColumn } from "@/components/data-table/action-menu";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
-// Helper function para formatear fechas sin problemas de timezone
 function formatDateSafe(dateString: string): string {
-  // Extraer solo la parte de fecha (YYYY-MM-DD) de un ISO string
-  const dateOnly = dateString.split("T")[0];
-  const [year, month, day] = dateOnly.split("-");
-
-  // Crear fecha usando los componentes individuales para evitar timezone issues
-  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-
-  return date.toLocaleDateString("es-ES", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return format(parseISO(dateString), "PPP", { locale: es });
 }
 
 type ActionItem<T> = {
