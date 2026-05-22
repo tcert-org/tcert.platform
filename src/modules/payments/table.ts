@@ -217,19 +217,25 @@ export default class PaymentTable {
 
     // Resolve partner names
     const rows = data ?? [];
-    const partnerIds = [...new Set(rows.map((r: any) => r.partner_id))];
     const nameMap: Record<string, string> = {};
 
-    if (partnerIds.length > 0) {
-      const { data: users } = await supabase
-        .from("users")
-        .select("id, name")
-        .in("id", partnerIds);
-      for (const u of users ?? []) {
-        nameMap[u.id] = u.name;
+    if (rows.length > 0) {
+      const partnerIds = [...new Set(rows.map((r: any) => r.partner_id))];
+      const numericIds = partnerIds
+        .map((id: any) => Number(id))
+        .filter((id: number) => !isNaN(id));
+
+      if (numericIds.length > 0) {
+        const { data: users } = await supabase
+          .from("users")
+          .select("id, name")
+          .in("id", numericIds);
+
+        for (const u of users ?? []) {
+          nameMap[String(u.id)] = u.name;
+        }
       }
     }
-
     const enriched = rows.map((row: any) => ({
       ...row,
       partner_name: nameMap[row.partner_id] ?? null,
