@@ -7,7 +7,7 @@ const paymentCreationSchema = z.object({
   partner_id: z.string(),
   admin_id: z.string().nullable().optional(),
   voucher_quantity: z.number().int().positive(),
-  unit_price: z.number().nonnegative(),
+  unit_price: z.number().positive(),
   total_price: z.number().nonnegative(),
   files: z.string().optional(),
 });
