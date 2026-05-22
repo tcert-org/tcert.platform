@@ -127,7 +127,7 @@ export default class PaymentTable {
       const { data: users } = await supabase
         .from("users")
         .select("id")
-        .ilike("name", `%${filter_partner_name}%`);
+        .ilike("company_name", `%${filter_partner_name}%`);
 
       if (!users?.length) return { data: [], totalCount: 0 };
       partnerUserIds = users.map((u) => u.id);
@@ -228,11 +228,11 @@ export default class PaymentTable {
       if (numericIds.length > 0) {
         const { data: users } = await supabase
           .from("users")
-          .select("id, name")
+          .select("id, company_name, email")
           .in("id", numericIds);
 
         for (const u of users ?? []) {
-          nameMap[String(u.id)] = u.name;
+          nameMap[String(u.id)] = u.company_name ?? u.email ?? "Sin nombre";
         }
       }
     }
