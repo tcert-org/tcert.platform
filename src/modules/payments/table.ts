@@ -133,62 +133,77 @@ export default class PaymentTable {
       partnerUserIds = users.map((u) => u.id);
     }
 
-    // Build dynamic query
-    const builder = supabase
-      .from("payments")
-      .select("*, partner:users!inner(name)", { count: "exact", head: false });
+    // Build dynamic query (without join — names are resolved after)
+    let builder = supabase.from("payments").select("*", { count: "exact" });
 
     if (partnerUserIds) {
-      builder.in("partner_id", partnerUserIds);
+      builder = builder.in("partner_id", partnerUserIds);
     }
 
-    const applyOp = (q: any, col: string, value: any, op: string) => {
-      if (value === null || value === undefined) return q;
-      switch (op) {
-        case "=": return q.eq(col, value);
-        case "!=": return q.neq(col, value);
-        case ">": return q.gt(col, value);
-        case ">=": return q.gte(col, value);
-        case "<": return q.lt(col, value);
-        case "<=": return q.lte(col, value);
-        default: return q;
-      }
-    };
-
-    const applyDateOp = (q: any, col: string, value: string | null | undefined, op: string) => {
-      if (!value) return q;
-      switch (op) {
-        case "=": return q.gte(col, value).lt(col, getNextDay(value));
-        case ">=": return q.gte(col, value);
-        case ">": return q.gt(col, value);
-        case "<=": return q.lte(col, value);
-        case "<": return q.lt(col, value);
-        case "!=": return q.not(col, "gte", value).not(col, "lt", getNextDay(value));
-        default: return q;
-      }
-    };
-
-    // Date exact + range (_from / _to)
     let q = builder;
-    q = applyDateOp(q, "created_at", filter_created_at, filter_created_at_op);
+
+    if (filter_created_at && filter_created_at_op === "=")
+      q = q.gte("created_at", filter_created_at).lt("created_at", getNextDay(filter_created_at));
+    else if (filter_created_at && filter_created_at_op === ">=") q = q.gte("created_at", filter_created_at);
+    else if (filter_created_at && filter_created_at_op === ">") q = q.gt("created_at", filter_created_at);
+    else if (filter_created_at && filter_created_at_op === "<=") q = q.lte("created_at", filter_created_at);
+    else if (filter_created_at && filter_created_at_op === "<") q = q.lt("created_at", filter_created_at);
     if (filter_created_at_from) q = q.gte("created_at", filter_created_at_from);
     if (filter_created_at_to) q = q.lte("created_at", filter_created_at_to);
 
-    q = applyDateOp(q, "expiration_date", filter_expiration_date, filter_expiration_date_op);
+    if (filter_expiration_date && filter_expiration_date_op === "=")
+      q = q.gte("expiration_date", filter_expiration_date).lt("expiration_date", getNextDay(filter_expiration_date));
+    else if (filter_expiration_date && filter_expiration_date_op === ">=") q = q.gte("expiration_date", filter_expiration_date);
+    else if (filter_expiration_date && filter_expiration_date_op === ">") q = q.gt("expiration_date", filter_expiration_date);
+    else if (filter_expiration_date && filter_expiration_date_op === "<=") q = q.lte("expiration_date", filter_expiration_date);
+    else if (filter_expiration_date && filter_expiration_date_op === "<") q = q.lt("expiration_date", filter_expiration_date);
     if (filter_expiration_date_from) q = q.gte("expiration_date", filter_expiration_date_from);
     if (filter_expiration_date_to) q = q.lte("expiration_date", filter_expiration_date_to);
 
-    q = applyDateOp(q, "extension_date", filter_extension_date, filter_extension_date_op);
+    if (filter_extension_date && filter_extension_date_op === "=")
+      q = q.gte("extension_date", filter_extension_date).lt("extension_date", getNextDay(filter_extension_date));
+    else if (filter_extension_date && filter_extension_date_op === ">=") q = q.gte("extension_date", filter_extension_date);
+    else if (filter_extension_date && filter_extension_date_op === ">") q = q.gt("extension_date", filter_extension_date);
+    else if (filter_extension_date && filter_extension_date_op === "<=") q = q.lte("extension_date", filter_extension_date);
+    else if (filter_extension_date && filter_extension_date_op === "<") q = q.lt("extension_date", filter_extension_date);
     if (filter_extension_date_from) q = q.gte("extension_date", filter_extension_date_from);
     if (filter_extension_date_to) q = q.lte("extension_date", filter_extension_date_to);
 
     // Number filters
-    q = applyOp(q, "voucher_quantity", filter_voucher_quantity, filter_voucher_quantity_op);
-    q = applyOp(q, "unit_price", filter_unit_price, filter_unit_price_op);
-    q = applyOp(q, "total_price", filter_total_price, filter_total_price_op);
+    if (filter_voucher_quantity !== null && filter_voucher_quantity !== undefined) {
+      switch (filter_voucher_quantity_op) {
+        case "=": q = q.eq("voucher_quantity", filter_voucher_quantity); break;
+        case "!=": q = q.neq("voucher_quantity", filter_voucher_quantity); break;
+        case ">": q = q.gt("voucher_quantity", filter_voucher_quantity); break;
+        case ">=": q = q.gte("voucher_quantity", filter_voucher_quantity); break;
+        case "<": q = q.lt("voucher_quantity", filter_voucher_quantity); break;
+        case "<=": q = q.lte("voucher_quantity", filter_voucher_quantity); break;
+      }
+    }
+    if (filter_unit_price !== null && filter_unit_price !== undefined) {
+      switch (filter_unit_price_op) {
+        case "=": q = q.eq("unit_price", filter_unit_price); break;
+        case "!=": q = q.neq("unit_price", filter_unit_price); break;
+        case ">": q = q.gt("unit_price", filter_unit_price); break;
+        case ">=": q = q.gte("unit_price", filter_unit_price); break;
+        case "<": q = q.lt("unit_price", filter_unit_price); break;
+        case "<=": q = q.lte("unit_price", filter_unit_price); break;
+      }
+    }
+    if (filter_total_price !== null && filter_total_price !== undefined) {
+      switch (filter_total_price_op) {
+        case "=": q = q.eq("total_price", filter_total_price); break;
+        case "!=": q = q.neq("total_price", filter_total_price); break;
+        case ">": q = q.gt("total_price", filter_total_price); break;
+        case ">=": q = q.gte("total_price", filter_total_price); break;
+        case "<": q = q.lt("total_price", filter_total_price); break;
+        case "<=": q = q.lte("total_price", filter_total_price); break;
+      }
+    }
 
     // Sorting
-    q = q.order(order_by, { ascending: order_dir === "asc", nullsFirst: false });
+    const orderCol = order_by === "partner_name" ? "partner_id" : order_by;
+    q = q.order(orderCol, { ascending: order_dir === "asc", nullsFirst: false });
 
     // Pagination
     const from = (page - 1) * limit_value;
@@ -197,16 +212,29 @@ export default class PaymentTable {
     const { data, count, error } = await q;
 
     if (error) {
-      console.error("[GET_PAYMENTS_FILTERED_ERROR]", error.message);
       throw new Error("Error fetching filtered payments: " + error.message);
     }
 
-    const flatData = (data ?? []).map((row: any) => ({
+    // Resolve partner names
+    const rows = data ?? [];
+    const partnerIds = [...new Set(rows.map((r: any) => r.partner_id))];
+    const nameMap: Record<string, string> = {};
+
+    if (partnerIds.length > 0) {
+      const { data: users } = await supabase
+        .from("users")
+        .select("id, name")
+        .in("id", partnerIds);
+      for (const u of users ?? []) {
+        nameMap[u.id] = u.name;
+      }
+    }
+
+    const enriched = rows.map((row: any) => ({
       ...row,
-      partner_name: row.partner?.name ?? null,
-      partner: undefined,
+      partner_name: nameMap[row.partner_id] ?? null,
     }));
 
-    return { data: flatData, totalCount: count ?? 0 };
+    return { data: enriched, totalCount: count ?? 0 };
   }
 }
