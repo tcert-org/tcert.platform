@@ -138,6 +138,28 @@ export function DataTable<TData, TValue>({
       return value.toLocaleDateString();
     }
 
+    // Date filter object format
+    if (typeof value === "object" && value !== null && "mode" in value) {
+      const modeLabels: Record<string, string> = {
+        day: "Día",
+        before: "Antes",
+        after: "Después",
+        month: "Mes",
+        range: "Rango",
+      };
+      const modeLabel = modeLabels[value.mode] || value.mode;
+      if (value.mode === "month" && value.month) {
+        return `${modeLabel}: ${value.month}`;
+      }
+      if (value.mode === "range") {
+        return `${modeLabel}: ${value.from || "?"} – ${value.to || "?"}`;
+      }
+      if (value.date) {
+        return `${modeLabel}: ${value.date}`;
+      }
+      return modeLabel;
+    }
+
     if (
       column?.meta?.filterType === "number" &&
       typeof value === "string" &&
