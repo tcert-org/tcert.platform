@@ -155,24 +155,6 @@ export function DataTable<TData, TValue>({
       return `${operatorMap[operator] || "="} ${num}`;
     }
 
-    if (column?.meta?.filterType === "date" && typeof value === "string") {
-      if (value.includes("T")) {
-        return value.split("T")[0];
-      }
-      if (value.includes(":")) {
-        const [operator, dateStr] = value.split(":");
-        const operatorMap: Record<string, string> = {
-          "=": "=",
-          "!=": "≠",
-          ">": ">",
-          ">=": "≥",
-          "<": "<",
-          "<=": "≤",
-        };
-        return `${operatorMap[operator] || "="} ${dateStr}`;
-      }
-    }
-
     return String(value);
   };
 

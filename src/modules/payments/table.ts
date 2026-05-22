@@ -87,18 +87,16 @@ export default class PaymentTable extends Table<"payments"> {
       limit_value = 10,
     } = params;
 
+    // Usar solo los parámetros que la función RPC actual acepta
+    // TODO: Cuando actualices la función RPC, agregar estos parámetros:
+    // filter_expiration_date, filter_expiration_date_op,
+    // filter_extension_date, filter_extension_date_op,
+    // filter_voucher_quantity, filter_voucher_quantity_op,
+    // filter_unit_price, filter_unit_price_op
     const rpcParams = {
       filter_partner_name,
       filter_created_at,
       filter_created_at_op,
-      filter_expiration_date,
-      filter_expiration_date_op,
-      filter_extension_date,
-      filter_extension_date_op,
-      filter_voucher_quantity,
-      filter_voucher_quantity_op,
-      filter_unit_price,
-      filter_unit_price_op,
       filter_total_price,
       filter_total_price_op,
       order_by,
