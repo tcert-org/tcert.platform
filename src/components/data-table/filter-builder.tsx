@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ColumnDef, ColumnFiltersState } from "@tanstack/react-table";
 import { Plus, X } from "lucide-react";
 
@@ -14,6 +14,35 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { DatePicker } from "./date-picker";
+
+const MONTHS = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+] as const;
+
+const DATE_MODES = [
+  { value: "day", label: "Día exacto" },
+  { value: "before", label: "Antes del" },
+  { value: "after", label: "Después del" },
+  { value: "month", label: "Mes completo" },
+  { value: "range", label: "Rango" },
+] as const;
+
+function todayISO(): string {
+  return new Date().toISOString().split("T")[0];
+}
+
+function currentYear(): number {
+  return new Date().getFullYear();
+}
+
+type DateFilterValue = {
+  mode: "day" | "before" | "after" | "month" | "range";
+  date?: string;
+  from?: string;
+  to?: string;
+  month?: string;
+};
 
 interface FilterBuilderProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -81,13 +110,13 @@ export function FilterBuilder<TData, TValue>({
     const column = columns.find(
       (col) => getColumnId(col) === selectedColumn
     ) as any;
-    let defaultValue = "";
+    let defaultValue: any = "";
 
     // Set appropriate default value based on filter type
     if (column?.meta?.filterType === "boolean") {
       defaultValue = "true";
     } else if (column?.meta?.filterType === "date") {
-      defaultValue = new Date().toISOString();
+      defaultValue = { mode: "day", date: todayISO() };
     } else if (column?.meta?.filterType === "number") {
       defaultValue = "0"; // Default number value
     }
@@ -315,9 +344,9 @@ function renderFilterInput(
 
     case "date":
       return (
-        <DatePicker
-          date={value ? new Date(value) : undefined}
-          setDate={(date) => onChange(date ? date.toISOString() : undefined)}
+        <DateFilterInput
+          value={value}
+          onChange={onChange}
         />
       );
 
@@ -331,4 +360,162 @@ function renderFilterInput(
         />
       );
   }
+}
+
+function formatDateForInput(dateStr: string | undefined): string {
+  if (!dateStr) return todayISO();
+  return dateStr.split("T")[0];
+}
+
+function DateFilterInput({
+  value,
+  onChange,
+}: {
+  value: any;
+  onChange: (val: any) => void;
+}) {
+  const filterVal: DateFilterValue =
+    value && typeof value === "object" && "mode" in value
+      ? value
+      : { mode: "day", date: todayISO() };
+
+  const setMode = (mode: DateFilterValue["mode"]) => {
+    onChange({ ...filterVal, mode });
+  };
+
+  const years = useMemo(() => {
+    const y = currentYear();
+    return Array.from({ length: 11 }, (_, i) => y - 5 + i);
+  }, []);
+
+  if (filterVal.mode === "month") {
+    const [yearStr, monthStr] = (filterVal.month ?? todayISO().slice(0, 7)).split("-");
+    const selectedMonth = monthStr ? parseInt(monthStr, 10) : new Date().getMonth() + 1;
+    const selectedYear = yearStr ? parseInt(yearStr, 10) : currentYear();
+
+    return (
+      <div className="space-y-2">
+        <Select
+          value={filterVal.mode}
+          onValueChange={(v) => setMode(v as DateFilterValue["mode"])}
+        >
+          <SelectTrigger className="w-full text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DATE_MODES.map((m) => (
+              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex gap-2">
+          <Select
+            value={String(selectedMonth)}
+            onValueChange={(m) => {
+              const month = m.padStart(2, "0");
+              const monthStr = `${selectedYear}-${month}`;
+              onChange({ mode: "month", month: monthStr });
+            }}
+          >
+            <SelectTrigger className="flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((name, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={String(selectedYear)}
+            onValueChange={(y) => {
+              const month = String(selectedMonth).padStart(2, "0");
+              onChange({ mode: "month", month: `${y}-${month}` });
+            }}
+          >
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((y) => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    );
+  }
+
+  if (filterVal.mode === "range") {
+    return (
+      <div className="space-y-2">
+        <Select
+          value={filterVal.mode}
+          onValueChange={(v) => setMode(v as DateFilterValue["mode"])}
+        >
+          <SelectTrigger className="w-full text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DATE_MODES.map((m) => (
+              <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex flex-col gap-2">
+          <DatePicker
+            date={filterVal.from ? new Date(filterVal.from + "T12:00:00Z") : undefined}
+            setDate={(date) =>
+              onChange({
+                ...filterVal,
+                from: date ? formatDateForInput(date.toISOString()) : undefined,
+              })
+            }
+          />
+          <span className="text-xs text-muted-foreground text-center">hasta</span>
+          <DatePicker
+            date={filterVal.to ? new Date(filterVal.to + "T12:00:00Z") : undefined}
+            setDate={(date) =>
+              onChange({
+                ...filterVal,
+                to: date ? formatDateForInput(date.toISOString()) : undefined,
+              })
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const modeSelect = (
+    <Select
+      value={filterVal.mode}
+      onValueChange={(v) => setMode(v as DateFilterValue["mode"])}
+    >
+      <SelectTrigger className="w-full text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {DATE_MODES.map((m) => (
+          <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+
+  return (
+    <div className="space-y-2">
+      {modeSelect}
+      <DatePicker
+        date={filterVal.date ? new Date(filterVal.date + "T12:00:00Z") : undefined}
+        setDate={(date) =>
+          onChange({
+            ...filterVal,
+            date: date ? formatDateForInput(date.toISOString()) : undefined,
+          })
+        }
+      />
+    </div>
+  );
 }
