@@ -43,7 +43,7 @@ export function useDataFetch<TData>({
     try {
       const filterParams: Record<string, any> = {
         page: pagination.pageIndex + 1,
-        limit: pagination.pageSize,
+        limit_value: pagination.pageSize,
         order_by: sorting[0]?.id ?? "created_at",
         order_dir: sorting[0]?.desc ? "desc" : "asc",
       };
@@ -51,7 +51,38 @@ export function useDataFetch<TData>({
       filters.forEach((filter) => {
         const filterValue = filter.value;
 
-        if (
+        // New date filter object format
+        if (typeof filterValue === "object" && filterValue !== null && "mode" in filterValue) {
+          const dv = filterValue as { mode: string; date?: string; from?: string; to?: string; month?: string };
+          switch (dv.mode) {
+            case "day":
+              filterParams[`filter_${filter.id}`] = dv.date;
+              filterParams[`filter_${filter.id}_op`] = "=";
+              break;
+            case "before":
+              filterParams[`filter_${filter.id}`] = dv.date;
+              filterParams[`filter_${filter.id}_op`] = "<=";
+              break;
+            case "after":
+              filterParams[`filter_${filter.id}`] = dv.date;
+              filterParams[`filter_${filter.id}_op`] = ">=";
+              break;
+            case "month":
+              if (dv.month) {
+                const lastDay = new Date(dv.month + "-01T12:00:00Z");
+                lastDay.setUTCMonth(lastDay.getUTCMonth() + 1);
+                lastDay.setUTCDate(0);
+                const lastDayStr = lastDay.toISOString().split("T")[0];
+                filterParams[`filter_${filter.id}_from`] = `${dv.month}-01`;
+                filterParams[`filter_${filter.id}_to`] = lastDayStr;
+              }
+              break;
+            case "range":
+              if (dv.from) filterParams[`filter_${filter.id}_from`] = dv.from;
+              if (dv.to) filterParams[`filter_${filter.id}_to`] = dv.to;
+              break;
+          }
+        } else if (
           filterValue instanceof Date ||
           (typeof filterValue === "string" && filterValue.includes("T"))
         ) {

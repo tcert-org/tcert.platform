@@ -46,7 +46,7 @@ async function fetchPayments(
   try {
     const query: Record<string, any> = {
       page: params.page ?? 1,
-      limit_value: params.limit ?? 10,
+      limit_value: params.limit_value ?? 10,
       order_by: params.order_by ?? "created_at",
       order_dir: params.order_dir ?? "desc",
     };

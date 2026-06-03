@@ -130,34 +130,31 @@ export default class PaymentController {
       const searchParams = req.nextUrl.searchParams;
 
       const filters: FilterParamsPayment = {
-        filter_partner_name:
-          searchParams.get("filter_partner_name") ?? undefined,
+        filter_partner_name: searchParams.get("filter_partner_name") ?? undefined,
         filter_created_at: searchParams.get("filter_created_at") ?? undefined,
-        filter_created_at_op:
-          searchParams.get("filter_created_at_op") ?? undefined,
-        filter_expiration_date:
-          searchParams.get("filter_expiration_date") ?? undefined,
-        filter_expiration_date_op:
-          searchParams.get("filter_expiration_date_op") ?? undefined,
-        filter_extension_date:
-          searchParams.get("filter_extension_date") ?? undefined,
-        filter_extension_date_op:
-          searchParams.get("filter_extension_date_op") ?? undefined,
+        filter_created_at_op: searchParams.get("filter_created_at_op") ?? undefined,
+        filter_created_at_from: searchParams.get("filter_created_at_from") ?? undefined,
+        filter_created_at_to: searchParams.get("filter_created_at_to") ?? undefined,
+        filter_expiration_date: searchParams.get("filter_expiration_date") ?? undefined,
+        filter_expiration_date_op: searchParams.get("filter_expiration_date_op") ?? undefined,
+        filter_expiration_date_from: searchParams.get("filter_expiration_date_from") ?? undefined,
+        filter_expiration_date_to: searchParams.get("filter_expiration_date_to") ?? undefined,
+        filter_extension_date: searchParams.get("filter_extension_date") ?? undefined,
+        filter_extension_date_op: searchParams.get("filter_extension_date_op") ?? undefined,
+        filter_extension_date_from: searchParams.get("filter_extension_date_from") ?? undefined,
+        filter_extension_date_to: searchParams.get("filter_extension_date_to") ?? undefined,
         filter_voucher_quantity: searchParams.get("filter_voucher_quantity")
           ? Number(searchParams.get("filter_voucher_quantity"))
           : undefined,
-        filter_voucher_quantity_op:
-          searchParams.get("filter_voucher_quantity_op") ?? undefined,
+        filter_voucher_quantity_op: searchParams.get("filter_voucher_quantity_op") ?? undefined,
         filter_unit_price: searchParams.get("filter_unit_price")
           ? Number(searchParams.get("filter_unit_price"))
           : undefined,
-        filter_unit_price_op:
-          searchParams.get("filter_unit_price_op") ?? undefined,
+        filter_unit_price_op: searchParams.get("filter_unit_price_op") ?? undefined,
         filter_total_price: searchParams.get("filter_total_price")
           ? Number(searchParams.get("filter_total_price"))
           : undefined,
-        filter_total_price_op:
-          searchParams.get("filter_total_price_op") ?? undefined,
+        filter_total_price_op: searchParams.get("filter_total_price_op") ?? undefined,
         order_by: searchParams.get("order_by") ?? "created_at",
         order_dir: searchParams.get("order_dir") ?? "desc",
         page: searchParams.get("page") ? Number(searchParams.get("page")) : 1,
