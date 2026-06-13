@@ -182,15 +182,12 @@ export default class PDFTool {
     expirationDate: string, // Ahora es fecha de expiración
     codeVocher: string,
     URL_logo: string,
-    documentNumber: string, // Nuevo parámetro para número de documento
-    titleDiploma: string = "Professional Certification",
-    primaryFont: CustomFonts = CustomFonts.BAHNSCHRIFT,
-    secondaryFont: CustomFonts = CustomFonts.BAHNSCHRIFT
+    documentNumber: string,
+    _titleDiploma: string = "Professional Certification",
+    _primaryFont: CustomFonts = CustomFonts.BAHNSCHRIFT,
+    _secondaryFont: CustomFonts = CustomFonts.BAHNSCHRIFT
   ): Promise<{ status: boolean; pdfBytes: Uint8Array }> {
     try {
-      const date = new Date().toISOString();
-      const nameCertificate = `${nameStudent}-${date}`; // Nombre del archivo PDF
-
       // Normalizar el nombre del estudiante removiendo tildes y ñ
       const normalizedNameStudent = normalizeText(nameStudent);
 
@@ -204,20 +201,33 @@ export default class PDFTool {
       const existingPdfBytes = fs.readFileSync(templatePath);
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
 
-      // Cargar fuentes personalizadas - USAR BAHNSCHRIFT CONDENSED excepto curso
-      const mainFont = await loadCustomFont(
-        pdfDoc,
-        CustomFonts.BAHNSCHRIFT_CONDENSED
-      );
-      const titleFont = await loadCustomFont(
-        pdfDoc,
-        CustomFonts.BAHNSCHRIFT_CONDENSED
-      );
-      const courseFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold); // HelveticaBold para el curso
+      let boldFont;
+      try {
+        await ensureFontkitRegistered();
+        if (
+          fontkitInstance &&
+          typeof (pdfDoc as any).registerFontkit === "function"
+        ) {
+          try {
+            (pdfDoc as any).registerFontkit(fontkitInstance);
+          } catch {
+            /* ya registrado */
+          }
+        }
+        const arialBoldPath = path.join(
+          process.cwd(),
+          "public/assets/certificates/fonts/arial-bold.ttf"
+        );
+        boldFont = await pdfDoc.embedFont(fs.readFileSync(arialBoldPath));
+      } catch (e) {
+        console.warn("⚠️ No se pudo embeber Arial Bold, usando HelveticaBold:", e);
+        boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      }
+      const mainFont = boldFont;
+      const courseFont = boldFont;
 
-      const fontSize = 24;
-      const courseFontSize = 24; // Tamaño más grande para el curso
-      const titleFontSize = 22;
+      const fontSize = 26;
+      const courseFontSize = 34;
 
       // Cargar el logo desde URL remota o ruta local
       let logoBytes: Buffer | Uint8Array;
@@ -243,138 +253,106 @@ export default class PDFTool {
         logoImage = await pdfDoc.embedPng(logoBytes);
       }
 
-      // Obtener la primera página del PDF
       const pages = pdfDoc.getPages();
       const firstPage = pages[0];
-      const { width, height } = firstPage.getSize();
+      const { width } = firstPage.getSize();
 
-      // Insertar el logo en la parte superior derecha
-      const logoWidth = 120; // Ajusta el tamaño del logo
-      const logoHeight = 120; // Ajusta el tamaño del logo
+      const centerX = width / 2;
+      const black = rgb(0, 0, 0);
+
+      const logoBox = 275;
+      const logoDims = logoImage.scaleToFit(logoBox, logoBox);
+      const logoCenterY = 648;
       firstPage.drawImage(logoImage, {
-        x: width - logoWidth - 35, // 35px de margen derecho
-        y: height - logoHeight - 50, // 50px de margen superior
-        width: logoWidth,
-        height: logoHeight,
+        x: centerX - logoDims.width / 2,
+        y: logoCenterY - logoDims.height / 2,
+        width: logoDims.width,
+        height: logoDims.height,
       });
 
-      // Insertar el nombre del estudiante con ajuste de salto de línea automático
-      const maxStudentNameWidth = width - 120; // Margen horizontal de 60px a cada lado
+      const maxStudentNameWidth = width - 120;
       const studentNameLines = wrapText(
         mainFont,
         normalizedNameStudent,
         fontSize,
         maxStudentNameWidth
       );
-      const lineSpacing = 1.1; // Espaciado entre líneas
-      const totalBlockHeight = studentNameLines.length * fontSize * lineSpacing;
-      const studentNameY =
-        height -
-        315 +
-        (studentNameLines.length === 1
-          ? 0
-          : totalBlockHeight / 2 - (fontSize * lineSpacing) / 2);
+      const lineSpacing = 1.1;
+      const studentBlockCenterY = 490;
+      const studentNameStartY =
+        studentBlockCenterY +
+        ((studentNameLines.length - 1) * fontSize * lineSpacing) / 2 -
+        fontSize / 3;
       for (let i = 0; i < studentNameLines.length; i++) {
         const line = studentNameLines[i];
         const lineWidth = mainFont.widthOfTextAtSize(line, fontSize);
-        const lineX = (width - lineWidth) / 2;
         firstPage.drawText(line, {
-          x: lineX,
-          y: studentNameY - i * fontSize * lineSpacing,
+          x: (width - lineWidth) / 2,
+          y: studentNameStartY - i * fontSize * lineSpacing,
           size: fontSize,
           font: mainFont,
-          color: rgb(45 / 255, 25 / 255, 87 / 255),
+          color: black,
         });
       }
 
-      // Insertar el nombre del curso (certificación) con ajuste de salto de línea automático
-      const maxCourseNameWidth = width - 120; // Margen horizontal de 60px a cada lado
-      const courseNameUpperCase = nameCourse.toUpperCase();
-      const courseNameLines = wrapText(
-        courseFont,
-        courseNameUpperCase,
-        courseFontSize,
-        maxCourseNameWidth
-      );
+      const maxCourseNameWidth = width * 0.62;
+      const courseWords = nameCourse.trim().split(/\s+/);
+      let courseNameLines: string[];
+      if (courseWords.length === 2) {
+        courseNameLines = courseWords;
+      } else {
+        courseNameLines = wrapText(
+          courseFont,
+          nameCourse,
+          courseFontSize,
+          maxCourseNameWidth
+        );
+      }
       const courseLineSpacing = 1.1;
-      const totalCourseBlockHeight =
-        courseNameLines.length * courseFontSize * courseLineSpacing;
-      const courseNameY =
-        height -
-        450 +
-        (courseNameLines.length === 1
-          ? 0
-          : totalCourseBlockHeight / 2 -
-            (courseFontSize * courseLineSpacing) / 2);
+      const courseBlockCenterY = 375;
+      const courseNameStartY =
+        courseBlockCenterY +
+        ((courseNameLines.length - 1) * courseFontSize * courseLineSpacing) / 2 -
+        courseFontSize / 3;
       for (let i = 0; i < courseNameLines.length; i++) {
         const line = courseNameLines[i];
         const lineWidth = courseFont.widthOfTextAtSize(line, courseFontSize);
-        const lineX = (width - lineWidth) / 2;
         firstPage.drawText(line, {
-          x: lineX,
-          y: courseNameY - i * courseFontSize * courseLineSpacing,
+          x: (width - lineWidth) / 2,
+          y: courseNameStartY - i * courseFontSize * courseLineSpacing,
           size: courseFontSize,
           font: courseFont,
-          color: rgb(45 / 255, 25 / 255, 87 / 255),
+          color: black,
         });
       }
 
-      // Insertar el título del diploma justo debajo del bloque del nombre del curso
-      const titleFontSpacing = 1.1;
-      const titleY =
-        courseNameY -
-        courseNameLines.length * courseFontSize * courseLineSpacing -
-        10; // 10px de separación visual
-      const titleLines = wrapText(
-        titleFont,
-        titleDiploma,
-        titleFontSize,
-        maxCourseNameWidth
-      );
-      for (let i = 0; i < titleLines.length; i++) {
-        const line = titleLines[i];
-        const lineWidth = titleFont.widthOfTextAtSize(line, titleFontSize);
-        const lineX = (width - lineWidth) / 2;
-        firstPage.drawText(line, {
-          x: lineX,
-          y: titleY - i * titleFontSize * titleFontSpacing,
-          size: titleFontSize,
-          font: titleFont,
-          color: rgb(45 / 255, 25 / 255, 87 / 255),
-        });
-      }
-
-      // Insertar el número de documento debajo del nombre del estudiante
-      const documentText = documentNumber;
-      const documentWidth = mainFont.widthOfTextAtSize(documentText, 14);
-      const documentX = (width - documentWidth + 75) / 3.4; // Centrado
-      firstPage.drawText(documentText, {
-        x: documentX,
-        y: height - 576, // 25px debajo del nombre
-        size: 14,
+      const idValueSize = 16;
+      firstPage.drawText(documentNumber, {
+        x: 305,
+        y: 302.5,
+        size: idValueSize,
         font: mainFont,
-        color: rgb(45 / 255, 25 / 255, 87 / 255),
+        color: black,
       });
 
-      // Código del voucher con fuente personalizada BAHNSCHRIFT
-      const codeWidth = mainFont.widthOfTextAtSize(codeVocher, 12);
-      const codeX = (width - codeWidth + 75) / 2.9; // Centrado
       firstPage.drawText(codeVocher, {
-        x: codeX,
-        y: height - 600.5,
-        size: 14,
+        x: 313,
+        y: 275.4,
+        size: idValueSize,
         font: mainFont,
-        color: rgb(45 / 255, 25 / 255, 87 / 255),
+        color: black,
       });
 
-      // Formatear la fecha de expiración y agregarla con fuente personalizada BAHNSCHRIFT
       const formattedDate = formatDateToMonthFirst(expirationDate);
+      const dateSize = 16;
+      const dateWidth = mainFont.widthOfTextAtSize(formattedDate, dateSize);
+      const dateBoxCenterX = 303;
       firstPage.drawText(formattedDate, {
-        x: 95,
-        y: height - 689,
-        size: 18,
+        x: dateBoxCenterX - dateWidth / 2,
+        y: 200.5,
+        size: dateSize,
         font: mainFont,
-        color: rgb(1, 1, 1), // Color blanco
+        color: black,
       });
 
       // Guardar el PDF como bytes en memoria
@@ -407,8 +385,6 @@ export default class PDFTool {
     } = {}
   ): Promise<{ status: boolean; pdfBytes: Uint8Array }> {
     try {
-      const date = new Date().toISOString();
-      
       // Normalizar el nombre del estudiante removiendo tildes y ñ
       const normalizedNameStudent = normalizeText(nameStudent);
       
