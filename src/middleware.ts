@@ -6,39 +6,69 @@ import { User } from "@supabase/supabase-js";
 import { JWTPayload, jwtVerify } from "jose";
 
 const SIGN_IN_URL = "/sign-in";
-const REFRESH_API_URL = "/api/auth/refresh";
 const JWT_SECRET = process.env.JWT_SECRET!;
 const secret = new TextEncoder().encode(JWT_SECRET);
+const ACCESS_TOKEN_MAX_AGE = 8 * 60 * 60;
+const REFRESH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30;
 
-async function refreshTokens() {
-  const refreshResponse = await fetch(
-    `http://localhost:3000${REFRESH_API_URL}`,
-    {
-      method: "POST",
-      credentials: "include",
-    }
-  );
+type RefreshedSession = {
+  accessToken: string;
+  refreshToken: string;
+};
 
-  if (!refreshResponse.ok) {
-    return null;
+type UserAuthResult = {
+  authenticated: boolean;
+  user: User | null;
+  refreshedSession?: RefreshedSession;
+};
+
+function setSessionCookies(
+  response: NextResponse,
+  refreshedSession?: RefreshedSession
+) {
+  if (!refreshedSession) {
+    return response;
   }
 
-  const { access_token: newAccessToken, refresh_token: newRefreshToken } =
-    await refreshResponse.json();
-
-  const { data, error } = await supabase.auth.setSession({
-    access_token: newAccessToken,
-    refresh_token: newRefreshToken,
+  response.cookies.set("access_token", refreshedSession.accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: ACCESS_TOKEN_MAX_AGE,
+    path: "/",
   });
 
-  if (error) {
+  response.cookies.set("refresh_token", refreshedSession.refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: REFRESH_TOKEN_MAX_AGE,
+    path: "/",
+  });
+
+  return response;
+}
+
+async function refreshTokens(refreshToken: string) {
+  const { data, error } = await supabase.auth.refreshSession({
+    refresh_token: refreshToken,
+  });
+
+  if (
+    error ||
+    !data.user ||
+    !data.session?.access_token ||
+    !data.session?.refresh_token
+  ) {
     return null;
   }
 
-  return { newAccessToken, newRefreshToken, user: data.user };
+  return {
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+    user: data.user,
+  };
 }
 
-async function handleUserAuth(req: NextRequest) {
+async function handleUserAuth(req: NextRequest): Promise<UserAuthResult> {
   const accessToken = req.cookies.get("access_token")?.value;
   const refreshToken = req.cookies.get("refresh_token")?.value;
 
@@ -50,17 +80,24 @@ async function handleUserAuth(req: NextRequest) {
       refresh_token: refreshToken,
     });
 
-    if (error) {
+    if (error || !data.user) {
       return { authenticated: false, user: null };
     }
 
     user = data.user;
   } else if (!accessToken && refreshToken) {
-    const tokens = await refreshTokens();
+    const tokens = await refreshTokens(refreshToken);
     if (!tokens) {
       return { authenticated: false, user: null };
     }
-    user = tokens.user;
+    return {
+      authenticated: true,
+      user: tokens.user,
+      refreshedSession: {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
+    };
   } else {
     return { authenticated: false, user: null };
   }
@@ -98,7 +135,7 @@ export async function middleware(req: NextRequest) {
   try {
     const hasStudentToken = req.cookies.has("student_access_token");
 
-    let userAuthResult: { authenticated: boolean; user: User | null } = {
+    let userAuthResult: UserAuthResult = {
       authenticated: false,
       user: null,
     };
@@ -144,13 +181,17 @@ export async function middleware(req: NextRequest) {
       const requestHeaders = new Headers(req.headers);
       requestHeaders.set("x-user", userString);
 
-      return NextResponse.next({
+      const response = NextResponse.next({
         request: {
           headers: requestHeaders,
         },
       });
+
+      return setSessionCookies(response, userAuthResult.refreshedSession);
     }
-    return NextResponse.next();
+
+    const response = NextResponse.next();
+    return setSessionCookies(response, userAuthResult.refreshedSession);
   } catch (error: any) {
     return NextResponse.json(
       { error: `Internal server error: ${error.message}` },
