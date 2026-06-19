@@ -346,14 +346,35 @@ export default class PDFTool {
       const formattedDate = formatDateToMonthFirst(expirationDate);
       const dateSize = 16;
       const dateWidth = mainFont.widthOfTextAtSize(formattedDate, dateSize);
-      const dateBoxCenterX = 303;
+      const dateBoxCenterX = 297.6;
       firstPage.drawText(formattedDate, {
         x: dateBoxCenterX - dateWidth / 2,
-        y: 200.5,
+        y: 201.5,
         size: dateSize,
         font: mainFont,
         color: black,
       });
+
+      // Firma del CEO: imagen fija centrada sobre la línea (centro x≈422,
+      // línea en y≈112.5), apoyada justo encima de la línea.
+      try {
+        const signaturePath = path.join(
+          process.cwd(),
+          "public/assets/certificates/firma-ceo.png"
+        );
+        const signatureImage = await pdfDoc.embedPng(
+          fs.readFileSync(signaturePath)
+        );
+        const signatureDims = signatureImage.scaleToFit(130, 60);
+        firstPage.drawImage(signatureImage, {
+          x: 422 - signatureDims.width / 2,
+          y: 124,
+          width: signatureDims.width,
+          height: signatureDims.height,
+        });
+      } catch (e) {
+        console.warn("⚠️ No se pudo incrustar la firma del CEO:", e);
+      }
 
       // Guardar el PDF como bytes en memoria
       const pdfBytes = await pdfDoc.save();
