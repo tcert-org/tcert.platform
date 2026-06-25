@@ -52,6 +52,20 @@ export default function CertificationManagementPage() {
   const [saving, setSaving] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // Feedback contextual por tarjeta (junto al botón Guardar), para que el admin
+  // vea el resultado aunque el banner global quede fuera de la vista.
+  const [rowFeedback, setRowFeedback] = useState<
+    Record<number, { type: "success" | "error"; message: string }>
+  >({});
+
+  // Ref al banner global de estado, para hacer scroll automático cuando aparece.
+  const bannerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (error || success) {
+      bannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [error, success]);
 
   // Refs para auto-resize
   const descRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
@@ -133,6 +147,11 @@ export default function CertificationManagementPage() {
       setSaving(id);
       setError(null);
       setSuccess(null);
+      setRowFeedback((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
 
       try {
         let logo_url = certification.logo_url;
@@ -180,7 +199,17 @@ export default function CertificationManagementPage() {
           }),
         });
 
-        if (!response.ok) throw new Error("Error al guardar cambios");
+        if (!response.ok) {
+          // Conservar el mensaje real del servidor en lugar de uno genérico.
+          let serverMessage = "Error al guardar cambios";
+          try {
+            const errBody = await response.json();
+            if (errBody?.error) serverMessage = errBody.error;
+          } catch {
+            serverMessage = `Error ${response.status} al guardar cambios`;
+          }
+          throw new Error(serverMessage);
+        }
 
         setCertifications((prev) =>
           prev.map((cert) =>
@@ -206,9 +235,26 @@ export default function CertificationManagementPage() {
 
         setEditFiles((p) => ({ ...p, [id]: {} }));
         setSuccess("Certificación actualizada exitosamente");
-        setTimeout(() => setSuccess(null), 3000);
+        setRowFeedback((prev) => ({
+          ...prev,
+          [id]: { type: "success", message: "Cambios guardados" },
+        }));
+        setTimeout(() => {
+          setSuccess(null);
+          setRowFeedback((prev) => {
+            const next = { ...prev };
+            delete next[id];
+            return next;
+          });
+        }, 3000);
       } catch (err) {
-        setError("Error al guardar los cambios");
+        const message =
+          err instanceof Error ? err.message : "Error al guardar los cambios";
+        setError(message);
+        setRowFeedback((prev) => ({
+          ...prev,
+          [id]: { type: "error", message },
+        }));
         console.error(err);
       } finally {
         setSaving(null);
@@ -334,19 +380,26 @@ export default function CertificationManagementPage() {
         </div>
       </div>
 
+      {/* Banner global de estado. Se hace scroll automático hacia él al aparecer
+          para que sea visible aunque la tarjeta editada esté fuera de la vista. */}
+      {(error || success) && (
+        <div ref={bannerRef} className="z-30 max-w-7xl mx-auto px-6 pt-4">
+          {error && (
+            <div className="mb-3 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-800 shadow-md">
+              <XCircle className="w-5 h-5 shrink-0" />{" "}
+              <span className="font-medium">{error}</span>
+            </div>
+          )}
+          {success && (
+            <div className="mb-3 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-green-800 shadow-md">
+              <CheckCircle className="w-5 h-5 shrink-0" />{" "}
+              <span className="font-medium">{success}</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-800">
-            <XCircle className="w-5 h-5" />{" "}
-            <span className="font-medium">{error}</span>
-          </div>
-        )}
-        {success && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-green-800">
-            <CheckCircle className="w-5 h-5" />{" "}
-            <span className="font-medium">{success}</span>
-          </div>
-        )}
 
         <div
           className={
@@ -642,6 +695,23 @@ export default function CertificationManagementPage() {
                             <X className="w-4 h-4" />{" "}
                             <span className="hidden sm:inline">Cancelar</span>
                           </Button>
+
+                          {rowFeedback[cert.id] && (
+                            <div
+                              className={`w-full inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
+                                rowFeedback[cert.id].type === "success"
+                                  ? "bg-green-50 border border-green-200 text-green-800"
+                                  : "bg-red-50 border border-red-200 text-red-800"
+                              }`}
+                            >
+                              {rowFeedback[cert.id].type === "success" ? (
+                                <CheckCircle className="w-4 h-4 shrink-0" />
+                              ) : (
+                                <XCircle className="w-4 h-4 shrink-0" />
+                              )}
+                              <span>{rowFeedback[cert.id].message}</span>
+                            </div>
+                          )}
                         </>
                       ) : (
                         <Button
