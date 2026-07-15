@@ -20,6 +20,28 @@ export default class VoucherService {
 
     console.log("[DEBUG] Datos recibidos desde frontend:", data);
 
+    if (certification_id) {
+      const { data: certification, error: certificationError } =
+        await supabase
+          .from("certifications")
+          .select("active")
+          .eq("id", Number(certification_id))
+          .single();
+
+      if (certificationError) {
+        console.warn(
+          "[WARNING_CERTIFICATION_LOOKUP]",
+          certificationError.message
+        );
+      }
+
+      if (!certification?.active) {
+        throw new Error(
+          "La certificación seleccionada no está disponible para su compra"
+        );
+      }
+    }
+
     let expiration_date = expiration_dates;
 
     // ✅ Solo si no viene la fecha desde el frontend, calcularla según params

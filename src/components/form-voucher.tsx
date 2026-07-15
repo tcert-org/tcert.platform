@@ -168,6 +168,19 @@ export default function VoucherForm() {
       return;
     }
 
+    const isCertificationAvailable = certifications.some(
+      (c) => c.value === data.certification_id
+    );
+
+    if (!isCertificationAvailable) {
+      toast.error(
+        "La certificación seleccionada ya no está disponible. Por favor, elija otra.",
+        { position: "top-center", theme: "colored" }
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const payload = {
         ...data,
