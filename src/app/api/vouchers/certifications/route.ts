@@ -11,7 +11,8 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from("certifications")
-      .select("id, name");
+      .select("id, name")
+      .eq("active", true);
 
     if (error) throw error;
 
