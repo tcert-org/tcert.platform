@@ -2,15 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Award, Download, Loader2 } from "lucide-react";
+import { Award, Download, Linkedin, Loader2 } from "lucide-react";
 
 interface ApprovedAttemptData {
   hasApprovedAttempts: boolean;
   approvedAttempts: any[];
 }
 
+// TODO: reemplazar organizationName por organizationId numérico
+// una vez exista la página de empresa de T-Cert en LinkedIn.
+const LINKEDIN_ORGANIZATION_NAME = "T-CERT";
+const VERIFICATION_SITE_URL = "https://t-cert.us";
+
 export default function CertificatePage() {
   const [loading, setLoading] = useState(false);
+  const [linkedInLoading, setLinkedInLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasApprovedAttempts, setHasApprovedAttempts] = useState<
     boolean | null
@@ -95,6 +101,96 @@ export default function CertificatePage() {
     }
   };
 
+  // Reúne estudiante, voucher y diploma (creándolo si aún no existe),
+  // usado tanto por la descarga del PDF como por "Agregar a LinkedIn".
+  const getCertificateData = async () => {
+    const session = JSON.parse(
+      sessionStorage.getItem("student-data") || "{}"
+    );
+    const studentName = session?.state?.decryptedStudent?.fullname;
+    const documentNumber = session?.state?.decryptedStudent?.document_number;
+    const voucherId = session?.state?.decryptedStudent?.voucher_id;
+
+    if (!voucherId) throw new Error("No se encontró el ID del voucher.");
+    if (!documentNumber)
+      throw new Error("No se encontró el número de documento del estudiante.");
+
+    const studentResponse = await fetch(
+      `/api/students/by-voucher?voucher_id=${voucherId}`
+    );
+    if (!studentResponse.ok)
+      throw new Error("Error al obtener los datos del estudiante.");
+    const studentData = await studentResponse.json();
+    const studentId = studentData?.data?.id;
+    if (!studentId) throw new Error("No se encontró el ID del estudiante.");
+
+    const voucherResponse = await fetch(
+      `/api/vouchers/by-student?voucher_id=${voucherId}`,
+      { credentials: "include" }
+    );
+    if (!voucherResponse.ok)
+      throw new Error("Error al obtener los detalles del voucher.");
+    const voucherData = await voucherResponse.json();
+    if (!voucherData?.data)
+      throw new Error("No se encontró la información del voucher.");
+
+    if (approvedAttempts.length === 0) {
+      throw new Error(
+        "No se encontraron intentos aprobados para generar el certificado."
+      );
+    }
+    const examAttemptId = approvedAttempts[0].id;
+
+    // Validar o crear el registro del diploma (sin forzar expiration_date:
+    // el backend la calcula a partir de completion_date)
+    const diplomaResponse = await fetch("/api/diploma", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        exam_attempt_id: examAttemptId,
+        student_id: studentId,
+        certification_id: voucherData.data.certification_id,
+        completion_date: new Date().toISOString().split("T")[0],
+      }),
+    });
+    if (!diplomaResponse.ok) {
+      const diplomaResponseText = await diplomaResponse.text();
+      throw new Error(`Error al validar el diploma: ${diplomaResponseText}`);
+    }
+
+    // Obtener el registro del diploma por voucher para extraer las fechas reales
+    const diplomaByVoucherRes = await fetch(
+      `/api/diploma/by-voucher-code?voucher_code=${voucherData.data.code}`,
+      { credentials: "include" }
+    );
+    if (!diplomaByVoucherRes.ok) {
+      throw new Error("No se pudo obtener el registro del diploma para el voucher.");
+    }
+    const diplomaByVoucherData = await diplomaByVoucherRes.json();
+    const diploma = diplomaByVoucherData?.data?.diploma;
+    const expirationDateRaw = diploma?.expiration_date;
+    if (typeof expirationDateRaw !== "string") {
+      throw new Error("No se encontró la fecha de expiración en el diploma.");
+    }
+    const expirationDate = expirationDateRaw.split("T")[0];
+    const completionDateRaw = diploma?.completion_date;
+    const completionDate =
+      typeof completionDateRaw === "string"
+        ? completionDateRaw.split("T")[0]
+        : new Date().toISOString().split("T")[0];
+
+    return {
+      studentName,
+      documentNumber,
+      certificationName: voucherData.data.certification_name,
+      logoUrl: voucherData.data.certification_logo_url,
+      voucherCode: voucherData.data.code,
+      completionDate,
+      expirationDate,
+    };
+  };
+
   const handleGetCertificate = async () => {
     // Verificar elegibilidad antes de proceder
     if (hasApprovedAttempts === false) {
@@ -115,142 +211,7 @@ export default function CertificatePage() {
     setError(null);
 
     try {
-      // Obtener datos del student-data desde sessionStorage
-      const session = JSON.parse(
-        sessionStorage.getItem("student-data") || "{}"
-      );
-      const studentName = session?.state?.decryptedStudent?.fullname;
-      const documentNumber = session?.state?.decryptedStudent?.document_number; // Agregar número de documento
-      const voucherId = session?.state?.decryptedStudent?.voucher_id;
-
-      console.log("Datos de la sesión", session);
-      console.log("Nombre del estudiante: ", studentName);
-      console.log("Número de documento: ", documentNumber);
-
-      if (!voucherId) {
-        console.error("No se encontró el ID del voucher.");
-        setError("No se encontró el ID del voucher.");
-        setLoading(false);
-        return;
-      }
-
-      if (!documentNumber) {
-        console.error("No se encontró el número de documento del estudiante.");
-        setError("No se encontró el número de documento del estudiante.");
-        setLoading(false);
-        return;
-      }
-
-      // Obtener el student_id usando el voucher_id (de la tabla students)
-      const studentResponse = await fetch(
-        `/api/students/by-voucher?voucher_id=${voucherId}`
-      );
-      if (!studentResponse.ok) {
-        console.error("Error al obtener los datos del estudiante");
-        setError("Error al obtener los datos del estudiante.");
-        setLoading(false);
-        return;
-      }
-
-      const studentData = await studentResponse.json();
-      const studentId = studentData?.data?.id;
-
-      if (!studentId) {
-        console.error("No se encontró el ID del estudiante en la respuesta.");
-        setError("No se encontró el ID del estudiante.");
-        setLoading(false);
-        return;
-      }
-
-      console.log("ID del estudiante obtenido (tabla students): ", studentId);
-
-      // Usar el endpoint seguro para estudiantes con voucher_id ya obtenido arriba
-      if (!voucherId) {
-        setError("No se encontró el ID del voucher.");
-        setLoading(false);
-        return;
-      }
-      const response = await fetch(
-        `/api/vouchers/by-student?voucher_id=${voucherId}`,
-        { credentials: "include" }
-      );
-      if (!response.ok) {
-        setError("Error al obtener los detalles del voucher.");
-        setLoading(false);
-        return;
-      }
-      const voucherData = await response.json();
-      if (!voucherData?.data) {
-        setError("No se encontró la información del voucher.");
-        setLoading(false);
-        return;
-      }
-
-      // Obtener el intento aprobado más reciente para usar su ID
-      let examAttemptId = null;
-      if (approvedAttempts.length > 0) {
-        examAttemptId = approvedAttempts[0].id;
-      } else {
-        setError(
-          "No se encontraron intentos aprobados para generar el certificado."
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Validar o crear el registro del diploma antes de generar el PDF
-      const diplomaResponse = await fetch("/api/diploma", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          exam_attempt_id: examAttemptId,
-          student_id: studentId,
-          certification_id: voucherData.data.certification_id,
-          completion_date: new Date().toISOString().split("T")[0],
-        }),
-      });
-      if (!diplomaResponse.ok) {
-        const diplomaResponseText = await diplomaResponse.text();
-        setError(`Error al validar el diploma: ${diplomaResponseText}`);
-        setLoading(false);
-        return;
-      }
-
-      // Obtener el registro del diploma por voucher para extraer la fecha de expiración
-      const diplomaByVoucherRes = await fetch(
-        `/api/diploma/by-voucher-code?voucher_code=${voucherData.data.code}`,
-        { credentials: "include" }
-      );
-      if (!diplomaByVoucherRes.ok) {
-        setError("No se pudo obtener el registro del diploma para el voucher.");
-        setLoading(false);
-        return;
-      }
-      const diplomaByVoucherData = await diplomaByVoucherRes.json();
-      console.log(
-        "Respuesta de /api/diploma/by-voucher-code:",
-        diplomaByVoucherData
-      );
-      const expirationDateRaw =
-        diplomaByVoucherData?.data?.diploma?.expiration_date;
-      if (!expirationDateRaw) {
-        setError("No se encontró la fecha de expiración en el diploma.");
-        setLoading(false);
-        return;
-      }
-      // Formatear la fecha a YYYY-MM-DD (sin hora) para el PDFTool
-      let expirationDate = "";
-      if (typeof expirationDateRaw === "string") {
-        expirationDate = expirationDateRaw.split("T")[0];
-      }
-      if (!expirationDate) {
-        setError("La fecha de expiración no es válida.");
-        setLoading(false);
-        return;
-      }
+      const cert = await getCertificateData();
 
       // Llamar al endpoint para generar el certificado usando la fecha de expiración real
       const certResponse = await fetch("/api/diploma/generate", {
@@ -260,17 +221,16 @@ export default function CertificatePage() {
         },
         credentials: "include",
         body: JSON.stringify({
-          studentName: studentName,
-          certificationName: voucherData.data.certification_name,
-          expeditionDate: expirationDate, // <--- CORREGIDO
-          codigoVoucher: voucherData.data.code,
-          URL_logo: voucherData.data.certification_logo_url,
-          documentNumber: documentNumber,
+          studentName: cert.studentName,
+          certificationName: cert.certificationName,
+          expeditionDate: cert.expirationDate,
+          codigoVoucher: cert.voucherCode,
+          URL_logo: cert.logoUrl,
+          documentNumber: cert.documentNumber,
         }),
       });
       if (!certResponse.ok) {
         setError("Error al generar el certificado.");
-        setLoading(false);
         return;
       }
       // Descargar el PDF
@@ -278,14 +238,66 @@ export default function CertificatePage() {
       const downloadUrl = URL.createObjectURL(certBlob);
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = `${studentName}-certificado.pdf`;
+      link.download = `${cert.studentName}-certificado.pdf`;
       link.click();
       URL.revokeObjectURL(downloadUrl);
     } catch (err) {
       console.error("Error inesperado", err);
-      setError("Error inesperado al generar el certificado.");
+      setError(
+        err instanceof Error ? err.message : "Error inesperado al generar el certificado."
+      );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddToLinkedIn = async () => {
+    if (hasApprovedAttempts !== true) {
+      setError(
+        "No puedes agregar el certificado a LinkedIn porque no tienes ningún examen aprobado."
+      );
+      return;
+    }
+
+    setLinkedInLoading(true);
+    setError(null);
+
+    try {
+      const cert = await getCertificateData();
+
+      const toYearMonth = (dateString: string) => {
+        const [year, month] = dateString.split("-");
+        return { year, month: String(Number(month)) };
+      };
+      const issue = toYearMonth(cert.completionDate);
+      const expiration = toYearMonth(cert.expirationDate);
+
+      const params = new URLSearchParams({
+        startTask: "CERTIFICATION_NAME",
+        name: cert.certificationName,
+        organizationName: LINKEDIN_ORGANIZATION_NAME,
+        issueYear: issue.year,
+        issueMonth: issue.month,
+        expirationYear: expiration.year,
+        expirationMonth: expiration.month,
+        certUrl: `${VERIFICATION_SITE_URL}/autenticator?voucher_code=${cert.voucherCode}`,
+        certId: cert.voucherCode,
+      });
+
+      window.open(
+        `https://www.linkedin.com/profile/add?${params.toString()}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    } catch (err) {
+      console.error("Error inesperado", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Error inesperado al preparar los datos para LinkedIn."
+      );
+    } finally {
+      setLinkedInLoading(false);
     }
   };
 
@@ -351,22 +363,40 @@ export default function CertificatePage() {
             </Button>
           </div>
         ) : hasApprovedAttempts === true ? (
-          <Button
-            onClick={handleGetCertificate}
-            disabled={loading}
-            className={`font-medium px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 ${
-              loading
-                ? "bg-gray-400 cursor-not-allowed text-gray-600"
-                : "bg-green-600 hover:bg-green-700 text-white"
-            }`}
-          >
-            {loading ? (
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            ) : (
-              <Download className="w-5 h-5 mr-2" />
-            )}
-            {loading ? "Generando Certificado..." : "Obtener Certificado"}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={handleGetCertificate}
+              disabled={loading}
+              className={`font-medium px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed text-gray-600"
+                  : "bg-green-600 hover:bg-green-700 text-white"
+              }`}
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-5 h-5 mr-2" />
+              )}
+              {loading ? "Generando Certificado..." : "Obtener Certificado"}
+            </Button>
+            <Button
+              onClick={handleAddToLinkedIn}
+              disabled={linkedInLoading}
+              className={`font-medium px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all duration-200 ${
+                linkedInLoading
+                  ? "bg-gray-400 cursor-not-allowed text-gray-600"
+                  : "bg-[#0A66C2] hover:bg-[#0954a5] text-white"
+              }`}
+            >
+              {linkedInLoading ? (
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              ) : (
+                <Linkedin className="w-5 h-5 mr-2" />
+              )}
+              {linkedInLoading ? "Preparando..." : "Agregar a LinkedIn"}
+            </Button>
+          </div>
         ) : (
           <div className="max-w-md text-center">
             <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-4">
