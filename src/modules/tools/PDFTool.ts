@@ -21,6 +21,32 @@ function wrapText(
   if (currentLine) lines.push(currentLine);
   return lines;
 }
+
+// Ajusta automáticamente el tamaño de fuente (auto-fit) para que un texto
+// quepa dentro de un ancho y una cantidad máxima de líneas: parte de
+// maxFontSize y va reduciendo hasta minFontSize hasta que el wrap resultante
+// respete maxLines. Evita que nombres largos se desborden o se amontonen.
+function fitTextBlock(
+  font: any,
+  text: string,
+  maxFontSize: number,
+  minFontSize: number,
+  maxWidth: number,
+  maxLines: number
+): { fontSize: number; lines: string[] } {
+  for (let size = maxFontSize; size >= minFontSize; size--) {
+    const lines = wrapText(font, text, size, maxWidth);
+    if (lines.length <= maxLines) {
+      return { fontSize: size, lines };
+    }
+  }
+  // Si ni al tamaño mínimo cabe en maxLines, priorizamos no perder texto
+  // sobre respetar el límite de líneas.
+  return {
+    fontSize: minFontSize,
+    lines: wrapText(font, text, minFontSize, maxWidth),
+  };
+}
 import fs from "fs";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import path from "path";
@@ -271,56 +297,60 @@ export default class PDFTool {
       });
 
       const maxStudentNameWidth = width - 120;
-      const studentNameLines = wrapText(
+      const {
+        fontSize: fittedStudentFontSize,
+        lines: studentNameLines,
+      } = fitTextBlock(
         mainFont,
         normalizedNameStudent,
         fontSize,
-        maxStudentNameWidth
+        16,
+        maxStudentNameWidth,
+        2
       );
       const lineSpacing = 1.1;
       const studentBlockCenterY = 490;
       const studentNameStartY =
         studentBlockCenterY +
-        ((studentNameLines.length - 1) * fontSize * lineSpacing) / 2 -
-        fontSize / 3;
+        ((studentNameLines.length - 1) * fittedStudentFontSize * lineSpacing) / 2 -
+        fittedStudentFontSize / 3;
       for (let i = 0; i < studentNameLines.length; i++) {
         const line = studentNameLines[i];
-        const lineWidth = mainFont.widthOfTextAtSize(line, fontSize);
+        const lineWidth = mainFont.widthOfTextAtSize(line, fittedStudentFontSize);
         firstPage.drawText(line, {
           x: (width - lineWidth) / 2,
-          y: studentNameStartY - i * fontSize * lineSpacing,
-          size: fontSize,
+          y: studentNameStartY - i * fittedStudentFontSize * lineSpacing,
+          size: fittedStudentFontSize,
           font: mainFont,
           color: black,
         });
       }
 
       const maxCourseNameWidth = width * 0.62;
-      const courseWords = nameCourse.trim().split(/\s+/);
-      let courseNameLines: string[];
-      if (courseWords.length === 2) {
-        courseNameLines = courseWords;
-      } else {
-        courseNameLines = wrapText(
-          courseFont,
-          nameCourse,
-          courseFontSize,
-          maxCourseNameWidth
-        );
-      }
+      const {
+        fontSize: fittedCourseFontSize,
+        lines: courseNameLines,
+      } = fitTextBlock(
+        courseFont,
+        nameCourse,
+        courseFontSize,
+        16,
+        maxCourseNameWidth,
+        3
+      );
       const courseLineSpacing = 1.1;
       const courseBlockCenterY = 375;
       const courseNameStartY =
         courseBlockCenterY +
-        ((courseNameLines.length - 1) * courseFontSize * courseLineSpacing) / 2 -
-        courseFontSize / 3;
+        ((courseNameLines.length - 1) * fittedCourseFontSize * courseLineSpacing) / 2 -
+        fittedCourseFontSize / 3;
       for (let i = 0; i < courseNameLines.length; i++) {
         const line = courseNameLines[i];
-        const lineWidth = courseFont.widthOfTextAtSize(line, courseFontSize);
+        const lineWidth = courseFont.widthOfTextAtSize(line, fittedCourseFontSize);
         firstPage.drawText(line, {
           x: (width - lineWidth) / 2,
-          y: courseNameStartY - i * courseFontSize * courseLineSpacing,
-          size: courseFontSize,
+          y: courseNameStartY - i * fittedCourseFontSize * courseLineSpacing,
+          size: fittedCourseFontSize,
           font: courseFont,
           color: black,
         });
